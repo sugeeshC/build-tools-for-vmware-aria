@@ -23,10 +23,10 @@ jobs:
           java-version: '17'
 
       - name: Build with Maven
-        run: mvn clean install
+        run: mvn clean install -f common/artifact-manager/pom.xml
 
       - name: Run tests and generate JaCoCo coverage report
-        run: mvn test jacoco:report
+        run: mvn test jacoco:report -f common/artifact-manager/pom.xml
 
       - name: Publish JaCoCo to PR
         id: jacoco

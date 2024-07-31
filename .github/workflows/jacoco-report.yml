@@ -28,8 +28,11 @@ jobs:
       - name: Run tests and generate JaCoCo coverage report
         run: mvn test jacoco:report
 
-      - name: Publish JaCoCo Report
-        uses: cicirello/jacoco-report@v1
+      - name: Publish JaCoCo to PR
+        id: jacoco
+        uses: madrapps/jacoco-report@v1.6.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          coverage_file: common/artifact-manager/target/site/jacoco/jacoco.xml
+          paths: common/artifact-manager/target/site/jacoco/jacoco.xml
+          min-coverage-overall: 40
+          min-coverage-changed-files: 60

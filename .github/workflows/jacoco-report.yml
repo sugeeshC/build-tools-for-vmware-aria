@@ -2,9 +2,9 @@ name: Generate Jacoco Report
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   build:
@@ -34,5 +34,18 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           paths: common/artifact-manager/target/site/jacoco/jacoco.xml
-          min-coverage-overall: 40
+          min-coverage-overall: 80
           min-coverage-changed-files: 60
+          title: Artifact-Manager Code Coverage Report
+
+      - name: Get the Coverage info
+        run: |
+          echo "Total coverage ${{ steps.jacoco.outputs.coverage-overall }}"
+          echo "Changed Files coverage ${{ steps.jacoco.outputs.coverage-changed-files }}"
+
+      - name: Fail PR if overall coverage is less than 80%
+        if: ${{ steps.jacoco.outputs.coverage-overall < 80.0 }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+             core.setFailed('Overall coverage is less than 80%!')

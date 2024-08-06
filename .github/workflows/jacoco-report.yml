@@ -37,6 +37,7 @@ jobs:
           min-coverage-overall: 80
           min-coverage-changed-files: 60
           title: Artifact-Manager Code Coverage Report
+          coverage_type: 'line'
 
       - name: Get the Coverage info
         run: |

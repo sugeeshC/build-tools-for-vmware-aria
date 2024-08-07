@@ -75,13 +75,13 @@ jobs:
               issue_number: issueNumber,
               body: `
                 ## Artifact-Manager Code Coverage Report
-
-                **Overall Project**: ${overallCoverage}%
-                **Files changed**: ${changedFilesCoverage} files
-
+                | **Overall Project** | **${overallCoverage}** |
+                |:-------------------:|:----------------------:|
+                | **Files changed**   | **${changedFilesCoverage} files** |
+                
                 ## File Coverage
                 | File | Coverage |
-                | --- | --- |
+                |:----:|:--------:|
                 ${fileCoverageDetails}
               `
             });

@@ -104,9 +104,9 @@ public class CheckCoverage {
 		System.out.println("::set-output name=changed-files::"+ totalFiles);
 		System.out.println("::set-output name=file-coverage::"+ fileCoverageBuilder.toString().trim());
 
-		setOutput("overall", String.format("%.2f", totalCoverage/totalFiles));
-		setOutput("changed-files", String.valueOf(totalFiles));
-		setOutput("file-coverage", fileCoverageBuilder.toString().trim());
+//		setOutput("overall", String.format("%.2f", totalCoverage/totalFiles));
+//		setOutput("changed-files", String.valueOf(totalFiles));
+//		setOutput("file-coverage", fileCoverageBuilder.toString().trim());
 	}
 
 	private static Double calculateLineCoverage(Element classElement) {

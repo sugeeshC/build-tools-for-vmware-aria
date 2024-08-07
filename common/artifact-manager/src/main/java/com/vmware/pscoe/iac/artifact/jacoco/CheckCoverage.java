@@ -8,10 +8,7 @@ import org.xml.sax.SAXException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -102,6 +99,10 @@ public class CheckCoverage {
 		System.out.println("::set-output name=overall::"+ String.format("%.2f", totalCoverage/ totalFiles));
 		System.out.println("::set-output name=changed-files::"+ totalFiles);
 		System.out.println("::set-output name=file-coverage::"+ fileCoverageBuilder.toString().trim());
+
+		setOutput("overall", String.format("%.2f", totalCoverage/totalFiles));
+		setOutput("changed-files", String.valueOf(totalFiles));
+		setOutput("file-coverage", fileCoverageBuilder.toString().trim());
 	}
 
 	private static Double calculateLineCoverage(Element classElement) {
@@ -120,6 +121,13 @@ public class CheckCoverage {
 			return (covered/(double)(missed+covered))* 100;
 		}
 		return null;
+	}
+
+	private static void setOutput(String name, String value) throws IOException{
+		File envFile = new File(System.getenv("GITHUB_ENV"));
+		try (FileWriter writer = new FileWriter(envFile, true)) {
+			writer.write(name + "=" + value + "\n");
+		}
 	}
 
 }

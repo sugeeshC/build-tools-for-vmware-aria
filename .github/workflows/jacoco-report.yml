@@ -28,8 +28,16 @@ jobs:
       - name: Run tests and generate JaCoCo coverage report
         run: mvn test jacoco:report -f common/artifact-manager/pom.xml
 
+      - name: Print branches
+        run: |
+          echo "GITHUB_BASE_REF: ${{ github.base_ref }}"
+          echo "GITHUB_HEAD_REF: ${{ github.head_ref }}"
+
       - name: Run Coverage Check
         id: coverage-check
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
         run: |
           mvn exec:java -Dexec.mainClass="com.vmware.pscoe.iac.artifact.jacoco.CheckCoverage" -f common/artifact-manager/pom.xml
         continue-on-error: true

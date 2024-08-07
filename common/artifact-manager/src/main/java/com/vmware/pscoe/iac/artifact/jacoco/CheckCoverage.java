@@ -16,14 +16,16 @@ public class CheckCoverage {
 
 
 	public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
-		String branch = "main";
+		String baseBranch = System.getenv("GITHUB_BASE_REF");
+		String headBranch = System.getenv("GITHUB_HEAD_REF");
 		double coverageThreshold = 50.0;
 		String modulePath = "common/artifact-manager/";
 		String jacocoReportPath = modulePath + "target/site/jacoco/jacoco.xml";
 
-		System.out.println("Branch 12 : "+ branch);
+		System.out.println("Branch 12 : "+ baseBranch);
+		System.out.println("Branch 14 : "+ headBranch);
 
-		ProcessBuilder processBuilder = new ProcessBuilder("git", "diff", "--name-only", branch + "...HEAD");
+		ProcessBuilder processBuilder = new ProcessBuilder("git", "diff", "--name-only", baseBranch + "..."+headBranch);
 		processBuilder.redirectErrorStream(true);
 		Process process = processBuilder.start();
 

@@ -80,8 +80,8 @@ jobs:
             | **Files changed**   | **${changedFilesCoverage} files** |
                 
             ## File Coverage
-            | File | Coverage |
-            |:----:|:--------:|
+            | File | Coverage | Above Threshold |
+            |:----:|:--------:|:---------------:|
             ${fileCoverageDetails}
               `
             });

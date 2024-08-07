@@ -1,5 +1,20 @@
 package com.vmware.pscoe.iac.artifact.jacoco;
 
+/*-
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 - 2024 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the "License"). You may not use this product except in compliance with the BSD-2 License.
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -85,7 +100,7 @@ public class CheckCoverage {
 								.append(" |")
 								.append(String.format("%.2f", lineCoverage))
 								.append("% | ")
-								.append(isAboveOrEqualThreshold ? "✅" : "❌")
+								.append(isAboveOrEqualThreshold ? "\u2705" : "\u274C")
 								.append("% |\n");
 						} else {
 							System.out.println("Warning: No line coverage found for "+ fileName);

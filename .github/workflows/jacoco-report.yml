@@ -54,7 +54,7 @@ jobs:
             github.issues.createComment({
               ...context.repo,
               issue_number: issueNumber,
-              body: |
+              body: `
                 ## Artifact-Manager Code Coverage Report
 
                 **Overall Project**: ${overallCoverage}%
@@ -64,4 +64,5 @@ jobs:
                 | File | Coverage |
                 | --- | --- |
                 ${fileCoverageDetails}
+              `
             });

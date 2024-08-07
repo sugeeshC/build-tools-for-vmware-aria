@@ -41,7 +41,7 @@ jobs:
       - name: Create Coverage Report Comment
         uses: actions/github-script@v4
         with:
-          github-token: ${{ secret.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const overallCoverage = "${{ steps.coverage-check.outputs.overall }}";
             const changedFilesCoverage = "${{ steps.coverage-check.outputs.changed-files }}"

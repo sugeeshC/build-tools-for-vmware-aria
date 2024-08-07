@@ -99,7 +99,7 @@ public class CheckCoverage {
 			System.out.println("No changed files found.");
 		}
 
-		System.out.println("::set-output name=overall::"+ String.format("%.2f", totalCoverage/ totalCoverage));
+		System.out.println("::set-output name=overall::"+ String.format("%.2f", totalCoverage/ totalFiles));
 		System.out.println("::set-output name=changed-files::"+ totalFiles);
 		System.out.println("::set-output name=file-coverage::"+ fileCoverageBuilder.toString().trim());
 	}

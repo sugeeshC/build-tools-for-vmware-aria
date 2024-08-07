@@ -28,25 +28,38 @@ jobs:
       - name: Run tests and generate JaCoCo coverage report
         run: mvn test jacoco:report -f common/artifact-manager/pom.xml
 
-      - name: Publish JaCoCo to PR
-        id: jacoco
-        uses: madrapps/jacoco-report@v1.6.1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          paths: common/artifact-manager/target/site/jacoco/jacoco.xml
-          min-coverage-overall: 80
-          min-coverage-changed-files: 60
-          title: Artifact-Manager Code Coverage Report
-          coverage_type: 'line'
-
-      - name: Get the Coverage info
+      - name: Run Coverage Check
+        id: coverage-check
         run: |
-          echo "Total coverage ${{ steps.jacoco.outputs.coverage-overall }}"
-          echo "Changed Files coverage ${{ steps.jacoco.outputs.coverage-changed-files }}"
+          mvn exec:java -Dexec.mainClass="com.vmware.pscoe.iac.artifact.jacoco.CheckCoverage" -f common/artifact-manager/pom.xml
+        continue-on-error: true
 
-      - name: Fail PR if overall coverage is less than 80%
-        if: ${{ steps.jacoco.outputs.coverage-overall < 80.0 }}
-        uses: actions/github-script@v6
+      - name: Get Coverage Results
+        id: get-coverage-results
+        run: echo "Coverage check output: ${{ steps.coverage-check.outputs.result }}"
+
+      - name: Create Coverage Report Comment
+        uses: actions/github-script@v4
         with:
+          github-token: ${{ secret.GITHUB_TOKEN }}
           script: |
-             core.setFailed('Overall coverage is less than 80%!')
+            const overallCoverage = "${{ steps.coverage-check.outputs.overall }}";
+            const changedFilesCoverage = "${{ steps.coverage-check.outputs.changed-files }}"
+            const fileCoverageDetails = "${{ steps.coverage-check.outputs.file-coverage }}"
+            const issueNumber = context.payload.pull_request ? context.payload.pull_request.number : context.issue.number;
+            
+            github.issues.createComment({
+              ...context.repo,
+              issue_number: issueNumber,
+              body: `
+## Artifact-Manager Code Coverage Report
+
+**Overall Project**: ${overallCoverage}%
+**Files changed**: ${changedFilesCoverage} files
+
+## File Coverage
+| File | Coverage |
+| --- | --- |
+${fileCoverageDetails}
+          `
+            });

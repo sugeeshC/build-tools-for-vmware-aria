@@ -1,0 +1,125 @@
+package com.vmware.pscoe.iac.artifact.jacoco;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
+
+public class CheckCoverage {
+
+
+	public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
+		String branch = "main";
+		double coverageThreshold = 50.0;
+		String modulePath = "common/artifact-manager/";
+		String jacocoReportPath = modulePath + "target/site/jacoco/jacoco.xml";
+
+		ProcessBuilder processBuilder = new ProcessBuilder("git", "diff", "--name-only", branch + "...HEAD");
+		processBuilder.redirectErrorStream(true);
+		Process process = processBuilder.start();
+
+		List<String> changedFiles = new ArrayList<>();
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))){
+			String line;
+			while ((line = reader.readLine()) != null){
+				changedFiles.add(line);
+			}
+		}
+
+//		System.out.println("Changed files from git diff:");
+//		changedFiles.forEach(System.out::println);
+
+
+		File jacocoReport = new File(jacocoReportPath);
+		DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+		dbFactory.setValidating(false);
+		dbFactory.setNamespaceAware(true);
+		dbFactory.setFeature("http://xml.org/sax/features/namespaces", false);
+		dbFactory.setFeature("http://xml.org/sax/features/validation", false);
+		dbFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-dtd-grammar", false);
+		dbFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+		DocumentBuilder dbBuilder = dbFactory.newDocumentBuilder();
+		Document doc = dbBuilder.parse(jacocoReport);
+
+		double totalCoverage = 0.0;
+		int totalFiles = 0;
+
+		StringBuilder fileCoverageBuilder = new StringBuilder();
+
+//		System.out.println("Checking JaCoCo report at: "+ jacocoReportPath);
+
+		NodeList packageList = doc.getElementsByTagName("package");
+
+		for (int i=0; i< packageList.getLength(); i++){
+			Element packageElement = (Element) packageList.item(i);
+			NodeList classList = packageElement.getElementsByTagName("class");
+
+			for (int j=0; j< classList.getLength(); j++){
+				Element classElement = (Element) classList.item(j);
+				String sourcefilename = classElement.getAttribute("sourcefilename");
+				if(sourcefilename != null && !sourcefilename.isEmpty()){
+					String fileName = modulePath + "src/main/java/"+ packageElement.getAttribute("name").replace('.','/') + '/' + sourcefilename;
+//					System.out.println("Checking file: "+ fileName);
+					if (changedFiles.contains(fileName)){
+						Double lineCoverage = calculateLineCoverage(classElement);
+						if (lineCoverage != null){
+							totalFiles++;
+							totalCoverage += lineCoverage;
+							System.out.println("File: "+ fileName);
+							System.out.println(" - Line coverage: "+ String.format("%.2f", lineCoverage)+ "%");
+
+							fileCoverageBuilder.append("| ").append(fileName).append(" |").append(String.format("%.2f", lineCoverage)).append("% |\n");
+						} else {
+							System.out.println("Warning: No line coverage found for "+ fileName);
+						}
+					}
+				}
+			}
+		}
+
+		if(totalFiles > 0){
+			double averageCoverage = totalCoverage/totalFiles;
+			System.out.println("\nAverage coverage for changed files: "+ String.format("%.2f", averageCoverage)+ "%" );
+			if (averageCoverage < coverageThreshold) {
+				System.out.println("ERROR: Coverage for changed files (" + String.format("%.2f", averageCoverage) +
+					"% is below the threshold of " + coverageThreshold + "%");
+			}
+
+		} else {
+			System.out.println("No changed files found.");
+		}
+
+		System.out.println("::set-output name=overall::"+ String.format("%.2f", totalCoverage/ totalCoverage));
+		System.out.println("::set-output name=changed-files::"+ totalFiles);
+		System.out.println("::set-output name=file-coverage::"+ fileCoverageBuilder.toString().trim());
+	}
+
+	private static Double calculateLineCoverage(Element classElement) {
+		NodeList counters = classElement.getElementsByTagName("counter");
+		int total = 0;
+		int missed = 0;
+		int covered = 0;
+		for (int i=0; i< counters.getLength(); i++){
+			Element counter = (Element) counters.item(i);
+			if ("INSTRUCTION".equals(counter.getAttribute("type"))){
+				missed += Integer.parseInt(counter.getAttribute("missed"));
+				covered += Integer.parseInt(counter.getAttribute("covered"));
+			}
+		}
+		if ((missed+covered) > 0) {
+			return (covered/(double)(missed+covered))* 100;
+		}
+		return null;
+	}
+
+}

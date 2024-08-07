@@ -54,15 +54,14 @@ jobs:
             github.issues.createComment({
               ...context.repo,
               issue_number: issueNumber,
-              body: `
-## Artifact-Manager Code Coverage Report
+              body: |
+                ## Artifact-Manager Code Coverage Report
 
-**Overall Project**: ${overallCoverage}%
-**Files changed**: ${changedFilesCoverage} files
+                **Overall Project**: ${overallCoverage}%
+                **Files changed**: ${changedFilesCoverage} files
 
-## File Coverage
-| File | Coverage |
-| --- | --- |
-${fileCoverageDetails}
-          `
+                ## File Coverage
+                | File | Coverage |
+                | --- | --- |
+                ${fileCoverageDetails}
             });

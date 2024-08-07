@@ -101,7 +101,7 @@ public class CheckCoverage {
 								.append(String.format("%.2f", lineCoverage))
 								.append("% | ")
 								.append(isAboveOrEqualThreshold ? "\u2705" : "\u274C")
-								.append("% |\n");
+								.append(" |\n");
 						} else {
 							System.out.println("Warning: No line coverage found for "+ fileName);
 						}

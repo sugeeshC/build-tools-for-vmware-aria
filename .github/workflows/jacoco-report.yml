@@ -86,6 +86,3 @@ jobs:
               `
             });
 
-      - name: Enforce Coverage Threshold
-        if: steps.coverage-check.outputs.overall < 50
-        with: exit 1

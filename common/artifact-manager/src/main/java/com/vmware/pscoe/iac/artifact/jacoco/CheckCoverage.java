@@ -21,6 +21,8 @@ public class CheckCoverage {
 		String modulePath = "common/artifact-manager/";
 		String jacocoReportPath = modulePath + "target/site/jacoco/jacoco.xml";
 
+		System.out.println("Branch 12 : "+ branch);
+
 		ProcessBuilder processBuilder = new ProcessBuilder("git", "diff", "--name-only", branch + "...HEAD");
 		processBuilder.redirectErrorStream(true);
 		Process process = processBuilder.start();
@@ -33,8 +35,8 @@ public class CheckCoverage {
 			}
 		}
 
-//		System.out.println("Changed files from git diff:");
-//		changedFiles.forEach(System.out::println);
+		System.out.println("Changed files from git diff:");
+		changedFiles.forEach(System.out::println);
 
 
 		File jacocoReport = new File(jacocoReportPath);

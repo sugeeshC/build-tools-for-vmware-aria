@@ -38,10 +38,10 @@ jobs:
           echo "GITHUB_HEAD_REF: ${{ github.head_ref }}"
 
       - name: Checkout Base Branch
-        run: git checkout ${{ github.base_ref }}"
+        run: git checkout ${{ github.base_ref }}
 
       - name: Checkout Head Branch
-        run: git checkout ${{ github.head_ref }}"
+        run: git checkout ${{ github.head_ref }}
 
       - name: Run Coverage Check
         id: coverage-check

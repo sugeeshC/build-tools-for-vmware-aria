@@ -36,7 +36,10 @@ jobs:
 
       - name: Get Coverage Results
         id: get-coverage-results
-        run: echo "Coverage check output: ${{ steps.coverage-check.outputs.result }}"
+        run: |
+          echo "Coverage check output: ${{ steps.coverage-check.outputs.overall }}"
+          echo "Changed files coverage: ${{ steps.coverage-check.outputs.changed-files }}"
+          echo "File coverage details : ${{ steps.coverage-check.outputs.file-coverage }}"
 
       - name: Create Coverage Report Comment
         uses: actions/github-script@v4

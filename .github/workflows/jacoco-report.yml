@@ -74,14 +74,14 @@ jobs:
               ...context.repo,
               issue_number: issueNumber,
               body: `
-                ## Artifact-Manager Code Coverage Report
-                | **Overall Project** | **${overallCoverage}** |
-                |:-------------------:|:----------------------:|
-                | **Files changed**   | **${changedFilesCoverage} files** |
+            ## Artifact-Manager Code Coverage Report
+            | **Overall Project** | **${overallCoverage}** |
+            |:-------------------:|:----------------------:|
+            | **Files changed**   | **${changedFilesCoverage} files** |
                 
-                ## File Coverage
-                | File | Coverage |
-                |:----:|:--------:|
-                ${fileCoverageDetails}
+            ## File Coverage
+            | File | Coverage |
+            |:----:|:--------:|
+            ${fileCoverageDetails}
               `
             });

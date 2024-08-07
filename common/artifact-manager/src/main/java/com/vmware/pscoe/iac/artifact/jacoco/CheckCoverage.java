@@ -76,10 +76,17 @@ public class CheckCoverage {
 						if (lineCoverage != null){
 							totalFiles++;
 							totalCoverage += lineCoverage;
+							boolean isAboveOrEqualThreshold = lineCoverage >= coverageThreshold;
 							System.out.println("File: "+ fileName);
 							System.out.println(" - Line coverage: "+ String.format("%.2f", lineCoverage)+ "%");
 
-							fileCoverageBuilder.append("| ").append(fileName).append(" |").append(String.format("%.2f", lineCoverage)).append("% |\n");
+							fileCoverageBuilder.append("| ")
+								.append(fileName)
+								.append(" |")
+								.append(String.format("%.2f", lineCoverage))
+								.append("% | ")
+								.append(isAboveOrEqualThreshold ? "✅" : "❌")
+								.append("% |\n");
 						} else {
 							System.out.println("Warning: No line coverage found for "+ fileName);
 						}

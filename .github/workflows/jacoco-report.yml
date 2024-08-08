@@ -68,6 +68,7 @@ jobs:
             const overallCoverage = "${{ steps.coverage-check.outputs.overall }}";
             const changedFilesCoverage = "${{ steps.coverage-check.outputs.changed-files }}"
             const fileCoverageDetails = "${{ steps.coverage-check.outputs.file-coverage }}"
+            fileCoverageDetails = fileCoverageDetails.replace(/::newline::/g, '\n');
             const issueNumber = context.payload.pull_request ? context.payload.pull_request.number : context.issue.number;
             
             github.issues.createComment({

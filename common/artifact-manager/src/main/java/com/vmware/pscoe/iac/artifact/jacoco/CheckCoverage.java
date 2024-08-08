@@ -117,11 +117,11 @@ public class CheckCoverage {
 				System.out.println("ERROR: Coverage for changed files (" + String.format("%.2f", averageCoverage) +
 					"% is below the threshold of " + coverageThreshold + "%");
 			}
-
 		} else {
 			System.out.println("No changed files found.");
 		}
 
+		System.out.println("Table results : "+ fileCoverageBuilder);
 		System.out.println("::set-output name=overall::"+ String.format("%.2f", totalCoverage/ totalFiles));
 		System.out.println("::set-output name=changed-files::"+ totalFiles);
 		System.out.println("::set-output name=file-coverage::"+ fileCoverageBuilder);

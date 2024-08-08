@@ -35,14 +35,6 @@ jobs:
       - name: Build with Maven
         run: mvn clean install -f common/artifact-manager/pom.xml
 
-      - name: Run tests and generate JaCoCo coverage report
-        run: mvn test jacoco:report -f common/artifact-manager/pom.xml
-
-      - name: Print branches
-        run: |
-          echo "GITHUB_BASE_REF: ${{ github.base_ref }}"
-          echo "GITHUB_HEAD_REF: ${{ github.head_ref }}"
-
       - name: Run Coverage Check
         id: coverage-check
         env:
@@ -52,13 +44,6 @@ jobs:
           git diff --name-only $GITHUB_BASE_REF...$GITHUB_HEAD_REF
           mvn exec:java -Dexec.mainClass="com.vmware.pscoe.iac.artifact.jacoco.CheckCoverage" -f common/artifact-manager/pom.xml
         continue-on-error: true
-
-      - name: Get Coverage Results
-        id: get-coverage-results
-        run: |
-          echo "Coverage check output: ${{ steps.coverage-check.outputs.overall }}"
-          echo "Changed files coverage: ${{ steps.coverage-check.outputs.changed-files }}"
-          echo "File coverage details : ${{ steps.coverage-check.outputs.file-coverage }}"
 
       - name: Create Coverage Report Comment
         uses: actions/github-script@v4
@@ -75,8 +60,8 @@ jobs:
               ...context.repo,
               issue_number: issueNumber,
               body: `
-            ## Artifact-Manager Code Coverage Report
-            | **Overall Project** | **${overallCoverage}** |
+            ## Artifact-Manager Changed-Files Code Coverage Report
+            | **Overall changed-files coverage** | **${overallCoverage}** |
             |:-------------------:|:----------------------:|
             | **Files changed**   | **${changedFilesCoverage} files** |
                 

@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CheckCoverage {
+	private static final String COVERAGE_TYPE = "INSTRUCTION";
 
 
 	public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
@@ -37,9 +38,6 @@ public class CheckCoverage {
 		double coverageThreshold = 50.0;
 		String modulePath = "common/artifact-manager/";
 		String jacocoReportPath = modulePath + "target/site/jacoco/jacoco.xml";
-
-		System.out.println("Branch 12 : "+ baseBranch);
-		System.out.println("Branch 14 : "+ headBranch);
 
 		ProcessBuilder processBuilder = new ProcessBuilder("git", "diff", "--name-only", baseBranch + "..."+headBranch);
 		processBuilder.redirectErrorStream(true);
@@ -52,10 +50,6 @@ public class CheckCoverage {
 				changedFiles.add(line);
 			}
 		}
-
-		System.out.println("Changed files from git diff:");
-		changedFiles.forEach(System.out::println);
-
 
 		File jacocoReport = new File(jacocoReportPath);
 		DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
@@ -72,9 +66,6 @@ public class CheckCoverage {
 		int totalFiles = 0;
 
 		StringBuilder fileCoverageBuilder = new StringBuilder();
-
-//		System.out.println("Checking JaCoCo report at: "+ jacocoReportPath);
-
 		NodeList packageList = doc.getElementsByTagName("package");
 
 		for (int i=0; i< packageList.getLength(); i++){
@@ -93,9 +84,6 @@ public class CheckCoverage {
 							totalFiles++;
 							totalCoverage += lineCoverage;
 							boolean isAboveOrEqualThreshold = lineCoverage >= coverageThreshold;
-							System.out.println("File: "+ fileName);
-							System.out.println(" - Line coverage: "+ String.format("%.2f", lineCoverage)+ "%");
-
 							String fileUrl = "https://github.com/"+ githubRepo + "/blob/"+headBranch+"/"+fileName;
 
 							fileCoverageBuilder.append("| [")
@@ -127,23 +115,19 @@ public class CheckCoverage {
 		}
 
 		System.out.println("Table results : "+ fileCoverageBuilder);
-		System.out.println("::set-output name=overall::"+ String.format("%.2f", totalCoverage/ totalFiles));
+		System.out.println("::set-output name=overall::"+ String.format("%.2f", totalCoverage/ totalFiles)+"%");
 		System.out.println("::set-output name=changed-files::"+ totalFiles);
 		System.out.println("::set-output name=file-coverage::"+ fileCoverageBuilder);
 
-//		setOutput("overall", String.format("%.2f", totalCoverage/totalFiles));
-//		setOutput("changed-files", String.valueOf(totalFiles));
-//		setOutput("file-coverage", fileCoverageBuilder.toString().trim());
 	}
 
 	private static Double calculateLineCoverage(Element classElement) {
 		NodeList counters = classElement.getElementsByTagName("counter");
-		int total = 0;
 		int missed = 0;
 		int covered = 0;
 		for (int i=0; i< counters.getLength(); i++){
 			Element counter = (Element) counters.item(i);
-			if ("INSTRUCTION".equals(counter.getAttribute("type"))){
+			if (COVERAGE_TYPE.equals(counter.getAttribute("type"))){
 				missed += Integer.parseInt(counter.getAttribute("missed"));
 				covered += Integer.parseInt(counter.getAttribute("covered"));
 			}
@@ -152,13 +136,6 @@ public class CheckCoverage {
 			return (covered/(double)(missed+covered))* 100;
 		}
 		return null;
-	}
-
-	private static void setOutput(String name, String value) throws IOException{
-		File envFile = new File(System.getenv("GITHUB_ENV"));
-		try (FileWriter writer = new FileWriter(envFile, true)) {
-			writer.write(name + "=" + value + "\n");
-		}
 	}
 
 }

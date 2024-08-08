@@ -1,0 +1,74 @@
+name: Generate Jacoco Report
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Fetch all branches
+        run: git fetch --all
+
+      - name: Checkout Base Branch
+        run: git checkout ${{ github.base_ref }}
+
+      - name: Checkout Head Branch
+        run: git checkout ${{ github.head_ref }}
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '17'
+
+      - name: Build with Maven
+        run: mvn clean install -f common/artifact-manager/pom.xml
+
+      - name: Run Coverage Check
+        id: coverage-check
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
+        run: |
+          git diff --name-only $GITHUB_BASE_REF...$GITHUB_HEAD_REF
+          mvn exec:java -Dexec.mainClass="com.vmware.pscoe.iac.artifact.jacoco.CheckCoverage" -f common/artifact-manager/pom.xml
+        continue-on-error: true
+
+      - name: Create Coverage Report Comment
+        uses: actions/github-script@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const overallCoverage = "${{ steps.coverage-check.outputs.overall }}";
+            const changedFilesCoverage = "${{ steps.coverage-check.outputs.changed-files }}"
+            let fileCoverageDetails = "${{ steps.coverage-check.outputs.file-coverage }}"
+            fileCoverageDetails = fileCoverageDetails.replace(/::newline::/g, '\n');
+            const issueNumber = context.payload.pull_request ? context.payload.pull_request.number : context.issue.number;
+            
+            github.issues.createComment({
+              ...context.repo,
+              issue_number: issueNumber,
+              body: `
+            ## Artifact-Manager Changed-Files Code Coverage Report
+            | **Overall changed-files coverage** | **${overallCoverage}** |
+            |:-------------------:|:----------------------:|
+            | **Files changed**   | **${changedFilesCoverage} files** |
+                
+            ## Changed File Coverage
+            | File | Coverage | Above Threshold |
+            |:----:|:--------:|:---------------:|
+            ${fileCoverageDetails}
+              `
+            });
+

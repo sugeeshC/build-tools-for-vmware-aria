@@ -107,6 +107,7 @@ public final class VropsPackageStore extends GenericPackageStore<VropsPackageDes
 	/**
 	 * The vRO rest client.
 	 */
+
 	private RestClientVrops restClient;
 	/**
 	 * Constant for policy metadata file name.

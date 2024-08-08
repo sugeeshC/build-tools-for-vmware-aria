@@ -79,7 +79,7 @@ jobs:
             |:-------------------:|:----------------------:|
             | **Files changed**   | **${changedFilesCoverage} files** |
                 
-            ## File Coverage
+            ## Changed File Coverage
             | File | Coverage | Above Threshold |
             |:----:|:--------:|:---------------:|
             ${fileCoverageDetails}

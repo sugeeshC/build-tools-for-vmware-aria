@@ -33,6 +33,7 @@ public class CheckCoverage {
 	public static void main(String[] args) throws IOException, ParserConfigurationException, SAXException {
 		String baseBranch = System.getenv("GITHUB_BASE_REF");
 		String headBranch = System.getenv("GITHUB_HEAD_REF");
+		String githubRepo = System.getenv("GITHUB_REPOSITORY");
 		double coverageThreshold = 50.0;
 		String modulePath = "common/artifact-manager/";
 		String jacocoReportPath = modulePath + "target/site/jacoco/jacoco.xml";
@@ -95,9 +96,13 @@ public class CheckCoverage {
 							System.out.println("File: "+ fileName);
 							System.out.println(" - Line coverage: "+ String.format("%.2f", lineCoverage)+ "%");
 
-							fileCoverageBuilder.append("| ")
-								.append(fileName)
-								.append(" |")
+							String fileUrl = "https://github.com/"+ githubRepo + "/blob/"+headBranch+"/"+fileName;
+
+							fileCoverageBuilder.append("| [")
+								.append(sourcefilename)
+								.append("](")
+								.append(fileUrl)
+								.append(") | ")
 								.append(String.format("%.2f", lineCoverage))
 								.append("% | ")
 								.append(isAboveOrEqualThreshold ? "\u2705" : "\u274C")

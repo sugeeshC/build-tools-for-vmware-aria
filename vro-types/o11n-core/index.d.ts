@@ -11,6 +11,7 @@ declare module java.lang {
 	type Iterable = any;
 }
 
+
 declare module java.io {
 	type Serializable = any;
 }

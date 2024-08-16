@@ -13,6 +13,7 @@ import ImportsRewriter from "./rewriter";
 import tscfgmerge from "./tscfgmerge";
 import * as t from "./types";
 
+
 export class NpmConverter {
 	private packRep: {
 		name: string;

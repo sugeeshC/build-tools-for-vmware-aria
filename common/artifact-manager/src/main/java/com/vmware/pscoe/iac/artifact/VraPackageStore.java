@@ -74,7 +74,8 @@ public class VraPackageStore extends GenericPackageStore<VraPackageDescriptor> {
 	 * @param vraExtentions the vRA extensions
 	 * @param vraProductVersion the vRA product version
 	 */
-    protected VraPackageStore(final RestClientVra vraRestClient, final List<Strategy> vraStrategies, final List<PackageStoreExtention<VraPackageDescriptor>> vraExtentions, final Version vraProductVersion) {
+
+	protected VraPackageStore(final RestClientVra vraRestClient, final List<Strategy> vraStrategies, final List<PackageStoreExtention<VraPackageDescriptor>> vraExtentions, final Version vraProductVersion) {
         this.restClient = vraRestClient;
         this.strategies = vraStrategies;
         this.extentions = vraExtentions;

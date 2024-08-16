@@ -843,6 +843,7 @@ public final class Installer {
 	/**
 	 * SSH port.
 	 */
+
 	private static final int SSH_PORT = 22;
 	/**
 	 * HTTPS port.

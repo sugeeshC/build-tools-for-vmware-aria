@@ -53,6 +53,7 @@ import java.util.stream.Collectors;
  */
 public class VraNgCatalogItemStore extends AbstractVraNgStore {
 
+
 	/**
 	 * Suffix that is applied on the name of blueprint catalog item version.
 	 */

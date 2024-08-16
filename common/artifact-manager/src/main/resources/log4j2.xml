@@ -6,6 +6,7 @@
     </Console>
   </Appenders>
 
+
   <category name="com.jayway.jsonpath.internal.path.CompiledPath">
     <priority value="OFF" />
   </category>

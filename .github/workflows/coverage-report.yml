@@ -46,3 +46,8 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./deploy
+          keep-files: true
+
+      - name: Output Deployment URL
+        if: always()
+        run: echo "Report deployed to https://${{ github.repository_owner }}.github.io/${{ github.repository }}/$(echo ${GITHUB_REF##*/})/common/artifact-manager/target/site/jacoco/index.html"

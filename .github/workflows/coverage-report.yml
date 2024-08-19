@@ -31,4 +31,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: coverage-report
-          path: common/artifact-manager/target/site/jacoco/
+          path: common/artifact-manager/target/site/jacoco/index.html

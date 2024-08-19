@@ -39,7 +39,35 @@
 						<configuration>
 							<formats>
 								<format>XML</format>
+								<format>HTML</format>
 							</formats>
+						</configuration>
+					</execution>
+					<execution>
+						<id>jacoco-check</id>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<rule>
+									<element>PACKAGE</element>
+									<limits>
+										<limit>
+											<counter>LINE</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.2</minimum>
+										</limit>
+									</limits>
+									<includes>
+										<include>com.vmware.pscoe.iac.artifact.store.vrang</include>
+									</includes>
+									<excludes>
+										<exclude>com.vmware.pscoe.iac.artifact.store.vrang.VrangContentSourceUtils</exclude>
+										<exclude>com.vmware.pscoe.iac.artifact.store.vrang.VraNgContentSourceStore</exclude>
+									</excludes>
+								</rule>
+							</rules>
 						</configuration>
 					</execution>
 				</executions>

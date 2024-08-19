@@ -26,9 +26,15 @@ jobs:
       - name: Build with Maven and generate JaCoCo coverage report
         run: mvn clean install -f common/artifact-manager/pom.xml
 
-      - name: Upload JaCoCo Report
-        if: always()
-        uses: actions/upload-artifact@v3
+#      - name: Upload JaCoCo Report
+#        if: always()
+#        uses: actions/upload-artifact@v3
+#        with:
+#          name: coverage-report
+#          path: common/artifact-manager/target/site/jacoco/
+
+      - name: Deploy Report to Github Pages
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          name: coverage-report
-          path: common/artifact-manager/target/site/jacoco/
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./target/site/jacoco/

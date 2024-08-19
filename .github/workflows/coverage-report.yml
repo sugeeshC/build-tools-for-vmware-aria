@@ -33,9 +33,16 @@ jobs:
 #          name: coverage-report
 #          path: common/artifact-manager/target/site/jacoco/
 
+      - name: Prepair directory structure for deployment
+        if: always()
+        run: |
+          BRANCH_NAME=${GITHUB_REF##*/}
+          mkdir -p ./deploy/${BRANCH_NAME}/common/artifact-manager/target/site/jacoco/ 
+          cp -r ./common/artifact-manager/target/site/jacoco/* ./deploy/${BRANCH_NAME}/common/artifact-manager/target/site/jacoco/
+
       - name: Deploy Report to Github Pages
         if: always()
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./common/artifact-manager/target/site/jacoco/
+          publish_dir: ./deploy

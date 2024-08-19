@@ -1,0 +1,30 @@
+name: Cleanup Report on Branch Deletion
+
+on:
+ delete:
+    branches:
+      - "**" # trigger the workflow on any branch delete event
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the 'gh-pages' branch
+        uses: actions/checkout@v2
+        with:
+          ref: gh-pages
+          persist-credentials: false
+
+      - name: Delete the branch-specific directory from gh-pages
+        run: |
+          BRANCH_NAME=${GITHUB_REF##*/}
+          echo "Deleting directory for branch: $BRANCH_NAME"
+          git rm -r --ignore-unmatch $BRANCH_NAME/ || echo "Directory not found, nothing to delete"
+          git commit -m "Cleanup: Remove coverage report for deleted branch $BRANCH_NAME"
+
+      - name: Push changes to gh-pages
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages

@@ -34,6 +34,7 @@ jobs:
 #          path: common/artifact-manager/target/site/jacoco/
 
       - name: Deploy Report to Github Pages
+        if: always()
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfigurationVraNg.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.configuration</a> &gt; <span class="el_source">ConfigurationVraNg.java</span></div><h1>ConfigurationVraNg.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.configuration;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.util.Properties;
+
+import org.apache.http.HttpHost;
+import org.springframework.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.vmware.pscoe.iac.artifact.model.PackageType;
+
+/**
+* Important - when modify properties refer to comments in @Configuration.
+*/
+public class ConfigurationVraNg extends Configuration {
+
+	/**
+	 * param CSP_HOST.
+	 */
+    public static final String CSP_HOST = &quot;csp.host&quot;;
+	/**
+	 * param PROJECT_ID.
+	 */
+    public static final String PROJECT_ID = &quot;project.id&quot;;
+	/**
+	 * param DATA_COLLECTION_DELAY_SECONDS.
+	 */
+    public static final String DATA_COLLECTION_DELAY_SECONDS = &quot;data.collection.delay.seconds&quot;;
+	/**
+	 * param PROJECT_NAME.
+	 */
+    public static final String PROJECT_NAME = &quot;project.name&quot;;
+	/**
+	 * param ORGANIZATION_ID.
+	 */
+    public static final String ORGANIZATION_ID = &quot;org.id&quot;;
+	/**
+	 * param ORGANIZATION_NAME.
+	 */
+    public static final String ORGANIZATION_NAME = &quot;org.name&quot;;
+	/**
+	 * param REFRESH_TOKEN.
+	 */
+    public static final String REFRESH_TOKEN = &quot;refresh.token&quot;;
+	/**
+	 * param IMPORT_TIMEOUT.
+	 */
+    public static final String IMPORT_TIMEOUT = &quot;import.timeout&quot;;
+	/**
+	 * param VRO_INTEGRATION.
+	 */
+    public static final String VRO_INTEGRATION = &quot;vro.integration&quot;;
+	/**
+	 * param PROXY.
+	 */
+    public static final String PROXY = &quot;proxy&quot;;
+	/**
+	 * param PROXY_REQUIRED.
+	 */
+    public static final String PROXY_REQUIRED = &quot;proxy.required&quot;;
+	/**
+	 * param CLOUD_PROXY_NAME.
+	 */
+    public static final String CLOUD_PROXY_NAME = &quot;cloud.proxy.name&quot;;
+	/**
+	 * param UNRELEASE_BLUEPRINT_VERSIONS.
+	 */
+    public static final String UNRELEASE_BLUEPRINT_VERSIONS = &quot;bp.unrelease.versions&quot;;
+	/**
+	 * param DEFAULT_IMPORT_TIMEOUT.
+	 */
+<span class="fc" id="L87">    public static final Integer DEFAULT_IMPORT_TIMEOUT = 6000;</span>
+
+    /**
+     * vRA Package Import content conflict resolution mode.
+	 * 
+	 * param PACKAGE_IMPORT_OVERWRITE_MODE
+     */
+    public static final String PACKAGE_IMPORT_OVERWRITE_MODE = &quot;packageImportOverwriteMode&quot;;
+
+	/**
+	 * @param logger
+	 */
+	private final Logger logger;
+
+    protected ConfigurationVraNg(Properties props) {
+<span class="nc" id="L102">        super(PackageType.VRANG, props);</span>
+<span class="nc" id="L103">		this.logger = LoggerFactory.getLogger(this.getClass());</span>
+<span class="nc" id="L104">    }</span>
+
+    protected ConfigurationVraNg(PackageType pkgType, Properties props) {
+<span class="nc" id="L107">        super(pkgType, props);</span>
+<span class="nc" id="L108">		this.logger = LoggerFactory.getLogger(this.getClass());</span>
+<span class="nc" id="L109">    }</span>
+
+    
+	/** 
+	 * @return String
+	 */
+	public String getPackageImportOverwriteMode() {
+<span class="nc" id="L116">        return this.properties.getProperty(PACKAGE_IMPORT_OVERWRITE_MODE, &quot;SKIP,OVERWRITE&quot;);</span>
+    }
+
+    
+	/** 
+	 * @return String
+	 */
+	public String getAuthHost() {
+<span class="nc bnc" id="L124" title="All 4 branches missed.">        if (this.properties.getProperty(CSP_HOST) == null || this.properties.getProperty(CSP_HOST).isEmpty()) {</span>
+<span class="nc" id="L125">            return this.properties.getProperty(HOST);</span>
+        } else {
+<span class="nc" id="L127">            return this.properties.getProperty(CSP_HOST);</span>
+        }
+    }
+
+    
+	/** 
+	 * @return String
+	 */
+	public String getProjectId() {
+<span class="nc" id="L136">        return this.properties.getProperty(PROJECT_ID);</span>
+    }
+
+    
+	/** 
+	 * @return String
+	 */
+	public String getDataCollectionDelaySeconds() {
+<span class="nc" id="L144">        return this.properties.getProperty(DATA_COLLECTION_DELAY_SECONDS);</span>
+    }
+
+    
+	/** 
+	 * @return String
+	 */
+	public String getProjectName() {
+<span class="nc" id="L152">        return this.properties.getProperty(PROJECT_NAME);</span>
+    }
+
+    
+	/** 
+	 * @return String
+	 */
+	public String getOrgId() {
+<span class="nc" id="L160">        return this.properties.getProperty(ORGANIZATION_ID);</span>
+    }
+
+    
+	/** 
+	 * @return String
+	 */
+	public String getOrgName() {
+<span class="nc" id="L168">        return this.properties.getProperty(ORGANIZATION_NAME);</span>
+    }
+
+    
+	/** 
+	 * @return String
+	 */
+	public String getVroIntegration() {
+<span class="nc" id="L176">        return this.properties.getProperty(VRO_INTEGRATION);</span>
+    }
+
+    
+	/** 
+	 * @return String
+	 */
+	public String getRefreshToken() {
+<span class="nc" id="L184">        return this.properties.getProperty(REFRESH_TOKEN);</span>
+    }
+
+    
+	/** 
+	 * @return String
+	 */
+	public String getCloudProxyName() {
+<span class="nc" id="L192">        return this.properties.getProperty(CLOUD_PROXY_NAME);</span>
+    }
+
+    
+	/** 
+	 * @return Integer
+	 */
+	public Integer getImportTimeout() {
+<span class="nc bnc" id="L200" title="All 2 branches missed.">        if (StringUtils.isEmpty(this.properties.getProperty(IMPORT_TIMEOUT))) {</span>
+<span class="nc" id="L201">            return DEFAULT_IMPORT_TIMEOUT;</span>
+        }
+        try {
+<span class="nc" id="L204">            return Integer.valueOf(this.properties.getProperty(IMPORT_TIMEOUT));</span>
+<span class="nc" id="L205">        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L206">            return DEFAULT_IMPORT_TIMEOUT;</span>
+        }
+    }
+
+    
+	/** 
+	 * @return HttpHost
+	 */
+	public HttpHost getProxy() {
+<span class="nc" id="L215">        String proxy = this.properties.getProperty(PROXY);</span>
+<span class="nc bnc" id="L216" title="All 2 branches missed.">        if (StringUtils.isEmpty(proxy)) {</span>
+<span class="nc" id="L217">            return null;</span>
+        }
+
+<span class="nc" id="L220">        return HttpHost.create(proxy);</span>
+    }
+
+    
+	/** 
+	 * @return boolean
+	 */
+	public boolean getUnreleaseBlueprintVersions() {
+<span class="nc" id="L228">        return Boolean.parseBoolean(this.properties.getProperty(UNRELEASE_BLUEPRINT_VERSIONS, &quot;true&quot;));</span>
+    }
+
+    
+	/** 
+	 * @param domainOptional is doamin optional indicator
+	 * @throws ConfigurationException throws configuration exception if validation fails
+	 */
+	@Override
+    public void validate(boolean domainOptional) throws ConfigurationException {
+<span class="nc" id="L238">        StringBuilder message = new StringBuilder();</span>
+
+<span class="nc bnc" id="L240" title="All 2 branches missed.">        if (StringUtils.isEmpty(getHost())) {</span>
+<span class="nc" id="L241">            message.append(&quot;Hostname &quot;);</span>
+        }
+
+<span class="nc bnc" id="L244" title="All 2 branches missed.">        if (StringUtils.isEmpty(getAuthHost())) {</span>
+<span class="nc" id="L245">            message.append(&quot;Authentication hostname &quot;);</span>
+        }
+
+<span class="nc bnc" id="L248" title="All 2 branches missed.">        if (StringUtils.isEmpty(getPort())) {</span>
+<span class="nc" id="L249">            message.append(&quot;Port &quot;);</span>
+        }
+
+<span class="nc bnc" id="L252" title="All 4 branches missed.">        if (StringUtils.isEmpty(getProjectId()) &amp;&amp; StringUtils.isEmpty(getProjectName())) {</span>
+<span class="nc" id="L253">            message.append(&quot;Project name/Project id &quot;);</span>
+        }
+
+<span class="nc bnc" id="L256" title="All 4 branches missed.">        if (StringUtils.isEmpty(getOrgId()) &amp;&amp; StringUtils.isEmpty(getOrgName())) {</span>
+<span class="nc" id="L257">            message.append(&quot;Organization id and Organization Name &quot;);</span>
+        }
+
+<span class="nc bnc" id="L260" title="All 4 branches missed.">        if (StringUtils.isEmpty(getRefreshToken()) &amp;&amp; StringUtils.isEmpty(super.getUsername())) {</span>
+<span class="nc" id="L261">            message.append(&quot;Refresh token or Username &quot;);</span>
+        }
+
+<span class="nc bnc" id="L264" title="All 2 branches missed.">        if (message.length() != 0) {</span>
+<span class="nc" id="L265">            throw new ConfigurationException(&quot;Configuration validation failed: Empty &quot; + message);</span>
+        }
+<span class="nc" id="L267">    }</span>
+
+	/**
+	 * Shows deprecation warnings for different flags.
+	 */
+	public void deprecationWarnings() {
+<span class="nc" id="L273">		String[] deprecatedFlags = new String[]{</span>
+			&quot;bp.ignore.versions&quot;,
+			&quot;bp.release&quot;
+		};
+
+<span class="nc bnc" id="L278" title="All 2 branches missed.">		for (String flag: deprecatedFlags) {</span>
+<span class="nc" id="L279">			this.logger.warn(&quot;%s has been deprecated, it is ignored. Consult the releases %s for more information&quot;, flag, &quot;https://github.com/vmware/build-tools-for-vmware-aria/releases&quot;);</span>
+		}
+<span class="nc" id="L281">	}</span>
+
+    
+	/** 
+	 * @param props form properties
+	 * @return ConfigurationVraNg
+	 * @throws ConfigurationException throws configuration exception if validation fails
+	 */
+	public static ConfigurationVraNg fromProperties(Properties props) throws ConfigurationException {
+<span class="nc" id="L290">        ConfigurationVraNg config = new ConfigurationVraNg(props);</span>
+
+<span class="nc" id="L292">        config.validate(false);</span>
+
+<span class="nc" id="L294">        return config;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

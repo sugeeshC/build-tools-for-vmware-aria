@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfigurationVrops.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.configuration</a> &gt; <span class="el_source">ConfigurationVrops.java</span></div><h1>ConfigurationVrops.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.configuration;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.net.InetAddress;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
+import java.util.Properties;
+import java.util.logging.Logger;
+
+import org.apache.http.client.utils.URIBuilder;
+import org.springframework.util.StringUtils;
+
+import com.vmware.pscoe.iac.artifact.model.PackageType;
+
+public class ConfigurationVrops extends ConfigurationWithRefreshToken {
+    // Important - when modify properties refer to comments in @Configuration
+    public static final String VROPS_DASHBOARD_USER = &quot;dashboardUser&quot;;
+    public static final String VROPS_REST_USER = &quot;restUser&quot;;
+    public static final String VROPS_REST_PASSWORD = &quot;restPassword&quot;;
+    public static final String VROPS_REST_AUTH_SOURCE = &quot;restAuthSource&quot;;
+    public static final String VROPS_REST_AUTH_PROVIDER = &quot;restAuthProvider&quot;;
+    public static final String SSH_PORT = &quot;sshPort&quot;;
+    private static final String DEFAULT_AUTH_SOURCE = &quot;local&quot;;
+<span class="fc" id="L38">    private static final AuthProvider DEFAULT_AUTH_PROVIDER = AuthProvider.AUTH_N;</span>
+
+    /**
+     * vROps Package Import content conflict resolution mode
+     */
+    public static final String PACKAGE_IMPORT_OVERWRITE_MODE = &quot;packageImportOverwriteMode&quot;;
+
+    protected ConfigurationVrops(Properties props) {
+<span class="fc" id="L46">        super(PackageType.VROPS, props);</span>
+<span class="fc" id="L47">    }</span>
+
+    public String getPackageImportOverwriteMode() {
+<span class="nc" id="L50">        return properties.getProperty(PACKAGE_IMPORT_OVERWRITE_MODE, &quot;SKIP,OVERWRITE&quot;);</span>
+    }
+
+    public int getHttpPort() {
+        try {
+<span class="fc" id="L55">            return Integer.parseInt(properties.getProperty(PORT));</span>
+<span class="nc" id="L56">        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L57">            throw new RuntimeException(&quot;Vrops property \&quot;&quot; + PORT + &quot;\&quot; with value \&quot;&quot; + properties.getProperty(PORT) + &quot;\&quot; is not a port number: &quot;</span>
+<span class="nc" id="L58">                    + e.getLocalizedMessage() + &quot;. Please specify the port number which the vROps web UI listens on as vrops property \&quot;&quot; + PORT</span>
+                    + &quot;\&quot; in your settings.xml.&quot;);
+        }
+    }
+
+    public int getSshPort() {
+        try {
+<span class="fc" id="L65">            return Integer.parseInt(properties.getProperty(SSH_PORT));</span>
+<span class="nc" id="L66">        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L67">            throw new RuntimeException(&quot;Vrops property \&quot;&quot; + SSH_PORT + &quot;\&quot; with value \&quot;&quot; + properties.getProperty(SSH_PORT) + &quot;\&quot; is not a port number: &quot;</span>
+<span class="nc" id="L68">                    + e.getLocalizedMessage() + &quot;. Please specify the port number which the vROps appliance SSH Service listens on as vrops property \&quot;&quot; + SSH_PORT</span>
+                    + &quot;\&quot; in your settings.xml.&quot;);
+        }
+    }
+
+	@Override
+	public String getRefreshToken() {
+<span class="nc" id="L75">		String token = this.properties.getProperty(REFRESH_TOKEN);</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">		return StringUtils.isEmpty(token) ? null : token;</span>
+	}
+
+    public String getVropsDashboardUser() {
+<span class="fc" id="L80">        return properties.getProperty(VROPS_DASHBOARD_USER);</span>
+    }
+
+    public String getVropsRestUser() {
+<span class="fc" id="L84">        return properties.getProperty(VROPS_REST_USER);</span>
+    }
+
+    public String getVropsRestPassword() {
+<span class="fc" id="L88">        return properties.getProperty(VROPS_REST_PASSWORD);</span>
+    }
+
+    public String getVropsAuthSource() {
+<span class="nc bnc" id="L92" title="All 2 branches missed.">        if (StringUtils.isEmpty(properties.getProperty(VROPS_REST_AUTH_SOURCE))) {</span>
+<span class="nc" id="L93">            return DEFAULT_AUTH_SOURCE;</span>
+        }
+
+<span class="nc" id="L96">        return properties.getProperty(VROPS_REST_AUTH_SOURCE);</span>
+    }
+
+    public AuthProvider getAuthProvider() {
+<span class="nc" id="L100">        final String authProvider = properties.getProperty(VROPS_REST_AUTH_PROVIDER);</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        return StringUtils.isEmpty(authProvider) ? DEFAULT_AUTH_PROVIDER : AuthProvider.valueOf(authProvider.toUpperCase());</span>
+    }
+
+    @Override
+    public void validate(boolean domainOptional) throws ConfigurationException {
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">        if (StringUtils.isEmpty(getHost())) {</span>
+<span class="nc" id="L107">            throw new ConfigurationException(&quot;Configuration validation failed. Empty vROps host. Please make sure you have defined the vrops property '&quot;</span>
+                    + HOST + &quot;'. You may define that in maven 'settings.xml'.&quot;);
+        }
+
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">        if (StringUtils.isEmpty(getVropsDashboardUser())) {</span>
+<span class="nc" id="L112">            throw new ConfigurationException(&quot;Configuration validation failed. Empty vROps Dashboard user. &quot;</span>
+                    + &quot;Please make sure you have defined the vrops property '&quot; + VROPS_DASHBOARD_USER + &quot;'. You may define that in maven 'settings.xml'.&quot;);
+        }
+<span class="pc bpc" id="L115" title="1 of 2 branches missed.">        if (StringUtils.isEmpty(getVropsRestUser())) {</span>
+<span class="nc" id="L116">            throw new ConfigurationException(&quot;Configuration validation failed. Empty vROps REST  user. &quot;</span>
+                    + &quot;Please make sure you have defined the vrops property '&quot; + VROPS_REST_USER + &quot;'. You may define that in maven 'settings.xml'.&quot;);
+        }
+
+<span class="pc bpc" id="L120" title="2 of 4 branches missed.">        if (StringUtils.isEmpty(getDomain()) &amp;&amp; !domainOptional) {</span>
+<span class="nc" id="L121">            throw new ConfigurationException(&quot;Domain (in vrops username) is empty and domain optional flag is 'false'. Username format should be &lt;userowname&gt;@&lt;domain&gt;.&quot;);</span>
+        }
+
+        try {
+<span class="fc" id="L125">            new URIBuilder().setScheme(&quot;https&quot;).setHost(getHost()).setPort(getHttpPort()).build();</span>
+<span class="nc" id="L126">        } catch (URISyntaxException e) {</span>
+<span class="nc" id="L127">            throw new ConfigurationException(e.getMessage(), e);</span>
+<span class="fc" id="L128">        }</span>
+
+<span class="fc" id="L130">        String host = getHost();</span>
+        try {
+<span class="fc" id="L132">            InetAddress.getByName(host);</span>
+<span class="nc" id="L133">        } catch (UnknownHostException uhe) {</span>
+<span class="nc" id="L134">            throw new ConfigurationException(</span>
+<span class="nc" id="L135">                    String.format(&quot;Configuration validation failed. The vrops %s value %s is not valid host / IP address of the server. %s&quot;, HOST, host, uhe.getMessage()));</span>
+<span class="fc" id="L136">        }</span>
+        try {
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">            if (!checkPort(getSshPort())) {</span>
+<span class="nc" id="L139">                throw new ConfigurationException(</span>
+<span class="nc" id="L140">                        String.format(&quot;The vrops %s value %s is not valid since it should be between %d and %d&quot;, SSH_PORT,</span>
+<span class="nc" id="L141">                                getSshPort(), 0, 0x0FFFF));</span>
+            }
+<span class="pc bpc" id="L143" title="1 of 2 branches missed.">            if (!checkPort(getHttpPort())) {</span>
+<span class="nc" id="L144">                throw new ConfigurationException(</span>
+<span class="nc" id="L145">                        String.format(&quot;The vrops %s value %s is not valid since it should be between %d and %d&quot;, PORT,</span>
+<span class="nc" id="L146">                                getHttpPort(), 0, 0x0FFFF));</span>
+            }
+<span class="nc" id="L148">        } catch (RuntimeException e) {</span>
+<span class="nc" id="L149">            throw new ConfigurationException(String.format(&quot;Vrops configuration validation failed. Invalid port number: %s&quot;, e.getMessage()));</span>
+<span class="fc" id="L150">        }</span>
+
+<span class="fc" id="L152">        String restPass = getVropsRestPassword();</span>
+<span class="pc bpc" id="L153" title="2 of 4 branches missed.">        if (restPass == null || restPass.trim().length() == 0) {</span>
+<span class="nc" id="L154">            throw new ConfigurationException(&quot;Configuration validation failed. Empty vROps REST User Password. Please make sure you have defined the vrops property \&quot;&quot;</span>
+                    + VROPS_REST_PASSWORD + &quot;\&quot;. You may define that in maven 'settings.xml'.&quot;);
+        }
+<span class="fc" id="L157">    }</span>
+
+    public static ConfigurationVrops fromProperties(Properties props) throws ConfigurationException {
+<span class="nc" id="L160">        ConfigurationVrops config = new ConfigurationVrops(props);</span>
+
+<span class="nc" id="L162">        config.validate(true);</span>
+
+<span class="nc" id="L164">        return config;</span>
+    }
+
+    private boolean checkPort(int port) {
+<span class="pc bpc" id="L168" title="2 of 4 branches missed.">        return port &gt; 0 &amp;&amp; port &lt; 0x0FFFF;</span>
+    }
+
+<span class="fc" id="L171">    public enum AuthProvider {</span>
+<span class="fc" id="L172">        BASIC, AUTH_N</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

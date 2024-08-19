@@ -1,0 +1,752 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgCatalogItemStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.vrang</a> &gt; <span class="el_source">VraNgCatalogItemStore.java</span></div><h1>VraNgCatalogItemStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonReader;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCatalogItem;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgContentSourceBase;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgContentSourceType;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCustomForm;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCustomFormAndData;
+import com.vmware.pscoe.iac.artifact.store.filters.CustomFolderFileFilter;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+/**
+ * Responsible for exporting/importing catalog items' icons and custom forms.
+ *
+ * NOTE: When reading through this file blueprint and Custom Form are one and
+ * the same
+ */
+<span class="fc" id="L54">public class VraNgCatalogItemStore extends AbstractVraNgStore {</span>
+
+	/**
+	 * Suffix that is applied on the name of blueprint catalog item version.
+	 */
+	protected static final String CATALOG_ITEM_BLUEPRINT_VERSION_NAME_SEPARATOR = &quot; / &quot;;
+
+	/**
+	 * Suffix that is applied on the id of blueprint catalog item version.
+	 */
+	protected static final String CATALOG_ITEM_BLUEPRINT_VERSION_SOURCE_ID_SEPARATOR = &quot;/&quot;;
+
+	/**
+	 * Separator for the SourceName and the Catalog Item Name.
+	 * Used so we can have unique names even if we have
+	 * two catalog items with the same names from different sources. You can have a
+	 * catalog item with __ in the name
+	 * but not Source name with it.
+	 */
+	protected static final String CATALOG_ITEM_SEPARATOR = &quot;__&quot;;
+
+	/**
+	 * Sub directory of.
+	 * com.vmware.pscoe.iac.artifact.store.vrang.VraNgDirs#DIR_CATALOG_ITEMS where
+	 * custom forms are stored
+	 */
+	protected static final String CUSTOM_FORMS_SUBDIR = &quot;forms&quot;;
+
+	/**
+	 * Suffix of the custom form data file that is stored in the same directory.
+	 */
+	protected static final String CUSTOM_FORM_DATA_SUFFIX = &quot;FormData&quot;;
+
+	/**
+	 * Sub directory of.
+	 * com.vmware.pscoe.iac.artifact.store.vrang.VraNgDirs#DIR_CATALOG_ITEMS where
+	 * icons are stored
+	 */
+	private static final String ICONS_SUBDIR = &quot;icons&quot;;
+
+	/**
+	 * Suffix used for all of the resources saved by this store.
+	 */
+	protected static final String CUSTOM_RESOURCE_SUFFIX = &quot;.json&quot;;
+
+	/**
+	 * Amount of time in MS to wait before retrying to lookup if the Custom Forms
+	 * are synced.
+	 */
+	private static final int CUSTOM_FORM_SYNC_WAIT_TIME = 500;
+
+	/**
+	 * Default custom form type.
+	 */
+	protected static final String DEFAULT_CUSTOM_FORM_TYPE = &quot;com.vmw.blueprint&quot;;
+
+	/**
+	 * Workflow custom form type.
+	 */
+	protected static final String WORKFLOW_CUSTOM_FORM_TYPE = &quot;com.vmw.vro.workflow&quot;;
+
+	/**
+	 * Blueprint version string.
+	 */
+	protected static final String BLUEPRINT_VERSION = &quot;com.vmw.blueprint.version&quot;;
+
+	/**
+	 * Mapping catalog items to content sources.
+	 */
+<span class="fc" id="L123">	private final Map&lt;String, ArrayList&lt;VraNgCatalogItem&gt;&gt; itemsMap = new HashMap&lt;String, ArrayList&lt;VraNgCatalogItem&gt;&gt;();</span>
+
+	// =================================================
+	// CATALOG ITEMS EXPORT
+	// =================================================
+
+	/**
+	 * Used to fetch the store's data from the package descriptor.
+	 *
+	 * @return list of catalog items
+	 */
+	@Override
+	protected List&lt;String&gt; getItemListFromDescriptor() {
+<span class="fc" id="L136">		return this.vraNgPackageDescriptor.getCatalogItem();</span>
+	}
+
+	/**
+	 * Export all catalog items from the server.
+	 */
+	@Override
+	protected void exportStoreContent() {
+<span class="fc" id="L144">		List&lt;VraNgCatalogItem&gt; allCatalogItems = this.restClient</span>
+<span class="fc" id="L145">				.getCatalogItemsForProject(this.restClient.getProjectId());</span>
+
+<span class="fc" id="L147">		allCatalogItems.forEach(catalogItem -&gt; storeCatalogItemOnFileSystem(vraNgPackage, catalogItem));</span>
+<span class="fc" id="L148">	}</span>
+
+	/**
+	 * Export specific catalogItemIds.
+	 * Note: maybe add a configuration to skip misnamed Catalog items
+	 *
+	 * @param catalogItemNames list of item names
+	 */
+	@Override
+	protected void exportStoreContent(final List&lt;String&gt; catalogItemNames) {
+<span class="fc" id="L158">		List&lt;VraNgCatalogItem&gt; allCatalogItems = this.restClient</span>
+<span class="fc" id="L159">				.getCatalogItemsForProject(this.restClient.getProjectId());</span>
+<span class="fc" id="L160">		catalogItemNames.forEach(complexName -&gt; {</span>
+<span class="fc" id="L161">			String[] nameParts = complexName.split(CATALOG_ITEM_SEPARATOR, 2);</span>
+
+<span class="fc bfc" id="L163" title="All 2 branches covered.">			if (nameParts.length != 2) {</span>
+<span class="fc" id="L164">				throw new RuntimeException(</span>
+<span class="fc" id="L165">						String.format(</span>
+								&quot;Incorrect catalogItem name convention. Use: SOURCE_NAME__CATALOG_ITEM_NAME, actual %s&quot;,
+								complexName));
+			}
+
+<span class="fc" id="L170">			String sourceName = nameParts[0];</span>
+<span class="fc" id="L171">			String catalogItemName = nameParts[1];</span>
+<span class="fc" id="L172">			logger.debug(&quot;Searching for catalog item with name {} from source {}&quot;, catalogItemName, sourceName);</span>
+
+<span class="fc" id="L174">			List&lt;VraNgCatalogItem&gt; catalogItems = allCatalogItems.stream()</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">					.filter(item -&gt; item.getName().equalsIgnoreCase(catalogItemName)</span>
+<span class="pc bpc" id="L176" title="1 of 2 branches missed.">							&amp;&amp; item.getSourceName().equalsIgnoreCase(sourceName))</span>
+<span class="fc" id="L177">					.collect(Collectors.toList());</span>
+
+			// This should always be either one or empty
+<span class="fc bfc" id="L180" title="All 2 branches covered.">			if (!catalogItems.isEmpty()) {</span>
+<span class="fc" id="L181">				catalogItems.forEach(catalogItem -&gt; storeCatalogItemOnFileSystem(vraNgPackage, catalogItem));</span>
+			} else {
+<span class="fc" id="L183">				throw new IllegalStateException(</span>
+<span class="fc" id="L184">						String.format(</span>
+								&quot;Catalog Item [%s] not found for Source Name [%s] not found on the server.&quot;,
+								catalogItemName,
+								sourceName));
+			}
+<span class="fc" id="L189">		});</span>
+<span class="fc" id="L190">	}</span>
+
+	/**
+	 * Stores a catalog item on the file system.
+	 * This will also fetch and store any icons associated with the catalog item and
+	 * add their extensions to the catalog item.
+	 * This will also fetch and store any custom forms associated with the catalog
+	 * item
+	 *
+	 * @throws RuntimeException if the file cannot be created for some reason
+	 *
+	 * @param serverPackage
+	 * @param catalogItem
+	 */
+	private void storeCatalogItemOnFileSystem(final Package serverPackage, final VraNgCatalogItem catalogItem)
+			throws RuntimeException {
+<span class="fc" id="L206">		VraNgCustomForm form = storeCustomFormOnFileSystem(serverPackage, catalogItem);</span>
+<span class="fc bfc" id="L207" title="All 2 branches covered.">		if (form != null) {</span>
+<span class="fc" id="L208">			catalogItem.setFormId(form.getId());</span>
+		}
+
+<span class="fc" id="L211">		File iconFile = storeCatalogItemIconOnFileSystem(serverPackage, catalogItem);</span>
+<span class="fc bfc" id="L212" title="All 2 branches covered.">		if (iconFile != null) {</span>
+<span class="fc" id="L213">			catalogItem.setIconExtension(FilenameUtils.getExtension(iconFile.getName()));</span>
+		}
+
+<span class="fc" id="L216">		storeCatalogItemOnFileSystemRaw(serverPackage, catalogItem);</span>
+<span class="fc" id="L217">	}</span>
+
+	/**
+	 * Directly store the catalog item, does not fetch icons or forms expects them.
+	 * to be set already
+	 *
+	 * @param serverPackage
+	 * @param catalogItem
+	 */
+	private void storeCatalogItemOnFileSystemRaw(final Package serverPackage, final VraNgCatalogItem catalogItem) {
+<span class="fc" id="L227">		logger.info(&quot;Storing catalogItem {}&quot;, catalogItem.getName());</span>
+<span class="fc" id="L228">		logger.debug(&quot;Catalog Item to store: {}&quot;, new Gson().toJson(catalogItem));</span>
+
+<span class="fc" id="L230">		File store = new File(serverPackage.getFilesystemPath());</span>
+<span class="fc" id="L231">		File customCatalogItemFile = Paths.get(</span>
+<span class="fc" id="L232">				store.getPath(),</span>
+				VraNgDirs.DIR_CATALOG_ITEMS,
+<span class="fc" id="L234">				getName(catalogItem) + CUSTOM_RESOURCE_SUFFIX).toFile();</span>
+
+<span class="fc" id="L236">		logger.info(&quot;Creating folder: {}&quot;, customCatalogItemFile.getParentFile().getAbsolutePath());</span>
+<span class="pc bpc" id="L237" title="1 of 4 branches missed.">		if (!customCatalogItemFile.getParentFile().isDirectory() &amp;&amp; !customCatalogItemFile.getParentFile().mkdirs()) {</span>
+<span class="nc" id="L238">			logger.warn(&quot;Could not create folder: {}&quot;, customCatalogItemFile.getParentFile().getAbsolutePath());</span>
+		}
+
+		try {
+<span class="fc" id="L242">			Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="fc" id="L243">			logger.info(&quot;Created file {}&quot;, Files.write(</span>
+<span class="fc" id="L244">					Paths.get(customCatalogItemFile.getPath()), gson.toJson(catalogItem).getBytes(),</span>
+					StandardOpenOption.CREATE));
+<span class="nc" id="L246">		} catch (IOException e) {</span>
+<span class="nc" id="L247">			logger.error(&quot;Unable to create catalog item {} {}&quot;, catalogItem.getName(), customCatalogItemFile.getPath());</span>
+<span class="nc" id="L248">			throw new RuntimeException(</span>
+<span class="nc" id="L249">					String.format(</span>
+							&quot;Unable to store catalog item %s to file %s.&quot;,
+<span class="nc" id="L251">							catalogItem.getName(),</span>
+<span class="nc" id="L252">							serverPackage.getFilesystemPath()),</span>
+					e);
+<span class="fc" id="L254">		}</span>
+<span class="fc" id="L255">	}</span>
+
+	/**
+	 * Stores a custom form on the file system.
+	 * The Form is returned, so we can set it's id in the catalog item
+	 * Stores the forms under {{catalog_item_dir}}/forms
+	 *
+	 * @param serverPackage server package
+	 * @param catalogItem catalog item
+	 *
+	 * @return VraNgCustomForm
+	 */
+	protected VraNgCustomForm storeCustomFormOnFileSystem(final Package serverPackage,
+			final VraNgCatalogItem catalogItem) {
+<span class="fc" id="L269">		VraNgContentSourceBase contentSource = this.restClient.getContentSource(catalogItem.getSourceId());</span>
+<span class="fc bfc" id="L270" title="All 2 branches covered.">		if (contentSource == null) {</span>
+<span class="fc" id="L271">			throw new RuntimeException(</span>
+<span class="fc" id="L272">					String.format(&quot;Content source %s does not exist&quot;, catalogItem.getSourceId()));</span>
+		}
+
+<span class="fc" id="L275">		logger.debug(&quot;Found content source '{}'&quot;, contentSource.getName());</span>
+<span class="fc" id="L276">		VraNgCustomForm form = this.restClient.getCustomFormByTypeAndSource(</span>
+<span class="fc" id="L277">				contentSource.getType().toString(),</span>
+<span class="fc" id="L278">				catalogItem.getId());</span>
+<span class="fc bfc" id="L279" title="All 2 branches covered.">		if (form == null) {</span>
+<span class="fc" id="L280">			logger.debug(</span>
+					&quot;No form found for catalogItem: {} with source {}&quot;,
+<span class="fc" id="L282">					catalogItem.getName(),</span>
+<span class="fc" id="L283">					catalogItem.getSourceName());</span>
+<span class="fc" id="L284">			return null;</span>
+		}
+		
+<span class="fc" id="L287">		File store = new File(serverPackage.getFilesystemPath());</span>
+<span class="fc" id="L288">		File customFormFile = Paths.get(</span>
+<span class="fc" id="L289">				store.getPath(),</span>
+				VraNgDirs.DIR_CATALOG_ITEMS,
+				CUSTOM_FORMS_SUBDIR,
+<span class="fc" id="L292">				(getName(catalogItem) + CUSTOM_RESOURCE_SUFFIX)).toFile();</span>
+<span class="fc" id="L293">		File customFormDataFile = Paths.get(</span>
+<span class="fc" id="L294">				store.getPath(),</span>
+				VraNgDirs.DIR_CATALOG_ITEMS,
+				CUSTOM_FORMS_SUBDIR,
+<span class="fc" id="L297">				(getName(catalogItem) + CATALOG_ITEM_SEPARATOR + CUSTOM_FORM_DATA_SUFFIX + CUSTOM_RESOURCE_SUFFIX))</span>
+<span class="fc" id="L298">				.toFile();</span>
+
+<span class="pc bpc" id="L300" title="1 of 4 branches missed.">		if (!customFormFile.getParentFile().isDirectory() &amp;&amp; !customFormFile.getParentFile().mkdirs()) {</span>
+<span class="nc" id="L301">			logger.warn(&quot;Could not create folder: {}&quot;, customFormFile.getParentFile().getAbsolutePath());</span>
+		}
+
+		try {
+<span class="fc" id="L305">			Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+			// write form metadata file
+			// in a format (VraNgCustomFormAndData) suitable to be stored in a source code repository.
+<span class="fc" id="L308">			VraNgCustomFormAndData repoForm = new VraNgCustomFormAndData(form);</span>
+<span class="fc" id="L309">			logger.info(&quot;Created custom form metadata file {}&quot;,</span>
+<span class="fc" id="L310">					Files.write(Paths.get(customFormFile.getPath()), gson.toJson(repoForm).getBytes(),</span>
+							StandardOpenOption.CREATE));
+			// write form data file
+<span class="pc bpc" id="L313" title="1 of 2 branches missed.">			if (!StringUtils.isEmpty(form.getForm())) {</span>
+<span class="fc" id="L314">				JsonElement je = JsonParser.parseString(form.getForm());</span>
+<span class="fc" id="L315">				logger.info(&quot;Created custom form data file {}&quot;,</span>
+<span class="fc" id="L316">						Files.write(Paths.get(customFormDataFile.getPath()), gson.toJson(je).getBytes(),</span>
+								StandardOpenOption.CREATE));
+			}
+<span class="nc" id="L319">		} catch (IOException e) {</span>
+<span class="nc" id="L320">			logger.error(&quot;Unable to create custom form {}&quot;, customFormFile.getAbsolutePath());</span>
+<span class="nc" id="L321">			throw new RuntimeException(</span>
+<span class="nc" id="L322">					String.format(</span>
+<span class="nc" id="L323">							&quot;Unable to store custom form to file %s.&quot;, customFormFile.getAbsolutePath()),</span>
+					e);
+<span class="fc" id="L325">		}</span>
+
+<span class="fc" id="L327">		return form;</span>
+	}
+
+	/**
+	 * Attempts to store an icon to the file system under {{catalog_item_dir}}/icons
+	 * The correct file extension will be fetched from the content-type header.
+	 *
+	 * @NOTE Due to issue when GET .../icon/api/icons/iconId for vRA 8.4 (IAC-482),
+	 *       we are not going to save svgs
+	 *       Also this will result in the iconId to be stored in the file, but the
+	 *       check in:
+	 *       com.vmware.pscoe.iac.artifact.model.vrang.VraNgCatalogItem#hasIcon() is
+	 *       iconExtension dependent,
+	 *       so logic should hold fine.
+	 *
+	 * @throws RuntimeException if the file cannot be created for some reason
+	 *
+	 * @param serverPackage
+	 * @param catalogItem
+	 *
+	 * @return File
+	 */
+	private File storeCatalogItemIconOnFileSystem(final Package serverPackage, final VraNgCatalogItem catalogItem)
+			throws RuntimeException {
+<span class="fc bfc" id="L351" title="All 2 branches covered.">		if (catalogItem.getIconId() == null) {</span>
+<span class="fc" id="L352">			return null;</span>
+		}
+
+<span class="fc" id="L355">		ResponseEntity&lt;byte[]&gt; response = this.restClient.downloadIcon(catalogItem.getIconId());</span>
+
+<span class="fc bfc" id="L357" title="All 2 branches covered.">		if (!response.getStatusCode().is2xxSuccessful()) {</span>
+<span class="fc" id="L358">			throw new RuntimeException(</span>
+<span class="fc" id="L359">					String.format(&quot;Icon with id %s not found.&quot;, catalogItem.getIconId()));</span>
+		}
+
+<span class="fc" id="L362">		File store = new File(serverPackage.getFilesystemPath());</span>
+<span class="fc" id="L363">		String iconExtension = extractIconExtensionFromResponseEntity(response);</span>
+
+		// SEE @NOTE
+<span class="pc bpc" id="L366" title="1 of 2 branches missed.">		if (iconExtension.equalsIgnoreCase(&quot;svg&quot;)) {</span>
+<span class="nc" id="L367">			logger.warn(&quot;Icon is SVG, skipping...&quot;);</span>
+<span class="nc" id="L368">			return null;</span>
+		}
+
+<span class="fc" id="L371">		File customIconFile = Paths.get(</span>
+<span class="fc" id="L372">				store.getPath(),</span>
+				VraNgDirs.DIR_CATALOG_ITEMS,
+				ICONS_SUBDIR,
+<span class="fc" id="L375">				(getName(catalogItem) + &quot;.&quot; + iconExtension)).toFile();</span>
+
+<span class="fc bfc" id="L377" title="All 2 branches covered.">		if (!customIconFile.getParentFile().mkdirs()) {</span>
+<span class="fc" id="L378">			logger.warn(&quot;Could not create folder: {}&quot;, customIconFile.getParentFile().getAbsolutePath());</span>
+		}
+
+		try {
+<span class="fc" id="L382">			logger.info(&quot;Created icon file {}&quot;, Files.write(Paths.get(customIconFile.getPath()), response.getBody(),</span>
+					StandardOpenOption.CREATE));
+<span class="nc" id="L384">		} catch (IOException e) {</span>
+<span class="nc" id="L385">			logger.error(&quot;Unable to create icon {}&quot;, customIconFile.getAbsolutePath());</span>
+<span class="nc" id="L386">			throw new RuntimeException(</span>
+<span class="nc" id="L387">					String.format(</span>
+							&quot;Unable to store custom catalog item icon to file %s.&quot;,
+<span class="nc" id="L389">							customIconFile.getAbsolutePath()),</span>
+					e);
+<span class="fc" id="L391">		}</span>
+
+<span class="fc" id="L393">		return customIconFile;</span>
+	}
+
+	/**
+	 * All of the file types Service Broker lists as supported.
+	 * Used https://cdn.jsdelivr.net/gh/jshttp/mime-db@master/db.json to fetch the
+	 * correct mime type and extension
+	 *
+	 * @param response
+	 *
+	 * @return String
+	 */
+	private String extractIconExtensionFromResponseEntity(final ResponseEntity&lt;byte[]&gt; response) {
+<span class="fc" id="L406">		HttpHeaders headers = response.getHeaders();</span>
+
+<span class="pc bpc" id="L408" title="5 of 6 branches missed.">		switch (headers.getContentType().toString()) {</span>
+			case &quot;image/pjpeg&quot;:
+<span class="nc" id="L410">				return &quot;pjpeg&quot;;</span>
+			case &quot;image/jpeg&quot;:
+<span class="nc" id="L412">				return &quot;jpeg&quot;;</span>
+			case &quot;image/jpg&quot;:
+<span class="nc" id="L414">				return &quot;jpg&quot;;</span>
+			case &quot;image/svg+xml&quot;:
+<span class="nc" id="L416">				return &quot;svg&quot;;</span>
+			case &quot;image/bmp&quot;:
+<span class="nc" id="L418">				return &quot;bmp&quot;;</span>
+			case &quot;image/png&quot;:
+			default:
+<span class="fc" id="L421">				return &quot;png&quot;;</span>
+			// Service broker supports pjp but I found no mention of this file extension
+			// anywhere
+			// case &quot;image/pjp&quot;:
+			// return &quot;pjp&quot;;
+			// Service broker supports jfif but I found no mention of this file extension
+			// anywhere
+			// case &quot;image/jfif&quot;:
+			// return &quot;jfif&quot;;
+		}
+	}
+
+	// =================================================
+	// CATALOG ITEMS IMPORT
+	// =================================================
+
+	/**
+	 * Import all catalog items.
+	 * !NOTE This will skip svg icon upload due to issue described in IAC-482
+	 * 
+	 * @param sourceDirectory target path
+	 */
+	public void importContent(final File sourceDirectory) {
+<span class="fc" id="L444">		logger.info(&quot;Importing files from the '{}' directory&quot;, VraNgDirs.DIR_CATALOG_ITEMS);</span>
+
+		// verify directory exists
+<span class="fc" id="L447">		File catalogItemFolder = Paths.get(sourceDirectory.getPath(), VraNgDirs.DIR_CATALOG_ITEMS).toFile();</span>
+<span class="pc bpc" id="L448" title="1 of 2 branches missed.">		if (!catalogItemFolder.exists()) {</span>
+<span class="nc" id="L449">			logger.info(&quot;Catalog Items Dir not found.&quot;);</span>
+<span class="nc" id="L450">			return;</span>
+		}
+
+<span class="fc" id="L453">		File[] catalogItemFiles = this.filterBasedOnConfiguration(catalogItemFolder,</span>
+<span class="fc" id="L454">				new CustomFolderFileFilter(this.getItemListFromDescriptor()));</span>
+<span class="pc bpc" id="L455" title="1 of 4 branches missed.">		if (catalogItemFiles != null &amp;&amp; catalogItemFiles.length == 0) {</span>
+<span class="fc" id="L456">			logger.info(&quot;Could not find any catalog items.&quot;);</span>
+<span class="fc" id="L457">			return;</span>
+		}
+
+<span class="fc" id="L460">		logger.info(&quot;Found catalog items. Importing...&quot;);</span>
+<span class="fc" id="L461">		List&lt;VraNgCatalogItem&gt; catalogItems = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L462" title="All 2 branches covered.">		for (File catalogItemFile : catalogItemFiles) {</span>
+<span class="fc" id="L463">			catalogItems.add(jsonFileToVraCatalogItem(catalogItemFile));</span>
+		}
+
+		// Newly added blueprints may have not yet be available in the content source,
+		// so we're making an API call to trigger inventory update and checking if the
+		// catalog item appears
+<span class="fc" id="L469">		syncContentSourceInventoryForCatalogItems(catalogItems);</span>
+
+<span class="fc" id="L471">		logger.info(&quot;Fetching latest ids from server.&quot;);</span>
+<span class="fc" id="L472">		fetchLatestCatalogItemIds(catalogItems);</span>
+
+<span class="fc" id="L474">		catalogItems.forEach(catalogItem -&gt; {</span>
+<span class="fc bfc" id="L475" title="All 2 branches covered.">			if (catalogItem.hasForm()) {</span>
+<span class="fc" id="L476">				importCustomForm(catalogItem, catalogItemFolder);</span>
+			}
+
+			// See @NOTE
+<span class="pc bpc" id="L480" title="1 of 4 branches missed.">			if (catalogItem.hasIcon() &amp;&amp; !catalogItem.getIconExtension().equalsIgnoreCase(&quot;svg&quot;)) {</span>
+<span class="fc" id="L481">				String iconId = importIcon(catalogItem, catalogItemFolder);</span>
+<span class="fc" id="L482">				setCatalogItemIcon(catalogItem, iconId);</span>
+			}
+<span class="fc" id="L484">		});</span>
+<span class="fc" id="L485">	}</span>
+
+	/**
+	 * Triggering content source inventory update, lookup if the catalog items.
+	 * appear
+	 *
+	 * @param catalogItems List&lt;VraNgCatalogItem&gt;
+	 */
+	private void syncContentSourceInventoryForCatalogItems(final List&lt;VraNgCatalogItem&gt; catalogItems) {
+		// Building a map of content sources (by ID) to catalog items that should be
+		// available for them
+<span class="fc" id="L496">		VrangContentSourceUtils utils = new VrangContentSourceUtils(restClient, vraNgPackage);</span>
+		// fetch the unique content source names
+<span class="fc" id="L498">		List&lt;String&gt; contentSourceNames = catalogItems.stream().map(VraNgCatalogItem::getSourceName)</span>
+<span class="fc" id="L499">				.distinct().collect(Collectors.toList());</span>
+<span class="fc" id="L500">		restClient.getContentSourcesForProject(restClient.getProjectId()).forEach(contentSource -&gt; {</span>
+<span class="nc" id="L501">			String contentSourceName = contentSource.getName();</span>
+<span class="nc bnc" id="L502" title="All 2 branches missed.">			if (contentSourceNames.contains(contentSourceName)) {</span>
+<span class="nc" id="L503">				String contentSourceID = contentSource.getId();</span>
+<span class="nc" id="L504">				itemsMap.put(contentSourceID, new ArrayList&lt;VraNgCatalogItem&gt;());</span>
+				// Triggering content source update, refreshing content source's inventory
+<span class="nc" id="L506">				logger.debug(&quot;Triggering sync for content source '{}' /ID: '{}'&quot;, contentSource.getName(),</span>
+						contentSourceID);
+<span class="nc" id="L508">				utils.syncContentSource(contentSource, this.config.getImportTimeout());</span>
+			}
+<span class="nc" id="L510">		});</span>
+<span class="fc" id="L511">	}</span>
+
+	/**
+	 * Does a patch call to update the catalog item with the correct iconId.
+	 *
+	 * @param catalogItem
+	 * @param newIconId
+	 */
+	private void setCatalogItemIcon(final VraNgCatalogItem catalogItem, final String newIconId) {
+<span class="fc" id="L520">		logger.info(&quot;Patching catalog item {} with icon {}&quot;, catalogItem.getId(), newIconId);</span>
+<span class="fc" id="L521">		this.restClient.patchCatalogItemIcon(catalogItem, newIconId);</span>
+<span class="fc" id="L522">	}</span>
+
+	/**
+	 * Imports the icon to vRA.
+	 * If the icon already exists, the icon name will be returned in the &quot;Location&quot;
+	 * header. In this case the file should be renamed
+	 * and the catalogItem modified with the new iconId
+	 *
+	 * @param catalogItem
+	 * @param catalogItemFolder
+	 *
+	 * @return String - The icon ID
+	 */
+	private String importIcon(final VraNgCatalogItem catalogItem, final File catalogItemFolder) {
+<span class="fc" id="L536">		String iconName = getName(catalogItem) + &quot;.&quot; + catalogItem.getIconExtension();</span>
+<span class="fc" id="L537">		File customIconFile = Paths.get(catalogItemFolder.getPath(), ICONS_SUBDIR, iconName).toFile();</span>
+
+<span class="fc" id="L539">		logger.info(&quot;Importing icon: {}&quot;, customIconFile.getAbsolutePath());</span>
+
+<span class="pc bpc" id="L541" title="1 of 2 branches missed.">		if (this.waitForCatalogItemToAppear(catalogItem.getName())) {</span>
+<span class="fc" id="L542">			logger.info(&quot;Importing icon '{}'&quot;, iconName);</span>
+<span class="fc" id="L543">			ResponseEntity&lt;String&gt; response = this.restClient.uploadIcon(customIconFile);</span>
+<span class="fc" id="L544">			String headersLocationPath = response.getHeaders().getLocation().getPath();</span>
+
+<span class="fc" id="L546">			return headersLocationPath.substring(headersLocationPath.lastIndexOf(&quot;/&quot;) + 1);</span>
+
+		} else {
+<span class="nc" id="L549">			logger.warn(&quot;Could not import icon {}&quot;, iconName);</span>
+
+<span class="nc" id="L551">			throw new RuntimeException(String.format(&quot;Failed to import Icon: %s&quot;, iconName));</span>
+		}
+	}
+
+	/**
+	 * Import a custom form given the catalog item.
+	 * ( form Id is extracted from the item and the fs is queried )
+	 *
+	 * @param catalogItem catalog item
+	 * @param catalogItemFolder catalog item folder
+	 */
+	protected void importCustomForm(final VraNgCatalogItem catalogItem, final File catalogItemFolder) {
+<span class="fc" id="L563">		String formName = getName(catalogItem) + CUSTOM_RESOURCE_SUFFIX;</span>
+<span class="fc" id="L564">		String formDataName = getName(catalogItem) + CATALOG_ITEM_SEPARATOR + CUSTOM_FORM_DATA_SUFFIX + CUSTOM_RESOURCE_SUFFIX;</span>
+<span class="fc" id="L565">		File customFormFile = Paths.get(catalogItemFolder.getPath(), CUSTOM_FORMS_SUBDIR, formName).toFile();</span>
+<span class="fc" id="L566">		File customFormDataFile = Paths.get(catalogItemFolder.getPath(), CUSTOM_FORMS_SUBDIR, formDataName).toFile();</span>
+
+<span class="fc" id="L568">		logger.info(&quot;Importing custom form: {}&quot;, customFormFile.getAbsolutePath());</span>
+<span class="fc" id="L569">		VraNgCustomForm customForm = jsonFileToVraCustomForm(customFormFile, customFormDataFile);</span>
+		// from &lt; 8.12 to 8.12
+<span class="pc bpc" id="L571" title="2 of 4 branches missed.">		if (customForm.getName() != null &amp;&amp; customForm.getSourceType().equals(BLUEPRINT_VERSION)) {</span>
+<span class="nc" id="L572">			customForm.setName(catalogItem.getName());</span>
+		}
+		// from &lt; 8.12 to 8.12
+<span class="pc bpc" id="L575" title="1 of 2 branches missed.">		if (customForm.getSourceId() != null) {</span>
+<span class="nc" id="L576">			customForm.setSourceId(customForm.getSourceId().split(CATALOG_ITEM_BLUEPRINT_VERSION_SOURCE_ID_SEPARATOR, 2)[0]);</span>
+		}
+		// from &lt; 8.12 to 8.12
+<span class="pc bpc" id="L579" title="1 of 2 branches missed.">		if (catalogItem.getType().equals(VraNgContentSourceType.BLUEPRINT)) {</span>
+			// if the source type is not 'com.vmw.vro.workflow' then set default source type to 'com.vmw.blueprint'
+<span class="nc bnc" id="L581" title="All 4 branches missed.">			if (customForm.getSourceType() == null || !customForm.getSourceType().equals(WORKFLOW_CUSTOM_FORM_TYPE)) {</span>
+<span class="nc" id="L582">				customForm.setSourceType(DEFAULT_CUSTOM_FORM_TYPE);</span>
+			}
+		}
+
+<span class="fc" id="L586">		logger.debug(&quot;Custom Form to import: {}&quot;, new Gson().toJson(customForm));</span>
+		// wait 250 ms between each custom form import in order catalog item to be
+		// retrievable by the VRA REST API
+<span class="pc bpc" id="L589" title="1 of 2 branches missed.">		if (this.waitForCatalogItemToAppear(customForm.getName())) {</span>
+<span class="fc" id="L590">			logger.info(&quot;Importing custom form '{}'&quot;, customForm.getName());</span>
+<span class="fc" id="L591">			this.restClient.importCustomForm(customForm, catalogItem.getId());</span>
+		} else {
+<span class="nc" id="L593">			logger.warn(</span>
+					&quot;Custom form with name '{} (type {})' is missing from vRA content source.&quot;,
+<span class="nc" id="L595">					customForm.getName(),</span>
+<span class="nc" id="L596">					customForm.getSourceType());</span>
+
+<span class="nc" id="L598">			throw new RuntimeException(String.format(&quot;Failed to import Custom Form: %s&quot;, customForm.getName()));</span>
+		}
+<span class="fc" id="L600">	}</span>
+
+	/**
+	 * Waits a variable amount of time for the catalog item to appear.
+	 * Returns a boolean if at the end it has appeared or not
+	 *
+	 * @param customFormName custom form name
+	 *
+	 * @return boolean
+	 */
+	protected boolean waitForCatalogItemToAppear(final String customFormName) {
+<span class="fc" id="L611">		long finish = System.currentTimeMillis() + this.config.getImportTimeout();</span>
+<span class="fc" id="L612">		VraNgCatalogItem retVal = this.restClient.getCatalogItemByBlueprintName(customFormName);</span>
+<span class="pc bpc" id="L613" title="1 of 2 branches missed.">		boolean isAvailable = retVal != null;</span>
+
+		try {
+<span class="fc" id="L616">			logger.info(&quot;Waiting (max {} ms) catalog item '{}' to appear on target system&quot;,</span>
+<span class="fc" id="L617">					this.config.getImportTimeout(), customFormName);</span>
+<span class="pc bpc" id="L618" title="3 of 4 branches missed.">			while (!isAvailable &amp;&amp; System.currentTimeMillis() &lt; finish) {</span>
+<span class="nc" id="L619">				Thread.sleep(CUSTOM_FORM_SYNC_WAIT_TIME);</span>
+<span class="nc" id="L620">				retVal = this.restClient.getCatalogItemByBlueprintName(customFormName);</span>
+<span class="nc bnc" id="L621" title="All 2 branches missed.">				isAvailable = retVal != null;</span>
+			}
+<span class="pc bpc" id="L623" title="1 of 2 branches missed.">			if (retVal == null) {</span>
+<span class="nc" id="L624">				logger.warn(&quot;Timed out {} ms waiting catalog item '{}' to appear on target system&quot;,</span>
+<span class="nc" id="L625">						this.config.getImportTimeout(), customFormName);</span>
+			}
+<span class="nc" id="L627">		} catch (InterruptedException e) {</span>
+<span class="nc" id="L628">			logger.debug(&quot;Interrupted exception during invoke of waitForCatalogItemToAppear({}, {}) : {}&quot;,</span>
+<span class="nc" id="L629">					customFormName, CUSTOM_FORM_SYNC_WAIT_TIME, e.getMessage());</span>
+<span class="nc" id="L630">		} catch (Exception e) {</span>
+<span class="nc" id="L631">			logger.debug(&quot;General error during invoke of waitForCatalogItemToAppear({}, {}) : {}&quot;, customFormName,</span>
+<span class="nc" id="L632">					CUSTOM_FORM_SYNC_WAIT_TIME, e.getMessage());</span>
+<span class="pc" id="L633">		}</span>
+
+<span class="fc" id="L635">		return isAvailable;</span>
+	}
+
+	/**
+	 * Converts a json catalog item file to VraNgCatalogItem.
+	 *
+	 * @TODO Try to combine both? Can't really get the class of a Generic tho
+	 *
+	 * @param jsonFile
+	 *
+	 * @return VraNgCatalogItem
+	 */
+	private VraNgCatalogItem jsonFileToVraCatalogItem(final File jsonFile) {
+<span class="fc" id="L648">		logger.debug(&quot;Converting catalog item file to VraNgCatalogItem. Name: '{}'&quot;, jsonFile.getName());</span>
+
+<span class="fc" id="L650">		try (JsonReader reader = new JsonReader(new FileReader(jsonFile.getPath()))) {</span>
+<span class="fc" id="L651">			return new Gson().fromJson(reader, VraNgCatalogItem.class);</span>
+<span class="nc" id="L652">		} catch (IOException e) {</span>
+<span class="nc" id="L653">			throw new RuntimeException(String.format(&quot;Error reading from file: %s&quot;, jsonFile.getPath()), e);</span>
+		}
+	}
+
+	/**
+	 * Converts a json custom form file to VraNgCustomForm
+	 * if the jsonFormDataFile exist then the form data contents will be read from
+	 * it.
+	 *
+	 * @param jsonFormFile     - JSON form metadata file
+	 * @param jsonFormDataFile - JSON form data file (file suffixed with
+	 *                         CUSTOM_FORM_DATA_SUFFIX)
+	 *
+	 * @return VraNgCustomForm
+	 */
+	protected VraNgCustomForm jsonFileToVraCustomForm(final File jsonFormFile, final File jsonFormDataFile) {
+<span class="fc" id="L669">		logger.debug(&quot;Converting custom form file to VraNgCustomForm. Name: '{}'&quot;, jsonFormFile.getName());</span>
+		
+		VraNgCustomFormAndData repoForm;	// As read from the file system (the repo)
+		VraNgCustomForm restForm;			// in a form suitable for usage in a REST API Call.
+		
+<span class="fc" id="L674">		try (JsonReader reader = new JsonReader(new FileReader(jsonFormFile.getPath()))) {</span>
+<span class="fc" id="L675">			repoForm = new Gson().fromJson(reader, VraNgCustomFormAndData.class);</span>
+<span class="fc" id="L676">			restForm = new VraNgCustomForm(repoForm);</span>
+			// if there is a separate form data file then set the form content from it,
+			// otherwise use the one stored in the JSON form file
+<span class="pc bpc" id="L679" title="1 of 2 branches missed.">			if (jsonFormDataFile.exists()) {</span>
+<span class="nc" id="L680">				logger.info(&quot;Found custom form data file '{}' for form name '{}'&quot;, jsonFormDataFile.getPath(),</span>
+<span class="nc" id="L681">						jsonFormFile.getName());</span>
+<span class="nc" id="L682">				restForm.setForm(FileUtils.readFileToString(jsonFormDataFile, Charset.defaultCharset()));</span>
+			}
+<span class="fc" id="L684">			return restForm;</span>
+<span class="nc" id="L685">		} catch (IOException e) {</span>
+<span class="nc" id="L686">			throw new RuntimeException(String.format(&quot;Error reading from file: %s&quot;, jsonFormFile.getPath()), e);</span>
+		}
+	}
+
+	/**
+	 * Returns custom catalog item resource name that can be used for catalog items,
+	 * forms and icons.
+	 *
+	 * @param catalogItem catalog item
+	 *
+	 * @return String
+	 */
+	protected String getName(final VraNgCatalogItem catalogItem) {
+<span class="fc" id="L699">		return catalogItem.getSourceName() + CATALOG_ITEM_SEPARATOR + catalogItem.getName();</span>
+	}
+
+	/**
+	 * Fetches the latest catalog item ids from the server to be used.
+	 * Done at once for all to save fetching all catalog items for every item.
+	 *
+	 * @param catalogItems - catalog items to be updated
+	 */
+	private void fetchLatestCatalogItemIds(final List&lt;VraNgCatalogItem&gt; catalogItems) {
+		// Waiting for catalog items to become available in the content source
+<span class="pc bpc" id="L710" title="1 of 2 branches missed.">		for (String contentSourceID : itemsMap.keySet()) {</span>
+<span class="nc" id="L711">			itemsMap.get(contentSourceID).forEach(item -&gt; {</span>
+<span class="nc" id="L712">				String itemName = item.getName();</span>
+				// wait 250 ms between each custom form import in order catalog item to be
+				// retrievable by the VRA REST API
+<span class="nc" id="L715">				logger.debug(&quot;Checking if catalog item is now available, {}&quot;, itemName);</span>
+<span class="nc" id="L716">				boolean catalogItemAvailable = waitForCatalogItemToAppear(itemName);</span>
+<span class="nc bnc" id="L717" title="All 2 branches missed.">				if (!catalogItemAvailable) {</span>
+<span class="nc" id="L718">					logger.warn(&quot;Catalog item with name '{}' is missing from vRA content source with ID '{}'.&quot;,</span>
+							itemName, contentSourceID);
+				}
+<span class="nc" id="L721">			});</span>
+<span class="nc" id="L722">		}</span>
+
+<span class="fc" id="L724">		List&lt;VraNgCatalogItem&gt; allCatalogItems = this.restClient.getCatalogItemsForProject(</span>
+<span class="fc" id="L725">				this.restClient.getProjectId());</span>
+
+		// return here if there are no catalog items currently on the server
+<span class="pc bpc" id="L728" title="2 of 4 branches missed.">		if (allCatalogItems == null || allCatalogItems.isEmpty()) {</span>
+<span class="nc" id="L729">			return;</span>
+		}
+
+<span class="pc bpc" id="L732" title="1 of 2 branches missed.">		if (!catalogItems.isEmpty()) {</span>
+<span class="fc" id="L733">			catalogItems.forEach(catalogItem -&gt; {</span>
+<span class="pc bpc" id="L734" title="1 of 2 branches missed.">				for (VraNgCatalogItem serverCatalogItem : allCatalogItems) {</span>
+<span class="pc bpc" id="L735" title="2 of 4 branches missed.">					if (catalogItem != null &amp;&amp; serverCatalogItem != null</span>
+<span class="pc bpc" id="L736" title="1 of 2 branches missed.">							&amp;&amp; catalogItem.getSourceName().equals(serverCatalogItem.getSourceName())</span>
+<span class="pc bpc" id="L737" title="1 of 2 branches missed.">							&amp;&amp; catalogItem.getName().equals(serverCatalogItem.getName())) {</span>
+<span class="fc" id="L738">						logger.debug(&quot;Updating catalog item {} with id {}&quot;, catalogItem.getId(),</span>
+<span class="fc" id="L739">								serverCatalogItem.getId());</span>
+<span class="fc" id="L740">						catalogItem.setId(serverCatalogItem.getId());</span>
+<span class="fc" id="L741">						return;</span>
+					}
+<span class="nc" id="L743">				}</span>
+
+<span class="nc" id="L745">				throw new RuntimeException(</span>
+<span class="nc" id="L746">						String.format(&quot;Catalog Item %s__%s not found&quot;, catalogItem.getSourceName(),</span>
+<span class="nc" id="L747">								catalogItem.getName()));</span>
+			});
+		}
+<span class="fc" id="L750">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

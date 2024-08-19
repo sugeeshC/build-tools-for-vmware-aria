@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgPackageStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact</a> &gt; <span class="el_source">VraNgPackageStore.java</span></div><h1>VraNgPackageStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ *
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;).
+ * You may not use this product except in compliance with the BSD-2 License.
+ *
+ * This product may include a number of subcomponents with separate copyright
+ * notices and license terms. Your use of these subcomponents is subject to the 
+ * terms and conditions of the subcomponent's license, as noted in the 
+ * LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVraNg;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.PackageContent.Content;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageContent;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageDescriptor;
+import com.vmware.pscoe.iac.artifact.rest.RestClientVraNg;
+import com.vmware.pscoe.iac.artifact.store.vrang.VraNgTypeStoreFactory;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class VraNgPackageStore extends GenericPackageStore&lt;VraNgPackageDescriptor&gt; {
+	/**
+	 * Variable for logging.
+	 */
+<span class="nc" id="L43">	private final Logger logger = LoggerFactory.getLogger(VraNgPackageStore.class);</span>
+
+	/**
+	 * The vRA rest client.
+	 */
+	private final RestClientVraNg restClient;
+
+	/**
+	 * The vRA configuration.
+	 */
+	private final ConfigurationVraNg config;
+
+	/**
+	 *
+	 * @param vraRestClient the vRA rest client
+	 * @param vraConfig     the vRA config
+	 */
+<span class="nc" id="L60">	protected VraNgPackageStore(final RestClientVraNg vraRestClient, final ConfigurationVraNg vraConfig) {</span>
+<span class="nc" id="L61">		this.restClient = vraRestClient;</span>
+<span class="nc" id="L62">		this.config = vraConfig;</span>
+<span class="nc" id="L63">	}</span>
+
+	/**
+	 * Gets the vRA packages.
+	 * 
+	 * @return the extracted vRA packages
+	 */
+	@Override
+	public final List&lt;Package&gt; getPackages() {
+<span class="nc" id="L72">		throw new UnsupportedOperationException(</span>
+				&quot;getPackages: Cloud Automation Services does not provide native support for packages.&quot;);
+	}
+
+	/**
+	 * Exports all packages.
+	 * 
+	 * @param vraPackages the packages to export
+	 * @param dryrun      whether it should be dry run
+	 * @return the exported packages
+	 */
+	@Override
+	public final List&lt;Package&gt; exportAllPackages(final List&lt;Package&gt; vraPackages, final boolean dryrun) {
+<span class="nc" id="L85">		this.vlidateServer(vraPackages);</span>
+
+<span class="nc" id="L87">		List&lt;Package&gt; sourceEndpointPackages = vraPackages;</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">		if (sourceEndpointPackages.isEmpty()) {</span>
+<span class="nc" id="L89">			return new ArrayList&lt;&gt;();</span>
+		}
+
+<span class="nc" id="L92">		List&lt;Package&gt; exportedPackages = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">		for (Package pkg : vraPackages) {</span>
+<span class="nc" id="L94">			VraNgPackageDescriptor vraPackageDescriptor = VraNgPackageDescriptor</span>
+<span class="nc" id="L95">					.getInstance(new File(pkg.getFilesystemPath()));</span>
+<span class="nc" id="L96">			exportedPackages.add(this.exportPackage(pkg, vraPackageDescriptor, dryrun));</span>
+<span class="nc" id="L97">		}</span>
+
+<span class="nc" id="L99">		return exportedPackages;</span>
+	}
+
+	/**
+	 * Imports all packages.
+	 * 
+	 * @param pkg          the packages to import
+	 * @param dryrun       whether it should be dry run
+	 * @param enableBackup whether it should back up the packages on import
+	 * @return the imported packages
+	 */
+	@Override
+	public final List&lt;Package&gt; importAllPackages(final List&lt;Package&gt; pkg, final boolean dryrun,
+			final boolean enableBackup) {
+<span class="nc" id="L113">		return this.importAllPackages(pkg, dryrun, false, enableBackup);</span>
+	}
+
+	/**
+	 * Imports all packages.
+	 * 
+	 * @param vraNgPackages the packages to import
+	 * @param dryrun        whether it should be dry run
+	 * @param mergePackages whether to merge the packages
+	 * @param enableBackup  whether it should back up the packages on import
+	 * @return the imported packages
+	 */
+	@Override
+	public List&lt;Package&gt; importAllPackages(final List&lt;Package&gt; vraNgPackages, final boolean dryrun,
+			final boolean mergePackages, final boolean enableBackup) {
+<span class="nc" id="L128">		this.validateFilesystem(vraNgPackages);</span>
+<span class="nc" id="L129">		this.waitForDataCollectionDelay();</span>
+
+<span class="nc" id="L131">		List&lt;Package&gt; sourceEndpointPackages = vraNgPackages;</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">		if (sourceEndpointPackages.isEmpty()) {</span>
+<span class="nc" id="L133">			return new ArrayList&lt;&gt;();</span>
+		}
+
+<span class="nc" id="L136">		List&lt;Package&gt; importedPackages = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">		for (Package pkg : sourceEndpointPackages) {</span>
+<span class="nc" id="L138">			importedPackages.add(this.importPackage(pkg, dryrun, mergePackages));</span>
+<span class="nc" id="L139">		}</span>
+
+<span class="nc" id="L141">		return importedPackages;</span>
+	}
+
+	/**
+	 * Exports a package.
+	 * 
+	 * @param vraNgPackage the package to export
+	 * @param dryrun       whether it should be a dry run
+	 * @return the exported package
+	 */
+	@Override
+	public final Package exportPackage(final Package vraNgPackage, final boolean dryrun) {
+<span class="nc" id="L153">		VraNgPackageDescriptor vraNgPackageDescriptor = VraNgPackageDescriptor</span>
+<span class="nc" id="L154">				.getInstance(new File(vraNgPackage.getFilesystemPath()));</span>
+
+<span class="nc" id="L156">		return this.exportPackage(vraNgPackage, vraNgPackageDescriptor, dryrun);</span>
+	}
+
+	/**
+	 * Waits a variable amount of time for vRA data collection.
+	 * If nothing is passed, then we will not wait.
+	 *
+	 * Note: Should we introduce a default one if nothing is passed?
+	 */
+	private void waitForDataCollectionDelay() {
+<span class="nc" id="L166">		String collectionDelayRaw = this.config.getDataCollectionDelaySeconds();</span>
+
+<span class="nc bnc" id="L168" title="All 2 branches missed.">		if (collectionDelayRaw == null) {</span>
+<span class="nc" id="L169">			return;</span>
+		}
+
+		try {
+<span class="nc" id="L173">			int collectionDelay = Integer.parseInt(collectionDelayRaw);</span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">			if (collectionDelay &gt; 0) {</span>
+<span class="nc" id="L175">				logger.warn(</span>
+						&quot;Waiting {} seconds for the vRO data collection. This is configurable with vrang.data.collection.delay.seconds property&quot;,
+<span class="nc" id="L177">						collectionDelay);</span>
+
+<span class="nc" id="L179">				final long collectionDelayMultiplier = 1000L;</span>
+<span class="nc" id="L180">				long delayInMs = collectionDelay * collectionDelayMultiplier;</span>
+<span class="nc" id="L181">				Thread.sleep(delayInMs);</span>
+			}
+<span class="nc" id="L183">		} catch (InterruptedException e) {</span>
+<span class="nc" id="L184">			throw new RuntimeException(&quot;Interrupted waiting for data collection&quot;, e);</span>
+<span class="nc" id="L185">		} catch (NumberFormatException e) {</span>
+<span class="nc" id="L186">			logger.warn(&quot;vrang.data.collection.delay.seconds passed with invalid value {}&quot;, collectionDelayRaw);</span>
+<span class="nc" id="L187">		}</span>
+<span class="nc" id="L188">	}</span>
+
+	/**
+	 * Main handler for exporting vra-ng package based on content.yaml file
+	 * This method performs the following steps:
+	 * 1. Export Property groups
+	 * 2. Export blueprints
+	 * 3. Export subscriptions
+	 * 4. Export regional content - flavor mappings, image mappings, storage
+	 * profiles
+	 * 5. Export catalog entitlements
+	 * 6. Export catalog items
+	 *
+	 * @param vraNgPackage           vRA package
+	 * @param vraNgPackageDescriptor vRA package descriptor
+	 * @param dryrun                 dryrun
+	 * @return package
+	 */
+	@Override
+	public final Package exportPackage(final Package vraNgPackage, final VraNgPackageDescriptor vraNgPackageDescriptor,
+			final boolean dryrun) {
+<span class="nc" id="L209">		logger.info(String.format(PackageStore.PACKAGE_EXPORT, vraNgPackage));</span>
+<span class="nc" id="L210">		VraNgTypeStoreFactory storeFactory = VraNgTypeStoreFactory.withConfig(restClient, vraNgPackage, config,</span>
+				vraNgPackageDescriptor);
+<span class="nc bnc" id="L212" title="All 2 branches missed.">		for (VraNgPackageContent.ContentType type : VraNgTypeStoreFactory.getExportOrder()) {</span>
+<span class="nc" id="L213">			storeFactory.getStoreForType(type).exportContent();</span>
+		}
+
+<span class="nc" id="L216">		return vraNgPackage;</span>
+	}
+
+	/**
+	 * Exports a package.
+	 * 
+	 * @param vraPackage                 the package to export
+	 * @param vraNgPackageDescriptorFile the descriptor of the package to export
+	 * @param dryrun                     whether it should be dry run
+	 * @return the exported package
+	 */
+	@Override
+	public final Package exportPackage(final Package vraPackage, final File vraNgPackageDescriptorFile,
+			final boolean dryrun) {
+<span class="nc" id="L230">		VraNgPackageDescriptor vraNgPackageDescriptor = VraNgPackageDescriptor.getInstance(vraNgPackageDescriptorFile);</span>
+
+<span class="nc" id="L232">		return this.exportPackage(vraPackage, vraNgPackageDescriptor, dryrun);</span>
+	}
+
+	/**
+	 * Main handler for importing vra-ng package. This method performs the following
+	 * steps:
+	 * 1. Import Custom Resources
+	 * 2. Import Cloud Assembly blueprints
+	 * a. Import blueprints
+	 * b. Import content sources
+	 * c. Import content sharing
+	 * 3. Import vRA subscriptions
+	 * 4. Import vRA regional content - flavor mappings, image mappings, storage
+	 * profiles
+	 * 5. Import Service Broker custom forms
+	 * 6. Import Service Broker catalog entitlements
+	 * 7. Import Resource Actions
+	 *
+	 * @param vraNgPackage vRA package
+	 * @param dryrun       dryrun
+	 * @return package
+	 */
+	@Override
+	public final Package importPackage(final Package vraNgPackage, final boolean dryrun, final boolean mergePackages) {
+<span class="nc" id="L256">		logger.info(String.format(PackageStore.PACKAGE_IMPORT, vraNgPackage));</span>
+
+		File tmp;
+		try {
+<span class="nc" id="L260">			tmp = Files.createTempDirectory(&quot;iac-package-import&quot;).toFile();</span>
+<span class="nc" id="L261">			logger.info(&quot;Created temp dir {}&quot;, tmp.getAbsolutePath());</span>
+<span class="nc" id="L262">			new PackageManager(vraNgPackage).unpack(tmp);</span>
+<span class="nc" id="L263">		} catch (IOException e) {</span>
+<span class="nc" id="L264">			logger.error(&quot;Unable to extract package '{}' in temporary directory.&quot;, vraNgPackage.getFQName());</span>
+<span class="nc" id="L265">			throw new RuntimeException(&quot;Unable to extract pacakge.&quot;, e);</span>
+<span class="nc" id="L266">		}</span>
+<span class="nc" id="L267">		VraNgPackageDescriptor vraPackageDescriptor = VraNgPackageDescriptor</span>
+<span class="nc" id="L268">				.getInstance(new File(tmp.toPath().toString() + &quot;/content.yaml&quot;));</span>
+<span class="nc" id="L269">		VraNgTypeStoreFactory storeFactory = VraNgTypeStoreFactory.withConfig(restClient, vraNgPackage, config,</span>
+				vraPackageDescriptor);
+<span class="nc bnc" id="L271" title="All 2 branches missed.">		for (VraNgPackageContent.ContentType type : VraNgTypeStoreFactory.getImportOrder()) {</span>
+<span class="nc" id="L272">			logger.info(&quot;Currently importing: {}&quot;, type.getTypeValue());</span>
+<span class="nc" id="L273">			storeFactory.getStoreForType(type).importContent(tmp);</span>
+		}
+<span class="nc" id="L275">		return vraNgPackage;</span>
+	}
+
+	/**
+	 * Deletes a package.
+	 * 
+	 * @param pkg         the package to delete
+	 * @param withContent whether to delete the package with its content
+	 * @param dryrun      whether it should be dry run
+	 * @return the deleted package
+	 */
+	@Override
+	protected final Package deletePackage(final Package pkg, final boolean withContent, final boolean dryrun) {
+<span class="nc" id="L288">		throw new UnsupportedOperationException(</span>
+				&quot;deletePackage: Cloud Automation Services does not provide native support for packages.&quot;);
+	}
+
+	/**
+	 * Deletes a package.
+	 * 
+	 * @param pkg         the package to delete
+	 * @param lastVersion whether it should delete the last version
+	 * @param oldVersions whether it should delete the old versions
+	 * @param dryrun      whether it should be dry run
+	 * @return the deleted package
+	 */
+	@Override
+	public final List&lt;Package&gt; deletePackage(final Package pkg, final boolean lastVersion, final boolean oldVersions,
+			final boolean dryrun) {
+<span class="nc" id="L304">		throw new UnsupportedOperationException(</span>
+				&quot;deletePackage(List): Cloud Automation Services does not provide native support for packages.&quot;);
+	}
+
+	/**
+	 *
+	 * @param pkg the package which content to get
+	 * @return the content of the package
+	 */
+	@Override
+	protected final VraNgPackageContent getPackageContent(final Package pkg) {
+<span class="nc" id="L315">		throw new UnsupportedOperationException(</span>
+				&quot;Cloud Automation Services does not provide native support for packages.&quot;);
+	}
+
+	/**
+	 * Deletes content.
+	 * 
+	 * @param content the content to delete
+	 * @param dryrun  whether it should be dry dun
+	 */
+	@Override
+	protected final void deleteContent(final Content content, final boolean dryrun) {
+<span class="nc" id="L327">		throw new UnsupportedOperationException(</span>
+				&quot;deleteContent: Cloud Automation Services does not provide native support for packages.&quot;);
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

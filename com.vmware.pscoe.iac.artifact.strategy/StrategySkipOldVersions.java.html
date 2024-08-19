@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StrategySkipOldVersions.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.strategy</a> &gt; <span class="el_source">StrategySkipOldVersions.java</span></div><h1>StrategySkipOldVersions.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.strategy;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.util.Hashtable;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.vmware.pscoe.iac.artifact.model.Package;
+
+/**
+ * Strategy to skip packages with older versions.
+ */
+<span class="fc" id="L30">public class StrategySkipOldVersions implements Strategy {</span>
+
+	/**
+	 * Logger for the class.
+	 */
+<span class="fc" id="L35">	protected final Logger logger = LoggerFactory.getLogger(StrategySkipOldVersions.class);</span>
+
+	/**
+	 * Filter sourceEndpointPackages with higher version then their server representative.
+	 *
+	 * @param sourceEndpointPackages      - sourceEndpointPackages
+	 * @param destinationEndpointPackages - destinationEndpointPackages
+	 * @return - sourceEndpointPackages with higher version then their server representative.
+	 */
+	public List&lt;Package&gt; filterHigherVersions(List&lt;Package&gt; sourceEndpointPackages,
+			List&lt;Package&gt; destinationEndpointPackages) {
+<span class="fc" id="L46">		Hashtable&lt;String, Package&gt; latestPackages = new Hashtable&lt;&gt;();</span>
+<span class="fc" id="L47">		destinationEndpointPackages.forEach(aPackage -&gt; {</span>
+<span class="fc" id="L48">			Package latest = latestPackages.get(aPackage.getName());</span>
+<span class="pc bpc" id="L49" title="1 of 4 branches missed.">			if (latest == null || latest.compareTo(aPackage) &lt; 0) {</span>
+<span class="fc" id="L50">				latestPackages.put(aPackage.getName(), aPackage);</span>
+			}
+<span class="fc" id="L52">		});</span>
+
+<span class="fc" id="L54">		logger.info(&quot;STRATEGY| PASS | Source.Version &gt; Destination.Version&quot;);</span>
+<span class="fc" id="L55">		List&lt;Package&gt; sourceEndpointPackagesHigerVersion = sourceEndpointPackages.stream().filter(sourcePackage -&gt; {</span>
+<span class="fc" id="L56">			Package latest = latestPackages.get(sourcePackage.getName());</span>
+<span class="fc" id="L57">			boolean pass = true;</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">			if (latest != null) {</span>
+<span class="fc" id="L59">				int diff = latest.compareTo(sourcePackage);</span>
+				// same version with -SNAPSHOT is considered newer
+<span class="fc bfc" id="L61" title="All 4 branches covered.">				if (diff == 0 &amp;&amp; latest.isSnapshot()) {</span>
+<span class="fc" id="L62">					pass = true;</span>
+				} else {
+<span class="fc bfc" id="L64" title="All 2 branches covered.">					pass = diff &lt; 0;</span>
+				}
+			}
+<span class="fc bfc" id="L67" title="All 2 branches covered.">			logInfoPackages(sourcePackage, latest, pass ? &quot;PASS&quot; : &quot;SKIP&quot;, &quot;&gt;&quot;);</span>
+<span class="fc" id="L68">			return pass;</span>
+<span class="fc" id="L69">		}).collect(Collectors.toList());</span>
+
+<span class="fc" id="L71">		return sourceEndpointPackagesHigerVersion;</span>
+	}
+
+	/**
+	 * @return - sourceEndpointPackages with higher version then their server
+	 *         representative.
+	 */
+	@Override
+	public List&lt;Package&gt; getImportPackages(List&lt;Package&gt; sourceEndpointPackages,
+			List&lt;Package&gt; destinationEndpointPackages) {
+<span class="fc" id="L81">		logger.info(&quot;STRATEGY| INFO | Apply Configuration strategies for import&quot;);</span>
+<span class="fc" id="L82">		return filterHigherVersions(sourceEndpointPackages, destinationEndpointPackages);</span>
+	}
+
+	/**
+	 * @return - sourceEndpointPackages with higher version then their server
+	 *         representative.
+	 */
+	@Override
+	public List&lt;Package&gt; getExportPackages(List&lt;Package&gt; sourceEndpointPackages,
+			List&lt;Package&gt; destinationEndpointPackages) {
+<span class="nc" id="L92">		logger.info(&quot;STRATEGY| INFO | Apply Configuration strategies for export&quot;);</span>
+<span class="nc" id="L93">		return filterHigherVersions(sourceEndpointPackages, destinationEndpointPackages);</span>
+	}
+
+	/**
+	 * Log information about packages.
+	 *
+	 * @param sourcePackage      - the source package
+	 * @param destinationPackage - the destination package
+	 * @param filterFlag         - the filter flag
+	 * @param filterSign         - the filter sign
+	 */
+	protected void logInfoPackages(Package sourcePackage, Package destinationPackage, String filterFlag,
+			String filterSign) {
+<span class="fc" id="L106">		String msg = String.format(&quot;PACKAGE | %s | %s (%s) %s (%s)&quot;, filterFlag, sourcePackage.getName(),</span>
+<span class="fc" id="L107">				sourcePackage.getVersion(), filterSign,</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">				(destinationPackage != null ? destinationPackage.getVersion() : &quot;missing&quot;));</span>
+<span class="fc" id="L109">		logger.info(msg);</span>
+<span class="fc" id="L110">	}</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

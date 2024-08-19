@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PackageManager.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact</a> &gt; <span class="el_source">PackageManager.java</span></div><h1>PackageManager.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.*;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
+
+import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.vmware.pscoe.iac.artifact.model.Package;
+
+import static org.apache.commons.io.FilenameUtils.getPath;
+
+/**
+ * This class is responsible for expanding a package file into a directory structure and
+ * packaging a directory structure into a package file.
+ */
+public class PackageManager {
+
+	/**
+	 * An abstraction that represents a package.
+	 */
+<span class="fc" id="L46">	private final Logger logger = LoggerFactory.getLogger(this.getClass());</span>
+	
+	private Package pkg;
+
+	/**
+	 * Create a new package manager that can be used to expand a package file into a directory structure and
+	 * packing a directory structure into a package file.
+	 * @param pkg An abstraction representing the package.
+	 */
+<span class="fc" id="L55">	public PackageManager(Package pkg) {</span>
+<span class="fc" id="L56">		this.pkg = pkg;</span>
+<span class="fc" id="L57">	}</span>
+
+	/**
+	 * Take the package represented by the {@link Package} parameter (in the constructor and unpack it into a
+	 * directory structure.
+	 * The {@link Package#getFilesystemPath} method in the {@link Package} parameter should be pointing to an
+	 * actual package file on the file system. The only archive format of the package that is currently supported
+	 * is zip, so all package files are also zip archives.
+	 * @param outputLocation The directory where the package file will be expanded to a set of files and folders.
+	 * @throws IOException In case there is some Input Output error.
+	 * @see Package
+	 * @see Package#getFilesystemPath() 
+	 * @see #pack(File) 
+	 */
+	public void unpack(File outputLocation) throws IOException {
+<span class="fc" id="L72">		try (ZipInputStream zis = new ZipInputStream(new FileInputStream(pkg.getFilesystemPath()))) {</span>
+<span class="fc" id="L73">			ZipEntry ze = null;</span>
+
+<span class="fc bfc" id="L75" title="All 2 branches covered.">			while ((ze = zis.getNextEntry()) != null) {</span>
+
+<span class="fc" id="L77">				String fileName = ze.getName();</span>
+<span class="fc" id="L78">				File newFile = new File(outputLocation, fileName);</span>
+
+<span class="fc" id="L80">				new File(newFile.getParent()).mkdirs();</span>
+				
+<span class="pc bpc" id="L82" title="1 of 2 branches missed.">				if (!ze.isDirectory()) {</span>
+<span class="fc" id="L83">					try (FileOutputStream fos = new FileOutputStream(newFile)) {</span>
+<span class="fc" id="L84">						byte[] buffer = new byte[1024];</span>
+
+						int len;
+<span class="fc bfc" id="L87" title="All 2 branches covered.">						while ((len = zis.read(buffer)) &gt; 0) {</span>
+<span class="fc" id="L88">							fos.write(buffer, 0, len);</span>
+						}
+
+					}
+				}
+<span class="fc" id="L93">			}</span>
+		}
+<span class="fc" id="L95">	}</span>
+
+	/**
+	 * From a directory structure that contains a set of directories, subdirectories and files inside them, 
+	 * create a package file as pointed by the {@link Package} paramter specified in the constructor. 
+	 * The location of the package file is determined by the {@link Package#getFilesystemPath()} method of the package 
+	 * specified in the constructor.
+	 * @param sourceDirectory The source directory that contains the expanded package.
+	 * @throws IOException In case there is some Input/Output error.
+	 * @see Package
+	 * @see Package#getFilesystemPath() 
+	 * @see #unpack(File)
+	 */
+	public void pack(File sourceDirectory) throws IOException {
+<span class="nc" id="L109">		List&lt;File&gt; fileList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L110">		getAllFiles(sourceDirectory, fileList);</span>
+<span class="nc" id="L111">		writeZipFile(sourceDirectory, fileList);</span>
+<span class="nc" id="L112">	}</span>
+
+	/**
+	 * Get a list of all entries from the package file (specified as {@link Package} parameter in the constructor).
+	 * As currently the only archive format for packages is zip, this would interpret the package file returned by
+	 * {@link Package#getFilesystemPath} as zip archive and will list all of the entries in the that zip.
+	 * Each entry will be represented by just the path to that entry based on the zip root.
+	 * @return A list of all of the entries packed in the package (provided in the constructor).
+	 * @throws IOException If there is an Input/Output error.
+	 * @see Package#getFilesystemPath()
+	 */
+	public List&lt;String&gt; getAllFiles() throws IOException {
+<span class="nc" id="L124">		try (ZipFile zipFile = new ZipFile(pkg.getFilesystemPath())) {</span>
+<span class="nc" id="L125">			return zipFile.stream()</span>
+<span class="nc" id="L126">				.map(ZipEntry::getName)</span>
+<span class="nc" id="L127">				.collect(Collectors.toList());</span>
+		}
+	}
+
+	/**
+	 * Utility method that recursively adds all files (and folders) in the given directory to the specified
+	 * list.
+	 * @param dir The directory to traverse for files and folders including any level deep.
+	 * @param fileList Output parameter where the result from the traversal would be stored.
+	 *                 Should be a non-null list, but may be an empty list.
+	 */
+	public void getAllFiles(File dir, List&lt;File&gt; fileList) {
+<span class="nc bnc" id="L139" title="All 6 branches missed.">		if (dir == null || !dir.exists() || !dir.isDirectory()) {</span>
+<span class="nc" id="L140">			return;</span>
+		}
+<span class="nc" id="L142">		File[] files = dir.listFiles();</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">		for (File file : files) {</span>
+<span class="nc" id="L144">			fileList.add(file);</span>
+<span class="nc" id="L145">			getAllFiles(file, fileList);</span>
+		}
+<span class="nc" id="L147">	}</span>
+
+	/**
+	 *
+	 * @param directoryToZip
+	 * @param fileList
+	 * @throws IOException exception
+	 */
+	private void writeZipFile(File directoryToZip, List&lt;File&gt; fileList) throws IOException {
+<span class="nc" id="L156">		File zipFile = new File(pkg.getFilesystemPath());</span>
+<span class="nc" id="L157">		zipFile.getParentFile().mkdirs();</span>
+<span class="nc" id="L158">		try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile))) {</span>
+
+<span class="nc bnc" id="L160" title="All 2 branches missed.">			for (File file : fileList) {</span>
+<span class="nc bnc" id="L161" title="All 2 branches missed.">				if (!file.isDirectory()) { // we only zip files, not directories</span>
+<span class="nc" id="L162">					addToZip(directoryToZip, file, zos);</span>
+				}
+<span class="nc" id="L164">			}</span>
+		}
+<span class="nc" id="L166">	}</span>
+
+	private static void addToZip(File directoryToZip, File file, ZipOutputStream zos) throws IOException {
+<span class="nc" id="L169">		try (FileInputStream fis = new FileInputStream(file)) {</span>
+
+			// we want the zipEntry's path to be a relative path that is
+			// relative
+			// to the directory being zipped, so chop off the rest of the path
+<span class="nc" id="L174">			String zipFilePath = file.getCanonicalPath().substring(directoryToZip.getCanonicalPath().length() + 1,</span>
+<span class="nc" id="L175">					file.getCanonicalPath().length());</span>
+<span class="nc" id="L176">			ZipEntry zipEntry = new ZipEntry(zipFilePath.replaceAll(&quot;\\\\&quot;, &quot;/&quot;));</span>
+<span class="nc" id="L177">			zos.putNextEntry(zipEntry);</span>
+
+<span class="nc" id="L179">			byte[] bytes = new byte[1024];</span>
+			int length;
+<span class="nc bnc" id="L181" title="All 2 branches missed.">			while ((length = fis.read(bytes)) &gt;= 0) {</span>
+<span class="nc" id="L182">				zos.write(bytes, 0, length);</span>
+			}
+		}
+<span class="nc" id="L185">		zos.closeEntry();</span>
+<span class="nc" id="L186">	}</span>
+
+	/**
+	 * Add a single file to existing ZIP
+	 * @param file the file to add
+	 * @param zipDirectory parent directory for the file
+	 * @throws IOException exception
+	 */
+	public void addTextFileToExistingZip(File file, Path zipDirectory) throws IOException {
+<span class="nc" id="L195">		File zipFile = new File(pkg.getFilesystemPath());</span>
+
+<span class="nc" id="L197">		Map&lt;String, String&gt; env = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L198">		env.put(&quot;create&quot;, &quot;true&quot;);</span>
+<span class="nc" id="L199">		env.put(&quot;encoding&quot;, &quot;UTF-8&quot;);</span>
+
+<span class="nc" id="L201">		FileSystem fs = FileSystems.newFileSystem(URI.create(&quot;jar:&quot; + zipFile.toURI()), env);</span>
+<span class="nc" id="L202">		Path nf = fs.getPath(zipDirectory.toString() + File.separator + file.getName());</span>
+<span class="nc" id="L203">		logger.debug(&quot;Writing file {} to Zip path {}&quot;, file.getCanonicalPath(), nf.toString());</span>
+
+<span class="nc" id="L205">		BufferedReader reader = new BufferedReader(new FileReader(file));</span>
+<span class="nc" id="L206">		BufferedWriter writer = Files.newBufferedWriter(nf, StandardCharsets.UTF_8, StandardOpenOption.CREATE);</span>
+
+<span class="nc" id="L208">		String line = null;</span>
+<span class="nc bnc" id="L209" title="All 2 branches missed.">		while ((line=reader.readLine()) != null) {</span>
+<span class="nc" id="L210">			writer.write(line);</span>
+<span class="nc" id="L211">			writer.newLine();</span>
+		}
+<span class="nc" id="L213">		reader.close();</span>
+<span class="nc" id="L214">		writer.close();</span>
+<span class="nc" id="L215">		fs.close();</span>
+<span class="nc" id="L216">	}</span>
+
+	public void addToExistingZip(List&lt;File&gt; fileList) throws IOException {
+<span class="nc bnc" id="L219" title="All 2 branches missed.">		if (fileList.isEmpty()) {</span>
+<span class="nc" id="L220">			return;</span>
+		}
+<span class="nc" id="L222">		File directoryToZip = new File(new File(pkg.getFilesystemPath()).getParent());</span>
+<span class="nc" id="L223">		File zipFile = new File(pkg.getFilesystemPath());</span>
+<span class="nc" id="L224">		File tempFile = File.createTempFile(zipFile.getName(), null);</span>
+<span class="nc" id="L225">		boolean hasExistingFiles = zipFile.exists();</span>
+		
+<span class="nc" id="L227">		tempFile.delete();</span>
+<span class="nc" id="L228">		zipFile.renameTo(tempFile);</span>
+
+<span class="nc" id="L230">		ZipOutputStream zout = new ZipOutputStream(new FileOutputStream(zipFile));</span>
+
+		// Copy Existing Files
+<span class="nc bnc" id="L233" title="All 2 branches missed.">		if (hasExistingFiles) {</span>
+<span class="nc" id="L234">			ZipInputStream zin = new ZipInputStream(new FileInputStream(tempFile));</span>
+<span class="nc" id="L235">			byte[] buf = new byte[1024];</span>
+<span class="nc" id="L236">			ZipEntry entry = zin.getNextEntry();</span>
+<span class="nc bnc" id="L237" title="All 2 branches missed.">			while (entry != null) {</span>
+<span class="nc" id="L238">				zout.putNextEntry(new ZipEntry(entry.getName()));</span>
+				int len;
+<span class="nc bnc" id="L240" title="All 2 branches missed.">				while ((len = zin.read(buf)) &gt; 0) {</span>
+<span class="nc" id="L241">					zout.write(buf, 0, len);</span>
+				}
+<span class="nc" id="L243">				entry = zin.getNextEntry();</span>
+<span class="nc" id="L244">			}</span>
+<span class="nc" id="L245">			zin.close();</span>
+		}
+
+		// ZIP format does not support duplicate file names.
+		// Ensure we are adding unique files
+<span class="nc" id="L250">		Set&lt;File&gt; uniqueFileList = new HashSet&lt;&gt;(fileList);</span>
+
+		// Add New Files
+<span class="nc bnc" id="L253" title="All 2 branches missed.">		for (File file : uniqueFileList) {</span>
+<span class="nc" id="L254">			logger.debug(&quot;Archiving file &quot; + file.getName());</span>
+<span class="nc" id="L255">			addToZip(directoryToZip, file, zout);</span>
+<span class="nc" id="L256">		}</span>
+
+<span class="nc" id="L258">		zout.close();</span>
+<span class="nc" id="L259">		tempFile.delete();</span>
+<span class="nc" id="L260">	}</span>
+
+	/**
+	 * Recursively copy the content of a source directory to a destination directory. Both directories should exist. 
+	 * If at least one of them does not exist, then nothing will be copied and this method will exit silently without 
+	 * any error.
+	 * @param srcDir The source directory whose content would be copied to the destination directory. Should exist. 
+	 *               If this directory does not exist, then no exception will be thrown, but nothing will be copied 
+	 *               as well.
+	 * @param destDir The destination where to copy the content of the source directory. This should be an existing 
+	 *               directory. If this directory does not exist, then no error will be thrown, but also nothing will
+	 *               be copied.    
+	 * @throws IOException in case there is some Input/Output error diring copy operation.
+	 * @see #cleanup(File)
+	 */
+	public static void copyContents(File srcDir, File destDir) throws IOException {
+<span class="pc bpc" id="L276" title="1 of 2 branches missed.">		if (!destDir.exists()) {</span>
+<span class="nc" id="L277">			boolean success = destDir.mkdirs();</span>
+<span class="nc bnc" id="L278" title="All 4 branches missed.">			if (!success || !destDir.exists()) {</span>
+<span class="nc" id="L279">				throw new IOException(&quot;Cannot create directory \&quot;&quot; + destDir + &quot;\&quot;. Please check file system permissions.&quot;);</span>
+			}
+		}
+<span class="pc bpc" id="L282" title="1 of 2 branches missed.">		if (srcDir.exists()) {</span>
+<span class="fc" id="L283">			FileUtils.copyDirectory(srcDir, destDir);</span>
+		}
+<span class="fc" id="L285">	}</span>
+
+	/**
+	 * Deletes a directory recursively. The directory itself will be deleted, together with all its content.
+	 *
+	 * @param directoryToBeDeleted directory to delete
+	 * @throws IOException              in case deletion is unsuccessful
+	 * @throws IllegalArgumentException if {@code directory} does not exist or is not a directory
+	 */
+	public static void cleanup(File directoryToBeDeleted) throws IOException {
+<span class="fc" id="L295">		FileUtils.deleteDirectory(directoryToBeDeleted);</span>
+<span class="fc" id="L296">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

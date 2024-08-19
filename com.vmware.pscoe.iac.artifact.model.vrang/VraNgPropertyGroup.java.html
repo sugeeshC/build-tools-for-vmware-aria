@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgPropertyGroup.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.vrang</a> &gt; <span class="el_source">VraNgPropertyGroup.java</span></div><h1>VraNgPropertyGroup.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+/**
+ * Holds raw data for the property group and name to use as an identifier.
+ */
+public class VraNgPropertyGroup {
+
+	/**
+	 * Project Id JSON key.
+	 */
+	private static final String PROJECT_ID_KEY = &quot;projectId&quot;;
+	/**
+	 * Organisation Id JSON key.
+	 */
+	private static final String ORG_ID_KEY = &quot;orgId&quot;;
+	/**
+	 * Property group Name.
+	 */
+	private final String name;
+	/**
+	 * Property group Id.
+	 */
+	private String id;
+	/**
+	 * Property group raw JSON Data as String.
+	 */
+	private String rawData;
+	/**
+	 * Property group projectId if any.
+	 */
+	private String projectId;
+	/**
+	 * Property group organizationId.
+	 */
+	private String orgId;
+
+	/**
+	 * Constructor.
+	 * 
+	 * @param name
+	 * @param id
+	 * @param rawData
+	 */
+<span class="fc" id="L63">	public VraNgPropertyGroup(String name, String id, String rawData) {</span>
+<span class="fc" id="L64">		this.name = name;</span>
+<span class="fc" id="L65">		this.id = id;</span>
+<span class="fc" id="L66">		this.rawData = rawData;</span>
+<span class="fc" id="L67">		JsonObject rawDataObj = this.getRawDataAsJsonObject();</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">		this.projectId = rawDataObj.has(PROJECT_ID_KEY) ? rawDataObj.get(PROJECT_ID_KEY).getAsString() : &quot;&quot;;</span>
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">		this.orgId = rawDataObj.has(ORG_ID_KEY) ? rawDataObj.get(ORG_ID_KEY).getAsString() : &quot;&quot;;</span>
+<span class="fc" id="L70">	}</span>
+
+	/**
+	 * Returns the property group's JSON definition as string.
+	 * 
+	 * @return String
+	 */
+	public String getRawData() {
+<span class="fc" id="L78">		return rawData;</span>
+	}
+
+	/**
+	 * Modifies the rawData by setting the orgId identifier.
+	 * 
+	 * @param value organizaion uuid
+	 */
+	private void setOrgIdInRawData(String value) {
+<span class="nc" id="L87">		this.modifyRawData(ORG_ID_KEY, value);</span>
+<span class="nc" id="L88">	}</span>
+
+	/**
+	 * Modifies the rawData properties.
+	 * 
+	 * @param key   key
+	 * @param value value
+	 */
+	private void modifyRawData(String key, String value) {
+<span class="fc" id="L97">		JsonObject rawDataObj = this.getRawDataAsJsonObject();</span>
+
+<span class="pc bpc" id="L99" title="1 of 2 branches missed.">		if (rawDataObj.has(key)) {</span>
+<span class="fc" id="L100">			rawDataObj.remove(key);</span>
+		}
+<span class="fc" id="L102">		rawDataObj.addProperty(key, value);</span>
+
+<span class="fc" id="L104">		this.rawData = rawDataObj.toString();</span>
+<span class="fc" id="L105">	}</span>
+
+	/**
+	 * @return String
+	 */
+	public String getName() {
+<span class="fc" id="L111">		return name;</span>
+	}
+
+	/**
+	 * @return String
+	 */
+	public String getId() {
+<span class="fc" id="L118">		return id;</span>
+	}
+
+	/**
+	 * Sets the Id.
+	 * 
+	 * @param value
+	 */
+	public void setId(String value) {
+<span class="fc" id="L127">		this.id = value;</span>
+
+<span class="fc" id="L129">		this.modifyRawData(&quot;id&quot;, value);</span>
+<span class="fc" id="L130">	}</span>
+
+	/**
+	 * @return String
+	 */
+	public String getOrgId() {
+<span class="nc" id="L136">		return orgId;</span>
+	}
+
+	/**
+	 * Sets the organization id.
+	 * 
+	 * @param value
+	 */
+	public void setOrgId(String value) {
+<span class="fc" id="L145">		this.orgId = value;</span>
+
+<span class="fc" id="L147">		this.modifyRawData(ORG_ID_KEY, value);</span>
+<span class="fc" id="L148">	}</span>
+
+	/**
+	 * @return String
+	 */
+	public String getProjectId() {
+<span class="fc" id="L154">		return this.projectId;</span>
+	}
+
+	/**
+	 * Sets the project id.
+	 * 
+	 * @param value
+	 */
+	public void setProjectId(String value) {
+<span class="nc" id="L163">		this.projectId = value;</span>
+
+<span class="nc" id="L165">		this.modifyRawData(PROJECT_ID_KEY, value);</span>
+<span class="nc" id="L166">	}</span>
+
+	/**
+	 * Checks property group's organizaion id against the input value.
+	 * 
+	 * @param value
+	 * @return true if the organization id matches the input.
+	 */
+	public boolean hasTheSameOrgId(String value) {
+<span class="nc" id="L175">		JsonObject rawDataObj = this.getRawDataAsJsonObject();</span>
+
+<span class="nc bnc" id="L177" title="All 2 branches missed.">		if (rawDataObj.has(ORG_ID_KEY)) {</span>
+<span class="nc" id="L178">			String rawDataProjectId = rawDataObj.get(ORG_ID_KEY).getAsString();</span>
+<span class="nc" id="L179">			return rawDataProjectId.equals(value);</span>
+		}
+<span class="nc" id="L181">		return false;</span>
+	}
+
+	/**
+	 * Returns the property group's definition as a JsonObject instance.
+	 * 
+	 * @return property group definition as a JsonObject.
+	 */
+	private JsonObject getRawDataAsJsonObject() {
+<span class="fc" id="L190">		JsonElement rawDataElement = JsonParser.parseString(this.rawData);</span>
+<span class="fc" id="L191">		return rawDataElement.getAsJsonObject();</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgCatalogItemStore812.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.vrang</a> &gt; <span class="el_source">VraNgCatalogItemStore812.java</span></div><h1>VraNgCatalogItemStore812.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCatalogItem;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgContentSourceBase;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgContentSourceType;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCustomForm;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCustomFormAndData;
+
+import org.apache.commons.lang3.StringUtils;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.time.Instant;
+import java.util.ArrayList;
+
+/**
+ * Responsible for exporting/importing catalog items' icons and custom forms.
+ *
+ * NOTE: When reading through this file blueprint and Custom Form are one and
+ * the same
+ */
+<span class="fc" id="L47">public class VraNgCatalogItemStore812 extends VraNgCatalogItemStore {</span>
+	// =================================================
+	// CATALOG ITEMS EXPORT
+	// =================================================
+
+	/**
+	 * Stores a custom form on the file system.
+	 * The Form is returned, so we can set it's id in the catalog item
+	 * Stores the forms under {{catalog_item_dir}}/forms
+	 *
+	 * @param serverPackage server package
+	 * @param catalogItem catalog item
+	 *
+	 * @return VraNgCustomForm
+	 */
+	@Override
+	protected VraNgCustomForm storeCustomFormOnFileSystem(final Package serverPackage, final VraNgCatalogItem catalogItem) {
+<span class="nc" id="L64">		logger.info(this.getClass().toString());</span>
+<span class="nc" id="L65">		VraNgContentSourceBase contentSource = this.restClient.getContentSource(catalogItem.getSourceId());</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">		if (contentSource == null) {</span>
+<span class="nc" id="L67">			throw new RuntimeException(</span>
+<span class="nc" id="L68">					String.format(&quot;Content source %s does not exist&quot;, catalogItem.getSourceId()));</span>
+		}
+
+<span class="nc" id="L71">		logger.debug(&quot;Found content source '{}'&quot;, contentSource.getName());</span>
+<span class="nc" id="L72">		VraNgCustomForm form = null;</span>
+<span class="nc bnc" id="L73" title="All 2 branches missed.">		if (contentSource.getType().equals(VraNgContentSourceType.BLUEPRINT)) {</span>
+<span class="nc" id="L74">			JsonElement version = this.getCatalogItemLatestVersion(catalogItem);</span>
+<span class="nc" id="L75">			JsonObject versionObj = version.getAsJsonObject();</span>
+<span class="nc" id="L76">			String versionName = versionObj.get(&quot;id&quot;).getAsString();</span>
+<span class="nc" id="L77">			String sourceId = catalogItem.getId() + &quot;/&quot; + versionName;</span>
+<span class="nc" id="L78">			JsonElement formId = versionObj.get(&quot;formId&quot;);</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">			if (formId != null) {</span>
+<span class="nc" id="L80">				form = this.restClient.fetchRequestForm(BLUEPRINT_VERSION, sourceId, formId.getAsString());</span>
+<span class="nc" id="L81">				catalogItem.setFormId(form.getId());</span>
+
+			} else {
+<span class="nc" id="L84">				logger.info(</span>
+						&quot;Catalog items '{}'', latest version '{}'', has NO Custom Form. We only pull latest custom form.&quot;,
+<span class="nc" id="L86">						catalogItem.getName(), versionName);</span>
+			}
+<span class="nc" id="L88">		} else {</span>
+<span class="nc" id="L89">			form = this.restClient.getCustomFormByTypeAndSource(</span>
+<span class="nc" id="L90">					contentSource.getType().toString(),</span>
+<span class="nc" id="L91">					catalogItem.getId());</span>
+		}
+
+<span class="nc bnc" id="L94" title="All 2 branches missed.">		if (form == null) {</span>
+<span class="nc" id="L95">			logger.debug(</span>
+					&quot;No form found for catalogItem: {} with source {}&quot;,
+<span class="nc" id="L97">					catalogItem.getName(),</span>
+<span class="nc" id="L98">					catalogItem.getSourceName());</span>
+<span class="nc" id="L99">			return null;</span>
+		}
+
+<span class="nc" id="L102">		File store = new File(serverPackage.getFilesystemPath());</span>
+<span class="nc" id="L103">		File customFormFile = Paths.get(</span>
+<span class="nc" id="L104">				store.getPath(),</span>
+				VraNgDirs.DIR_CATALOG_ITEMS,
+				CUSTOM_FORMS_SUBDIR,
+<span class="nc" id="L107">				(getName(catalogItem) + CUSTOM_RESOURCE_SUFFIX)).toFile();</span>
+<span class="nc" id="L108">		File customFormDataFile = Paths.get(</span>
+<span class="nc" id="L109">				store.getPath(),</span>
+				VraNgDirs.DIR_CATALOG_ITEMS,
+				CUSTOM_FORMS_SUBDIR,
+<span class="nc" id="L112">				(getName(catalogItem) + CATALOG_ITEM_SEPARATOR + CUSTOM_FORM_DATA_SUFFIX + CUSTOM_RESOURCE_SUFFIX))</span>
+<span class="nc" id="L113">				.toFile();</span>
+
+<span class="nc bnc" id="L115" title="All 4 branches missed.">		if (!customFormFile.getParentFile().isDirectory() &amp;&amp; !customFormFile.getParentFile().mkdirs()) {</span>
+<span class="nc" id="L116">			logger.warn(&quot;Could not create folder: {}&quot;, customFormFile.getParentFile().getAbsolutePath());</span>
+		}
+
+		try {
+<span class="nc" id="L120">			Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+			// write form metadata file
+<span class="nc" id="L122">			VraNgCustomFormAndData repoForm = new VraNgCustomFormAndData(form);</span>
+<span class="nc" id="L123">			logger.info(&quot;Created custom form metadata file {}&quot;,</span>
+<span class="nc" id="L124">					Files.write(Paths.get(customFormFile.getPath()), gson.toJson(repoForm).getBytes(),</span>
+							StandardOpenOption.CREATE));
+			// write form data file
+<span class="nc bnc" id="L127" title="All 2 branches missed.">			if (!StringUtils.isEmpty(form.getForm())) {</span>
+<span class="nc" id="L128">				JsonElement je = JsonParser.parseString(form.getForm());</span>
+<span class="nc" id="L129">				logger.info(&quot;Created custom form data file {}&quot;,</span>
+<span class="nc" id="L130">						Files.write(Paths.get(customFormDataFile.getPath()), gson.toJson(je).getBytes(),</span>
+								StandardOpenOption.CREATE));
+			}
+<span class="nc" id="L133">		} catch (IOException e) {</span>
+<span class="nc" id="L134">			logger.error(&quot;Unable to create custom form {}&quot;, customFormFile.getAbsolutePath());</span>
+<span class="nc" id="L135">			throw new RuntimeException(</span>
+<span class="nc" id="L136">					String.format(</span>
+<span class="nc" id="L137">							&quot;Unable to store custom form to file %s.&quot;, customFormFile.getAbsolutePath()),</span>
+					e);
+<span class="nc" id="L139">		}</span>
+
+<span class="nc" id="L141">		return form;</span>
+	}
+
+	/**
+	 * Sorts the versions of the catalog items blueprints and returns the latest one
+	 * sorted by date.
+	 *
+	 * @param catalogItem catalog item
+	 * @return JsonElement
+	 */
+	private JsonElement getCatalogItemLatestVersion(final VraNgCatalogItem catalogItem) {
+<span class="fc" id="L152">		JsonArray versions = this.restClient.getCatalogItemVersions(catalogItem.getId());</span>
+<span class="fc" id="L153">		ArrayList&lt;JsonElement&gt; newList = new ArrayList&lt;&gt;();</span>
+
+		try {
+<span class="fc" id="L156">			versions.forEach(newList::add);</span>
+			// Implementing a custom comparator for the Versions based on createdAt, so we
+			// can guarantee the order of export and therefore import.
+<span class="fc" id="L159">			newList.sort((one, two) -&gt; {</span>
+				// Extract the createdAt attribute and remove the start and end quote from it
+<span class="nc" id="L161">				String creationDateOne = one.getAsJsonObject().get(&quot;createdAt&quot;).toString()</span>
+<span class="nc" id="L162">						.replaceAll(&quot;^\&quot;|\&quot;$&quot;, &quot;&quot;);</span>
+<span class="nc" id="L163">				String creationDateTwo = two.getAsJsonObject().get(&quot;createdAt&quot;).toString()</span>
+<span class="nc" id="L164">						.replaceAll(&quot;^\&quot;|\&quot;$&quot;, &quot;&quot;);</span>
+
+				// Date is returned in ISO-8601, e.g. &quot;2022-08-22T14:17:00.073876Z&quot;;
+<span class="nc" id="L167">				return Instant.parse(creationDateOne).compareTo(Instant.parse(creationDateTwo));</span>
+			});
+<span class="nc" id="L169">		} catch (NullPointerException npe) {</span>
+<span class="nc" id="L170">			logger.error(&quot;Provided versions array is null&quot;);</span>
+<span class="fc" id="L171">		}</span>
+
+<span class="pc bpc" id="L173" title="1 of 2 branches missed.">		return newList.isEmpty() ? null : newList.get(newList.size() - 1);</span>
+	}
+
+	// =================================================
+	// CATALOG ITEMS IMPORT
+	// =================================================
+
+	/**
+	 * Import a custom form given the catalog item. 
+	 * ( form Id is extracted from the item and the fs is queried )
+	 *
+	 * @param catalogItem catalog item
+	 * @param catalogItemFolder catalog item folder
+	 */
+	@Override
+	protected void importCustomForm(final VraNgCatalogItem catalogItem, final File catalogItemFolder) {
+<span class="fc" id="L189">		String formName = getName(catalogItem) + CUSTOM_RESOURCE_SUFFIX;</span>
+<span class="fc" id="L190">		String formDataName = getName(catalogItem) + CATALOG_ITEM_SEPARATOR + CUSTOM_FORM_DATA_SUFFIX + CUSTOM_RESOURCE_SUFFIX;</span>
+<span class="fc" id="L191">		File customFormFile = Paths.get(catalogItemFolder.getPath(), CUSTOM_FORMS_SUBDIR, formName).toFile();</span>
+<span class="fc" id="L192">		File customFormDataFile = Paths.get(catalogItemFolder.getPath(), CUSTOM_FORMS_SUBDIR, formDataName).toFile();</span>
+
+<span class="fc" id="L194">		logger.info(&quot;Importing custom form: '{}'' with type '{}'&quot;, customFormFile.getAbsolutePath(), catalogItem.getType());</span>
+<span class="fc" id="L195">		VraNgCustomForm customForm = this.jsonFileToVraCustomForm(customFormFile, customFormDataFile);</span>
+		// wait 250 ms between each custom form import in order catalog item to be
+		// retrievable by the VRA REST API
+<span class="pc bpc" id="L198" title="1 of 2 branches missed.">		if (this.waitForCatalogItemToAppear(catalogItem.getName())) {</span>
+<span class="pc bpc" id="L199" title="1 of 2 branches missed.">			if (catalogItem.getType().equals(VraNgContentSourceType.BLUEPRINT)) {</span>
+<span class="fc" id="L200">				JsonElement version = this.getCatalogItemLatestVersion(catalogItem);</span>
+<span class="fc" id="L201">				String versionName = &quot;&quot;;</span>
+				// do sanity check on the version JSON element
+<span class="pc bpc" id="L203" title="1 of 2 branches missed.">				if (version != null) {</span>
+<span class="nc" id="L204">					JsonObject versionObj = version.getAsJsonObject();</span>
+					// sanity check on the version object and its properties
+<span class="nc bnc" id="L206" title="All 4 branches missed.">					if (versionObj != null &amp;&amp; versionObj.get(&quot;id&quot;) != null) {</span>
+<span class="nc" id="L207">						versionName = versionObj.get(&quot;id&quot;).getAsString();</span>
+					}
+				}
+<span class="fc" id="L210">				String newFormName = catalogItem.getId() + CATALOG_ITEM_BLUEPRINT_VERSION_NAME_SEPARATOR + versionName;</span>
+<span class="fc" id="L211">				String newSourceId = catalogItem.getId() + CATALOG_ITEM_BLUEPRINT_VERSION_SOURCE_ID_SEPARATOR + versionName;</span>
+				// normalize here to accommodate &lt; 8.12 to &gt;=8.12
+<span class="fc" id="L213">				customForm.setSourceId(newSourceId);</span>
+<span class="fc" id="L214">				customForm.setSourceType(BLUEPRINT_VERSION);</span>
+<span class="fc" id="L215">				customForm.setName(newFormName);</span>
+<span class="fc" id="L216">				logger.info(&quot;Importing custom form for blueprint version '{}'&quot;, customForm.getName());</span>
+<span class="fc" id="L217">				this.restClient.importCustomForm(customForm, customForm.getSourceId());</span>
+<span class="fc" id="L218">			} else {</span>
+<span class="nc" id="L219">				logger.info(&quot;Importing custom form '{}'&quot;, customForm.getName());</span>
+<span class="nc" id="L220">				this.restClient.importCustomForm(customForm, catalogItem.getId());</span>
+			}
+		} else {
+<span class="nc" id="L223">			logger.warn(</span>
+					&quot;Custom form with name '{} (type {})' is missing from vRA content source.&quot;,
+<span class="nc" id="L225">					customForm.getName(),</span>
+<span class="nc" id="L226">					customForm.getSourceType());</span>
+
+<span class="nc" id="L228">			throw new RuntimeException(String.format(&quot;Failed to import Custom Form: %s&quot;, customForm.getName()));</span>
+		}
+<span class="fc" id="L230">	}</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

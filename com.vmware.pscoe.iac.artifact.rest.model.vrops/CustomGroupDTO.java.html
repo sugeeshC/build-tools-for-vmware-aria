@@ -1,0 +1,723 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CustomGroupDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest.model.vrops</a> &gt; <span class="el_source">CustomGroupDTO.java</span></div><h1>CustomGroupDTO.java</h1><pre class="source lang-java linenums">
+package com.vmware.pscoe.iac.artifact.rest.model.vrops;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({ &quot;groups&quot; })
+<span class="nc" id="L35">public class CustomGroupDTO implements Serializable {</span>
+    private static final long serialVersionUID = -8907264880213106297L;
+
+<span class="nc" id="L38">    @JsonProperty(&quot;groups&quot;)</span>
+    private List&lt;Group&gt; groups = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L41">    @JsonIgnore</span>
+    private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+    @JsonProperty(&quot;groups&quot;)
+    public List&lt;Group&gt; getGroups() {
+<span class="nc" id="L46">        return groups;</span>
+    }
+
+    @JsonProperty(&quot;groups&quot;)
+    public void setGroups(List&lt;Group&gt; groups) {
+<span class="nc" id="L51">        this.groups = groups;</span>
+<span class="nc" id="L52">    }</span>
+
+    @JsonAnyGetter
+    public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L56">        return this.additionalProperties;</span>
+    }
+
+    @JsonAnySetter
+    public void setAdditionalProperty(String name, Object value) {
+<span class="nc" id="L61">        this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L62">    }</span>
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;id&quot;, &quot;identifier&quot;, &quot;resourceKey&quot;, &quot;policy&quot;, &quot;autoResolveMembership&quot;, &quot;membershipDefinition&quot;, &quot;links&quot; })
+    @JsonIgnoreProperties({ &quot;links&quot; })
+<span class="nc" id="L67">    public static class Group implements Serializable {</span>
+        private static final long serialVersionUID = -3051771900705327803L;
+
+        @JsonProperty(&quot;id&quot;)
+        private String id;
+
+        @JsonProperty(&quot;identifier&quot;)
+        private String identifier;
+
+        @JsonProperty(&quot;resourceKey&quot;)
+        private ResourceKey resourceKey;
+
+        @JsonProperty(&quot;policy&quot;)
+        private String policy;
+
+        @JsonProperty(&quot;autoResolveMembership&quot;)
+        private Boolean autoResolveMembership;
+
+        @JsonProperty(&quot;membershipDefinition&quot;)
+        private MembershipDefinition membershipDefinition;
+
+<span class="nc" id="L88">        @JsonIgnore</span>
+        private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;id&quot;)
+        public String getId() {
+<span class="nc" id="L93">            return id;</span>
+        }
+
+        @JsonProperty(&quot;id&quot;)
+        public void setId(String id) {
+<span class="nc" id="L98">            this.id = id;</span>
+<span class="nc" id="L99">        }</span>
+
+        @JsonProperty(&quot;identifier&quot;)
+        public String getIdentifier() {
+<span class="nc" id="L103">            return identifier;</span>
+        }
+
+        @JsonProperty(&quot;identifier&quot;)
+        public void setIdentifier(String identifier) {
+<span class="nc" id="L108">            this.identifier = identifier;</span>
+<span class="nc" id="L109">        }</span>
+
+        @JsonProperty(&quot;resourceKey&quot;)
+        public ResourceKey getResourceKey() {
+<span class="nc" id="L113">            return resourceKey;</span>
+        }
+
+        @JsonProperty(&quot;resourceKey&quot;)
+        public void setResourceKey(ResourceKey resourceKey) {
+<span class="nc" id="L118">            this.resourceKey = resourceKey;</span>
+<span class="nc" id="L119">        }</span>
+
+        @JsonProperty(&quot;policy&quot;)
+        public String getPolicy() {
+<span class="nc" id="L123">            return policy;</span>
+        }
+
+        @JsonProperty(&quot;policy&quot;)
+        public void setPolicy(String policy) {
+<span class="nc" id="L128">            this.policy = policy;</span>
+<span class="nc" id="L129">        }</span>
+
+        @JsonProperty(&quot;autoResolveMembership&quot;)
+        public Boolean isAutoResolveMembership() {
+<span class="nc" id="L133">            return autoResolveMembership;</span>
+        }
+
+        @JsonProperty(&quot;autoResolveMembership&quot;)
+        public void setAutoResolveMembership(Boolean autoResolveMembership) {
+<span class="nc" id="L138">            this.autoResolveMembership = autoResolveMembership;</span>
+<span class="nc" id="L139">        }</span>
+
+        @JsonProperty(&quot;membershipDefinition&quot;)
+        public MembershipDefinition getMembershipDefinition() {
+<span class="nc" id="L143">            return membershipDefinition;</span>
+        }
+
+        @JsonProperty(&quot;membershipDefinition&quot;)
+        public void setMembershipDefinition(MembershipDefinition membershipDefinition) {
+<span class="nc" id="L148">            this.membershipDefinition = membershipDefinition;</span>
+<span class="nc" id="L149">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L153">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperty(String name, Object value) {
+<span class="nc" id="L158">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L159">        }</span>
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;includedResources&quot;, &quot;excludedResources&quot;, &quot;custom-group-properties&quot;, &quot;rules&quot; })
+<span class="nc" id="L164">    public static class MembershipDefinition implements Serializable {</span>
+        private static final long serialVersionUID = 7552803338575289017L;
+
+<span class="nc" id="L167">        @JsonProperty(&quot;includedResources&quot;)</span>
+        private List&lt;Object&gt; includedResources = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L170">        @JsonProperty(&quot;excludedResources&quot;)</span>
+        private List&lt;Object&gt; excludedResources = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L173">        @JsonProperty(&quot;custom-group-properties&quot;)</span>
+        private List&lt;Object&gt; customGroupProperties = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L176">        @JsonProperty(&quot;rules&quot;)</span>
+        private List&lt;Rule&gt; rules = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L179">        @JsonIgnore</span>
+        private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;includedResources&quot;)
+        public List&lt;Object&gt; getIncludedResources() {
+<span class="nc" id="L184">            return includedResources;</span>
+        }
+
+        @JsonProperty(&quot;includedResources&quot;)
+        public void setIncludedResources(List&lt;Object&gt; includedResources) {
+<span class="nc" id="L189">            this.includedResources = includedResources;</span>
+<span class="nc" id="L190">        }</span>
+
+        @JsonProperty(&quot;excludedResources&quot;)
+        public List&lt;Object&gt; getExcludedResources() {
+<span class="nc" id="L194">            return excludedResources;</span>
+        }
+
+        @JsonProperty(&quot;excludedResources&quot;)
+        public void setExcludedResources(List&lt;Object&gt; excludedResources) {
+<span class="nc" id="L199">            this.excludedResources = excludedResources;</span>
+<span class="nc" id="L200">        }</span>
+
+        @JsonProperty(&quot;custom-group-properties&quot;)
+        public List&lt;Object&gt; getCustomGroupProperties() {
+<span class="nc" id="L204">            return customGroupProperties;</span>
+        }
+
+        @JsonProperty(&quot;custom-group-properties&quot;)
+        public void setCustomGroupProperties(List&lt;Object&gt; customGroupProperties) {
+<span class="nc" id="L209">            this.customGroupProperties = customGroupProperties;</span>
+<span class="nc" id="L210">        }</span>
+
+        @JsonProperty(&quot;rules&quot;)
+        public List&lt;Rule&gt; getRules() {
+<span class="nc" id="L214">            return rules;</span>
+        }
+
+        @JsonProperty(&quot;rules&quot;)
+        public void setRules(List&lt;Rule&gt; rules) {
+<span class="nc" id="L219">            this.rules = rules;</span>
+<span class="nc" id="L220">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L224">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperty(String name, Object value) {
+<span class="nc" id="L229">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L230">        }</span>
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;resourceKindKey&quot;, &quot;statConditionRules&quot;, &quot;propertyConditionRules&quot;, &quot;resourceNameConditionRules&quot;, &quot;relationshipConditionRules&quot; })
+<span class="nc" id="L235">    public static class Rule implements Serializable {</span>
+        private static final long serialVersionUID = 2858223788988040394L;
+
+        @JsonProperty(&quot;resourceKindKey&quot;)
+        private ResourceKindKey resourceKindKey;
+
+<span class="nc" id="L241">        @JsonProperty(&quot;statConditionRules&quot;)</span>
+        private List&lt;StatConditionRule&gt; statConditionRules = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L244">        @JsonProperty(&quot;propertyConditionRules&quot;)</span>
+        private List&lt;Object&gt; propertyConditionRules = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L247">        @JsonProperty(&quot;resourceNameConditionRules&quot;)</span>
+        private List&lt;ResourceNameConditionRule&gt; resourceNameConditionRules = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L250">        @JsonProperty(&quot;relationshipConditionRules&quot;)</span>
+        private List&lt;RelationshipConditionRule&gt; relationshipConditionRules = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L253">        @JsonIgnore</span>
+        private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;resourceKindKey&quot;)
+        public ResourceKindKey getResourceKindKey() {
+<span class="nc" id="L258">            return resourceKindKey;</span>
+        }
+
+        @JsonProperty(&quot;resourceKindKey&quot;)
+        public void setResourceKindKey(ResourceKindKey resourceKindKey) {
+<span class="nc" id="L263">            this.resourceKindKey = resourceKindKey;</span>
+<span class="nc" id="L264">        }</span>
+
+        @JsonProperty(&quot;statConditionRules&quot;)
+        public List&lt;StatConditionRule&gt; getStatConditionRules() {
+<span class="nc" id="L268">            return statConditionRules;</span>
+        }
+
+        @JsonProperty(&quot;statConditionRules&quot;)
+        public void setStatConditionRules(List&lt;StatConditionRule&gt; statConditionRules) {
+<span class="nc" id="L273">            this.statConditionRules = statConditionRules;</span>
+<span class="nc" id="L274">        }</span>
+
+        @JsonProperty(&quot;propertyConditionRules&quot;)
+        public List&lt;Object&gt; getPropertyConditionRules() {
+<span class="nc" id="L278">            return propertyConditionRules;</span>
+        }
+
+        @JsonProperty(&quot;propertyConditionRules&quot;)
+        public void setPropertyConditionRules(List&lt;Object&gt; propertyConditionRules) {
+<span class="nc" id="L283">            this.propertyConditionRules = propertyConditionRules;</span>
+<span class="nc" id="L284">        }</span>
+
+        @JsonProperty(&quot;resourceNameConditionRules&quot;)
+        public List&lt;ResourceNameConditionRule&gt; getResourceNameConditionRules() {
+<span class="nc" id="L288">            return resourceNameConditionRules;</span>
+        }
+
+        @JsonProperty(&quot;resourceNameConditionRules&quot;)
+        public void setResourceNameConditionRules(List&lt;ResourceNameConditionRule&gt; resourceNameConditionRules) {
+<span class="nc" id="L293">            this.resourceNameConditionRules = resourceNameConditionRules;</span>
+<span class="nc" id="L294">        }</span>
+
+        @JsonProperty(&quot;relationshipConditionRules&quot;)
+        public List&lt;RelationshipConditionRule&gt; getRelationshipConditionRules() {
+<span class="nc" id="L298">            return relationshipConditionRules;</span>
+        }
+
+        @JsonProperty(&quot;relationshipConditionRules&quot;)
+        public void setRelationshipConditionRules(List&lt;RelationshipConditionRule&gt; relationshipConditionRules) {
+<span class="nc" id="L303">            this.relationshipConditionRules = relationshipConditionRules;</span>
+<span class="nc" id="L304">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L308">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperty(String name, Object value) {
+<span class="nc" id="L313">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L314">        }</span>
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;key&quot;, &quot;stringValue&quot;, &quot;doubleValue&quot;, &quot;compareOperator&quot; })
+<span class="nc" id="L319">    public static class StatConditionRule implements Serializable {</span>
+        private static final long serialVersionUID = -5386165550764511301L;
+
+        @JsonProperty(&quot;key&quot;)
+        private String key;
+
+        @JsonProperty(&quot;stringValue&quot;)
+        private String stringValue;
+
+        @JsonProperty(&quot;doubleValue&quot;)
+        private Double doubleValue;
+
+        @JsonProperty(&quot;compareOperator&quot;)
+        private String compareOperator;
+
+<span class="nc" id="L334">        @JsonIgnore</span>
+        private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;key&quot;)
+        public String getKey() {
+<span class="nc" id="L339">            return key;</span>
+        }
+
+        @JsonProperty(&quot;key&quot;)
+        public void setKey(String key) {
+<span class="nc" id="L344">            this.key = key;</span>
+<span class="nc" id="L345">        }</span>
+
+        @JsonProperty(&quot;stringValue&quot;)
+        public String getStringValue() {
+<span class="nc" id="L349">            return stringValue;</span>
+        }
+
+        @JsonProperty(&quot;stringValue&quot;)
+        public void setStringValue(String stringValue) {
+<span class="nc" id="L354">            this.stringValue = stringValue;</span>
+<span class="nc" id="L355">        }</span>
+
+        @JsonProperty(&quot;doubleValue&quot;)
+        public Double getDoubleValue() {
+<span class="nc" id="L359">            return doubleValue;</span>
+        }
+
+        @JsonProperty(&quot;doubleValue&quot;)
+        public void setDoubleValue(Double doubleValue) {
+<span class="nc" id="L364">            this.doubleValue = doubleValue;</span>
+<span class="nc" id="L365">        }</span>
+
+        @JsonProperty(&quot;compareOperator&quot;)
+        public String getCompareOperator() {
+<span class="nc" id="L369">            return compareOperator;</span>
+        }
+
+        @JsonProperty(&quot;compareOperator&quot;)
+        public void setCompareOperator(String compareOperator) {
+<span class="nc" id="L374">            this.compareOperator = compareOperator;</span>
+<span class="nc" id="L375">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L379">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperty(String name, Object value) {
+<span class="nc" id="L384">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L385">        }</span>
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;name&quot;, &quot;compareOperator&quot; })
+<span class="nc" id="L390">    public static class ResourceNameConditionRule implements Serializable {</span>
+        private static final long serialVersionUID = -7089630077528662679L;
+
+        @JsonProperty(&quot;name&quot;)
+        private String name;
+
+        @JsonProperty(&quot;compareOperator&quot;)
+        private String compareOperator;
+
+<span class="nc" id="L399">        @JsonIgnore</span>
+        private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;name&quot;)
+        public String getName() {
+<span class="nc" id="L404">            return name;</span>
+        }
+
+        @JsonProperty(&quot;name&quot;)
+        public void setName(String name) {
+<span class="nc" id="L409">            this.name = name;</span>
+<span class="nc" id="L410">        }</span>
+
+        @JsonProperty(&quot;compareOperator&quot;)
+        public String getCompareOperator() {
+<span class="nc" id="L414">            return compareOperator;</span>
+        }
+
+        @JsonProperty(&quot;compareOperator&quot;)
+        public void setCompareOperator(String compareOperator) {
+<span class="nc" id="L419">            this.compareOperator = compareOperator;</span>
+<span class="nc" id="L420">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L424">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperty(String name, Object value) {
+<span class="nc" id="L429">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L430">        }</span>
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;relation&quot;, &quot;name&quot;, &quot;compareOperator&quot;, &quot;travesalSpecId&quot; })
+<span class="nc" id="L435">    public static class RelationshipConditionRule implements Serializable {</span>
+        private static final long serialVersionUID = -750100357961113288L;
+
+        @JsonProperty(&quot;relation&quot;)
+        private String relation;
+
+        @JsonProperty(&quot;name&quot;)
+        private String name;
+
+        @JsonProperty(&quot;compareOperator&quot;)
+        private String compareOperator;
+
+        @JsonProperty(&quot;travesalSpecId&quot;)
+        private String travesalSpecId;
+
+<span class="nc" id="L450">        @JsonIgnore</span>
+        private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;relation&quot;)
+        public String getRelation() {
+<span class="nc" id="L455">            return relation;</span>
+        }
+
+        @JsonProperty(&quot;relation&quot;)
+        public void setRelation(String relation) {
+<span class="nc" id="L460">            this.relation = relation;</span>
+<span class="nc" id="L461">        }</span>
+
+        @JsonProperty(&quot;name&quot;)
+        public String getName() {
+<span class="nc" id="L465">            return name;</span>
+        }
+
+        @JsonProperty(&quot;name&quot;)
+        public void setName(String name) {
+<span class="nc" id="L470">            this.name = name;</span>
+<span class="nc" id="L471">        }</span>
+
+        @JsonProperty(&quot;compareOperator&quot;)
+        public String getCompareOperator() {
+<span class="nc" id="L475">            return compareOperator;</span>
+        }
+
+        @JsonProperty(&quot;compareOperator&quot;)
+        public void setCompareOperator(String compareOperator) {
+<span class="nc" id="L480">            this.compareOperator = compareOperator;</span>
+<span class="nc" id="L481">        }</span>
+
+        @JsonProperty(&quot;travesalSpecId&quot;)
+        public String getTravesalSpecId() {
+<span class="nc" id="L485">            return travesalSpecId;</span>
+        }
+
+        @JsonProperty(&quot;travesalSpecId&quot;)
+        public void setTravesalSpecId(String travesalSpecId) {
+<span class="nc" id="L490">            this.travesalSpecId = travesalSpecId;</span>
+<span class="nc" id="L491">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L495">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperty(String name, Object value) {
+<span class="nc" id="L500">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L501">        }</span>
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;resourceKind&quot;, &quot;adapterKind&quot; })
+<span class="nc" id="L506">    public static class ResourceKindKey implements Serializable {</span>
+        private static final long serialVersionUID = -1575312205325925888L;
+
+        @JsonProperty(&quot;resourceKind&quot;)
+        private String resourceKind;
+
+        @JsonProperty(&quot;adapterKind&quot;)
+        private String adapterKind;
+
+<span class="nc" id="L515">        @JsonIgnore</span>
+        private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;resourceKind&quot;)
+        public String getResourceKind() {
+<span class="nc" id="L520">            return resourceKind;</span>
+        }
+
+        @JsonProperty(&quot;resourceKind&quot;)
+        public void setResourceKind(String resourceKind) {
+<span class="nc" id="L525">            this.resourceKind = resourceKind;</span>
+<span class="nc" id="L526">        }</span>
+
+        @JsonProperty(&quot;adapterKind&quot;)
+        public String getAdapterKind() {
+<span class="nc" id="L530">            return adapterKind;</span>
+        }
+
+        @JsonProperty(&quot;adapterKind&quot;)
+        public void setAdapterKind(String adapterKind) {
+<span class="nc" id="L535">            this.adapterKind = adapterKind;</span>
+<span class="nc" id="L536">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L540">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperty(String name, Object value) {
+<span class="nc" id="L545">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L546">        }</span>
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;name&quot;, &quot;adapterKindKey&quot;, &quot;resourceKindKey&quot;, &quot;resourceIdentifiers&quot; })
+<span class="nc" id="L551">    public static class ResourceKey implements Serializable {</span>
+        private static final long serialVersionUID = 1936847230252766216L;
+
+        @JsonProperty(&quot;name&quot;)
+        private String name;
+
+        @JsonProperty(&quot;adapterKindKey&quot;)
+        private String adapterKindKey;
+
+        @JsonProperty(&quot;resourceKindKey&quot;)
+        private String resourceKindKey;
+
+<span class="nc" id="L563">        @JsonProperty(&quot;resourceIdentifiers&quot;)</span>
+        private List&lt;ResourceIdentifier&gt; resourceIdentifiers = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L566">        @JsonIgnore</span>
+        private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;name&quot;)
+        public String getName() {
+<span class="nc" id="L571">            return name;</span>
+        }
+
+        @JsonProperty(&quot;name&quot;)
+        public void setName(String name) {
+<span class="nc" id="L576">            this.name = name;</span>
+<span class="nc" id="L577">        }</span>
+
+        @JsonProperty(&quot;adapterKindKey&quot;)
+        public String getAdapterKindKey() {
+<span class="nc" id="L581">            return adapterKindKey;</span>
+        }
+
+        @JsonProperty(&quot;adapterKindKey&quot;)
+        public void setAdapterKindKey(String adapterKindKey) {
+<span class="nc" id="L586">            this.adapterKindKey = adapterKindKey;</span>
+<span class="nc" id="L587">        }</span>
+
+        @JsonProperty(&quot;resourceKindKey&quot;)
+        public String getResourceKindKey() {
+<span class="nc" id="L591">            return resourceKindKey;</span>
+        }
+
+        @JsonProperty(&quot;resourceKindKey&quot;)
+        public void setResourceKindKey(String resourceKindKey) {
+<span class="nc" id="L596">            this.resourceKindKey = resourceKindKey;</span>
+<span class="nc" id="L597">        }</span>
+
+        @JsonProperty(&quot;resourceIdentifiers&quot;)
+        public List&lt;ResourceIdentifier&gt; getResourceIdentifiers() {
+<span class="nc" id="L601">            return resourceIdentifiers;</span>
+        }
+
+        @JsonProperty(&quot;resourceIdentifiers&quot;)
+        public void setResourceIdentifiers(List&lt;ResourceIdentifier&gt; resourceIdentifiers) {
+<span class="nc" id="L606">            this.resourceIdentifiers = resourceIdentifiers;</span>
+<span class="nc" id="L607">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L611">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperty(String name, Object value) {
+<span class="nc" id="L616">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L617">        }</span>
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;identifierType&quot;, &quot;value&quot; })
+<span class="nc" id="L622">    public static class ResourceIdentifier implements Serializable {</span>
+        private static final long serialVersionUID = -4631445128052519908L;
+
+        @JsonProperty(&quot;identifierType&quot;)
+        private IdentifierType identifierType;
+
+        @JsonProperty(&quot;value&quot;)
+        private String value;
+
+<span class="nc" id="L631">        @JsonIgnore</span>
+        private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;identifierType&quot;)
+        public IdentifierType getIdentifierType() {
+<span class="nc" id="L636">            return identifierType;</span>
+        }
+
+        @JsonProperty(&quot;identifierType&quot;)
+        public void setIdentifierType(IdentifierType identifierType) {
+<span class="nc" id="L641">            this.identifierType = identifierType;</span>
+<span class="nc" id="L642">        }</span>
+
+        @JsonProperty(&quot;value&quot;)
+        public String getValue() {
+<span class="nc" id="L646">            return value;</span>
+        }
+
+        @JsonProperty(&quot;value&quot;)
+        public void setValue(String value) {
+<span class="nc" id="L651">            this.value = value;</span>
+<span class="nc" id="L652">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L656">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperty(String name, Object value) {
+<span class="nc" id="L661">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L662">        }</span>
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;name&quot;, &quot;dataType&quot;, &quot;isPartOfUniqueness&quot; })
+<span class="nc" id="L667">    public static class IdentifierType implements Serializable {</span>
+        private static final long serialVersionUID = -1370467208132974903L;
+
+        @JsonProperty(&quot;name&quot;)
+        private String name;
+
+        @JsonProperty(&quot;dataType&quot;)
+        private String dataType;
+
+        @JsonProperty(&quot;isPartOfUniqueness&quot;)
+        private Boolean isPartOfUniqueness;
+
+<span class="nc" id="L679">        @JsonIgnore</span>
+        private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;name&quot;)
+        public String getName() {
+<span class="nc" id="L684">            return name;</span>
+        }
+
+        @JsonProperty(&quot;name&quot;)
+        public void setName(String name) {
+<span class="nc" id="L689">            this.name = name;</span>
+<span class="nc" id="L690">        }</span>
+
+        @JsonProperty(&quot;dataType&quot;)
+        public String getDataType() {
+<span class="nc" id="L694">            return dataType;</span>
+        }
+
+        @JsonProperty(&quot;dataType&quot;)
+        public void setDataType(String dataType) {
+<span class="nc" id="L699">            this.dataType = dataType;</span>
+<span class="nc" id="L700">        }</span>
+
+        @JsonProperty(&quot;isPartOfUniqueness&quot;)
+        public Boolean isIsPartOfUniqueness() {
+<span class="nc" id="L704">            return isPartOfUniqueness;</span>
+        }
+
+        @JsonProperty(&quot;isPartOfUniqueness&quot;)
+        public void setIsPartOfUniqueness(Boolean isPartOfUniqueness) {
+<span class="nc" id="L709">            this.isPartOfUniqueness = isPartOfUniqueness;</span>
+<span class="nc" id="L710">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L714">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperty(String name, Object value) {
+<span class="nc" id="L719">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L720">        }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

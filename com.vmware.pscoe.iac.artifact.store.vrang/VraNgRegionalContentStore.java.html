@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgRegionalContentStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.vrang</a> &gt; <span class="el_source">VraNgRegionalContentStore.java</span></div><h1>VraNgRegionalContentStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCloudAccount;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgRegionMapping;
+
+import org.yaml.snakeyaml.Yaml;
+
+<span class="fc" id="L33">public class VraNgRegionalContentStore extends AbstractVraNgStore {</span>
+
+    @Override
+    public void importContent(File sourceDirectory) {
+<span class="nc" id="L37">        importRegionalContent(sourceDirectory);</span>
+<span class="nc" id="L38">    }</span>
+
+    /**
+     * The regionalContent exports all flavor mapping, image mapping and storage profile in partucular region
+     */
+    @Override
+    public void exportContent() {
+<span class="fc" id="L45">        VraNgRegionMapping regionMapping = vraNgPackageDescriptor.getRegionMapping();</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">        if (regionMapping != null) {</span>
+<span class="fc" id="L47">            exportRegionalContent(regionMapping);</span>
+        } else {
+<span class="fc" id="L49">            logger.info(&quot;No region mapping found in content.yaml&quot;);</span>
+        }
+<span class="fc" id="L51">    }</span>
+
+	/**
+	 * Unused because the class overwrites directly exportContent
+	 */
+	@Override
+	protected List&lt;String&gt; getItemListFromDescriptor() {
+<span class="nc" id="L58">		return null;</span>
+	}
+
+	/**
+	 * Unused because the class overwrites directly exportContent
+	 */
+	@Override
+	protected void exportStoreContent() {
+<span class="nc" id="L66">	}</span>
+
+	/**
+	 * Unused because the class overwrites directly exportContent
+	 */
+	@Override
+	protected void exportStoreContent(List&lt;String&gt; itemNames) {
+
+<span class="nc" id="L74">	}</span>
+
+	/**
+     * Export region-specific content based on region mappings defined in the
+     * package manifest. This includes: * flavor mappings * image mappings * storage
+     * profiles
+     * 
+     * @param regionMapping          region mapping structure describing the regions
+     *                               (cloud zones) that have related exportable
+     *                               content defined in the package manifest.
+     */
+    private void exportRegionalContent(VraNgRegionMapping regionMapping) {
+
+        // determine from which cloud account to export the content (based on the export
+        // tag)
+<span class="fc" id="L89">        String exportTag = regionMapping.getCloudAccountTags().getExportTag();</span>
+<span class="fc" id="L90">        List&lt;VraNgCloudAccount&gt; cloudAccounts = this.restClient</span>
+<span class="fc" id="L91">                .getCloudAccounts().stream().filter(cloudAccount -&gt; VraNgRegionalContentUtils</span>
+<span class="fc" id="L92">                        .isIntersecting(cloudAccount.getTags(), new ArrayList&lt;String&gt;(Arrays.asList(exportTag))))</span>
+<span class="fc" id="L93">                .collect(Collectors.toList());</span>
+
+<span class="fc" id="L95">        logger.info(&quot;Found {} cloud accounts from which to export regional content (image mappings, flavor mappings, storage profiles) based on tag {}&quot;,</span>
+<span class="fc" id="L96">				cloudAccounts.size(), exportTag);</span>
+
+        // no need to export regional content when no exportable cloud accounts are
+        // found
+<span class="fc bfc" id="L100" title="All 2 branches covered.">        if (cloudAccounts.isEmpty()) {</span>
+<span class="fc" id="L101">			logger.info(&quot;No cloud accounts found based on export tag {}. Skipping export of regional content (image mappings, flavor mappings, storage profiles)&quot;,</span>
+                exportTag);
+<span class="fc" id="L103">            return;</span>
+        }
+
+        // export flavor mappings
+<span class="fc" id="L107">        VraNgFlavorMappingStore flavorMappingStore = new VraNgFlavorMappingStore();</span>
+<span class="fc" id="L108">		flavorMappingStore.init( restClient, vraNgPackage, vraNgPackageDescriptor );</span>
+<span class="fc" id="L109">        flavorMappingStore.exportContent( cloudAccounts );</span>
+
+        // export image mappings
+<span class="fc" id="L112">        VraNgImageMappingStore imageMappingStore = new VraNgImageMappingStore();</span>
+<span class="fc" id="L113">		imageMappingStore.init( restClient, vraNgPackage, vraNgPackageDescriptor );</span>
+<span class="fc" id="L114">		imageMappingStore.exportContent( cloudAccounts );</span>
+
+        // export storage profiles
+<span class="fc" id="L117">        VraNgStorageProfileStore storageProfileStore = new VraNgStorageProfileStore();</span>
+<span class="fc" id="L118">		storageProfileStore.init( restClient, vraNgPackage, vraNgPackageDescriptor );</span>
+<span class="fc" id="L119">		storageProfileStore.exportContent( cloudAccounts );</span>
+<span class="fc" id="L120">    }</span>
+
+    /**
+     * Import region-specific content based on region mapping defined in the package
+     * manifest. The manifest (content.yaml) is part of the vra-ng package and read
+     * on the fly.
+     * 
+     * @param sourceDirectory temporary directory containing the files
+     */
+    private void importRegionalContent(File sourceDirectory) {
+
+        try {
+
+            // read content.yaml
+<span class="nc" id="L134">            Yaml yaml = new Yaml();</span>
+<span class="nc" id="L135">            File content = Paths.get(sourceDirectory.getPath() + File.separator + &quot;content.yaml&quot;).toFile();</span>
+<span class="nc" id="L136">            Map&lt;String, Object&gt; yamlContent = yaml.load(new FileInputStream(content));</span>
+
+            // get region mapping
+<span class="nc bnc" id="L139" title="All 4 branches missed.">            if (!yamlContent.containsKey(&quot;region-mapping&quot;) || yamlContent.get(&quot;region-mapping&quot;) == null) {</span>
+<span class="nc" id="L140">                logger.info(</span>
+                        &quot;content.yaml does not contain 'region-mapping' entry. Skipping import of regional content...&quot;);
+<span class="nc" id="L142">                return;</span>
+            }
+<span class="nc" id="L144">            Map&lt;String, Object&gt; regionMapping = (Map&lt;String, Object&gt;) yamlContent.get(&quot;region-mapping&quot;);</span>
+<span class="nc" id="L145">            logger.debug(&quot;Region mapping: {}&quot;, regionMapping);</span>
+
+            // get cloud-account-tags
+<span class="nc bnc" id="L148" title="All 4 branches missed.">            if (!regionMapping.containsKey(&quot;cloud-account-tags&quot;) || regionMapping.get(&quot;cloud-account-tags&quot;) == null) {</span>
+<span class="nc" id="L149">                logger.warn(&quot;region-mapping entry does not contain 'cloud-account-tags&quot;);</span>
+<span class="nc" id="L150">                return;</span>
+            }
+<span class="nc" id="L152">            Map&lt;String, Object&gt; cloudAccountTags = (Map&lt;String, Object&gt;) regionMapping.get(&quot;cloud-account-tags&quot;);</span>
+
+            // get import tags
+<span class="nc bnc" id="L155" title="All 4 branches missed.">            if (!cloudAccountTags.containsKey(&quot;import-tags&quot;) || cloudAccountTags.get(&quot;import-tags&quot;) == null) {</span>
+<span class="nc" id="L156">                logger.warn(&quot;cloud-account-tags entry does not contain 'import-tags&quot;);</span>
+<span class="nc" id="L157">                return;</span>
+            }
+<span class="nc" id="L159">            List&lt;String&gt; importTags = (ArrayList&lt;String&gt;) cloudAccountTags.get(&quot;import-tags&quot;);</span>
+
+            // flavor mappings
+<span class="nc" id="L162">			VraNgFlavorMappingStore flavorMappingStore = new VraNgFlavorMappingStore();</span>
+<span class="nc" id="L163">			flavorMappingStore.init( restClient, vraNgPackage, vraNgPackageDescriptor );</span>
+<span class="nc" id="L164">            flavorMappingStore.importContent(sourceDirectory, importTags);</span>
+
+            // image mappings
+<span class="nc" id="L167">            VraNgImageMappingStore imageMappingStore = new VraNgImageMappingStore();</span>
+<span class="nc" id="L168">			imageMappingStore.init( restClient, vraNgPackage, vraNgPackageDescriptor );</span>
+<span class="nc" id="L169">            imageMappingStore.importContent(sourceDirectory, importTags);</span>
+
+            // storage profiles
+<span class="nc" id="L172">            VraNgStorageProfileStore storageProfileStore = new VraNgStorageProfileStore();</span>
+<span class="nc" id="L173">			storageProfileStore.init( restClient, vraNgPackage, vraNgPackageDescriptor );</span>
+<span class="nc" id="L174">            storageProfileStore.importContent(sourceDirectory, importTags);</span>
+
+<span class="nc" id="L176">        } catch (FileNotFoundException e) {</span>
+<span class="nc" id="L177">            logger.info(&quot;content.yaml is not part of the package. Skipping import of regional content...&quot;);</span>
+<span class="nc" id="L178">        }</span>
+
+<span class="nc" id="L180">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,838 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RestClientVro.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest</a> &gt; <span class="el_source">RestClientVro.java</span></div><h1>RestClientVro.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.rest;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.Map;
+import java.util.List;
+import java.util.Properties;
+import java.util.Optional;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.core.JacksonException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.text.StringEscapeUtils;
+import org.apache.http.client.utils.URIBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.RequestEntity;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.ClientHttpRequest;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.StringUtils;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RequestCallback;
+import org.springframework.web.client.ResponseExtractor;
+import org.springframework.web.client.RestTemplate;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
+import com.vmware.pscoe.iac.artifact.configuration.Configuration;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationNg;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.PackageContent.Content;
+import com.vmware.pscoe.iac.artifact.model.PackageFactory;
+import com.vmware.pscoe.iac.artifact.model.PackageType;
+import com.vmware.pscoe.iac.artifact.model.vro.VroPackageContent;
+import com.vmware.pscoe.iac.artifact.model.vro.VroPackageContent.ContentType;
+import com.vmware.pscoe.iac.artifact.model.vro.WorkflowExecution;
+import com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters;
+import com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.Parameter;
+import com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.StringValue;
+import com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.ArrayElements;
+import com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.ArrayStringValue;
+import com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.BooleanValue;
+import com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.NumberValue;
+
+public class RestClientVro extends RestClient {
+
+    /** The type of package this client handles. Usually this corresponds to some the type of the target system. In this case Aria Automation Orchestrator (vRO). */
+<span class="fc" id="L84">	private static final PackageType PACKAGE_TYPE = PackageType.VRO;</span>
+    /** Aria Automation cloud hosts that are currently being hosted. */
+<span class="fc" id="L86">    private static final List&lt;String&gt; VRA_CLOUD_HOSTS = Arrays.asList(&quot;console.cloud.vmware.com&quot;, &quot;api.mgmt.cloud.vmware.com&quot;);</span>
+	/** Cloud Version. */
+    private static final String VRA_CLOUD_VERSION = &quot;cloud&quot;;
+    /** The logger to be used to log info, warning, error and debug messages. */
+<span class="fc" id="L90">    private static final Logger LOGGER = LoggerFactory.getLogger(RestClientVro.class);</span>
+
+    /** A configuration defining different options affecting the package generation or import.*/
+    private ConfigurationNg configuration;
+    /** Rest Template to be utilized in a REST API connection. */
+    private RestTemplate restTemplate;
+
+    /**
+     * This method returns the RESTR Template that is used to establish connection to the REST API to the product that
+     * we are creating and publishing packages to - In that case Aria Automation Orchestrator.
+     * @return The REST Template being used to establish connection to the Aria Automation Orchestrator.
+     */
+    public RestTemplate getRestTemplate() {
+<span class="nc" id="L103">        return restTemplate;</span>
+    }
+
+    /**
+     * Get the configuraion such as connectivity details to the product (Aria Automation Orchestrator), how to handle
+     * timeouts and other.
+     * @return Configuration object containing the configuration settings.
+     */
+    @Override
+    protected Configuration getConfiguration() {
+<span class="fc" id="L113">        return (Configuration) this.configuration;</span>
+    }
+
+    /**
+     * Consteruct an instance of the object.
+     * @param configuration Configuration defining connectivity parameters (to Aria Automation Orchestrator)
+     * @param restTemplate REST Template.
+     */
+<span class="fc" id="L121">    protected RestClientVro(ConfigurationNg configuration, RestTemplate restTemplate) {</span>
+<span class="fc" id="L122">        this.configuration = configuration;</span>
+<span class="fc" id="L123">        this.restTemplate = restTemplate;</span>
+<span class="fc" id="L124">    }</span>
+
+    /**
+     * Get the version of the product.
+     * @return A string representation of the product (Aria Automation Orchestrator) version. Example: 8.12.0
+     */
+    @Override
+    public String getVersion() {
+<span class="nc" id="L132">        URI url = getURI(getURIBuilder().setPath(&quot;vco/api/about&quot;));</span>
+
+<span class="nc bnc" id="L134" title="All 2 branches missed.">        if (isVraCloud(url)) {</span>
+<span class="nc" id="L135">            return VRA_CLOUD_VERSION;</span>
+        }
+<span class="nc" id="L137">        ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="nc" id="L139">        return JsonPath.parse(response.getBody()).read(&quot;$.version&quot;);</span>
+    }
+
+    /**
+     * The host or IP address of the product (Aria Automation Orchestrator) that we are pushing to.
+     * @return The host name or IP address of the host of the product.
+     */
+    public String getHost() {
+<span class="nc" id="L147">        return ((Configuration) this.configuration).getHost();</span>
+    }
+
+
+    /**
+     * Get list of packages.
+     * @return List of packages.
+     */
+    public List&lt;Package&gt; getPackages() {
+
+        URI url;
+        try {
+<span class="nc" id="L159">            url = getURIBuilder().setPath(&quot;/vco/api/packages&quot;).build();</span>
+<span class="nc" id="L160">        } catch (URISyntaxException e) {</span>
+<span class="nc" id="L161">            throw new RuntimeException(e);</span>
+<span class="nc" id="L162">        }</span>
+
+<span class="nc" id="L164">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L165">        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L166">        HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+
+<span class="nc" id="L168">        ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);</span>
+
+<span class="nc" id="L170">        List&lt;String&gt; packagesNames = JsonPath.parse(response.getBody()).read(&quot;$..[?(@.name == 'name')].value&quot;);</span>
+
+<span class="nc" id="L172">        return packagesNames</span>
+<span class="nc" id="L173">                .stream()</span>
+<span class="nc" id="L174">                .map(name -&gt; PackageFactory.getInstance(PACKAGE_TYPE, new File(name + &quot;.&quot; + PACKAGE_TYPE.getPackageExtention())))</span>
+<span class="nc" id="L175">                .collect(Collectors.toList());</span>
+    }
+
+    private List&lt;Package&gt; getPackages(List&lt;Package&gt; filesystemPackages) {
+<span class="nc" id="L179">        List&lt;Package&gt; srvPackages = getPackages();</span>
+
+<span class="nc bnc" id="L181" title="All 2 branches missed.">        for (Package fsPkg : filesystemPackages) {</span>
+<span class="nc" id="L182">            Optional&lt;Package&gt; srvPkgOptional = srvPackages.stream().filter(srvPkg -&gt; fsPkg.equals(srvPkg)).findFirst();</span>
+<span class="nc" id="L183">        }</span>
+<span class="nc" id="L184">        return getPackages().stream().filter(srvPackage -&gt; {</span>
+<span class="nc" id="L185">            boolean found = filesystemPackages.contains(srvPackage);</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">            if (!found) {</span>
+<span class="nc" id="L187">                throw new RuntimeException(&quot;Cannot find Package &quot; + srvPackage);</span>
+            }
+<span class="nc" id="L189">            return found;</span>
+<span class="nc" id="L190">        }).collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Get list of all packages.
+     * @param vroPackages  Aria Automation Orchestrator packages.
+     * @param dryrun If true, then no actual export.
+     * @param exportConfigAttributeValues If true, then also export Configuration Attribute Values.
+     * @param exportConfigSecureStringValues If true, then also export Configuraiton Secure Strings such as passwords.
+     * @return The list of exported packages.
+     */
+	public List&lt;Package&gt; exportAllPackages(List&lt;Package&gt; vroPackages, 
+										   boolean dryrun, 
+										   boolean exportConfigAttributeValues, 
+										   boolean exportConfigSecureStringValues) {
+<span class="nc" id="L205">		return vroPackages.stream().map(vroPackage -&gt; this.exportPackage(vroPackage,</span>
+																		 dryrun,
+																		 exportConfigAttributeValues,
+<span class="nc" id="L208">																		 exportConfigSecureStringValues)).collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Download a Resource int a local file.
+     * @param id Resource Id.
+     * @param destination Local destinaton to store the content of the resource into.
+     * @return The file stored locally in the specified destination.
+     */
+    public File downloadResource(String id, Path destination) {
+<span class="nc" id="L218">        RequestCallback requestCallback = request -&gt; request.getHeaders().setAccept(Arrays.asList(MediaType.APPLICATION_OCTET_STREAM, MediaType.ALL));</span>
+
+<span class="nc" id="L220">        ResponseExtractor&lt;Void&gt; responseExtractor = response -&gt; {</span>
+<span class="nc" id="L221">            Files.copy(response.getBody(), destination, StandardCopyOption.REPLACE_EXISTING);</span>
+<span class="nc" id="L222">            return null;</span>
+        };
+
+        URI url;
+        try {
+<span class="nc" id="L227">            url = getURIBuilder().setPath(&quot;/vco/api/resources/&quot; + id)</span>
+<span class="nc" id="L228">                    .build();</span>
+<span class="nc" id="L229">        } catch (URISyntaxException e) {</span>
+<span class="nc" id="L230">            throw new RuntimeException(e);</span>
+<span class="nc" id="L231">        }</span>
+
+<span class="nc" id="L233">        restTemplate.execute(url, HttpMethod.GET, requestCallback, responseExtractor);</span>
+
+<span class="nc" id="L235">        return destination.toFile();</span>
+    }
+
+    /**
+     * Export a given package.
+     * @param pkg The package to be exported.
+     * @param dryrun Dry run option.
+     * @param exportConfigAttributeValues If true, then also export Configuration Attribute Values.
+     * @param exportConfigSecureStringValues If true, then also export Configuraiton Secure Strings such as passwords.
+     * @return The exported package.
+     */
+	public Package exportPackage(Package pkg, 
+								 boolean dryrun, 
+								 boolean exportConfigAttributeValues, 
+								 boolean exportConfigSecureStringValues) {
+<span class="nc" id="L250">        RequestCallback requestCallback = new RequestCallback() {</span>
+            @Override
+            public void doWithRequest(ClientHttpRequest request) throws IOException {
+<span class="nc" id="L253">                request.getHeaders().setAccept(Arrays.asList(MediaType.APPLICATION_OCTET_STREAM, MediaType.ALL));</span>
+<span class="nc" id="L254">            }</span>
+        };
+
+<span class="nc" id="L257">        ResponseExtractor&lt;Void&gt; responseExtractor = new ResponseExtractor&lt;Void&gt;() {</span>
+            @Override
+            public Void extractData(ClientHttpResponse response) throws IOException {
+<span class="nc bnc" id="L260" title="All 2 branches missed.">                if (!dryrun) {</span>
+<span class="nc" id="L261">					Path path = Paths.get(pkg.getFilesystemPath());</span>
+
+<span class="nc" id="L263">					System.out.println(&quot;About to copy the file&quot;);</span>
+<span class="nc" id="L264">					System.out.println(path.toString());</span>
+					
+<span class="nc" id="L266">                    Files.copy(response.getBody(), path, StandardCopyOption.REPLACE_EXISTING);</span>
+
+<span class="nc" id="L268">					System.out.print(&quot;File copied.&quot;);</span>
+                }
+<span class="nc" id="L270">                return null;</span>
+            }
+        };
+
+        URI url;
+        try {
+<span class="nc" id="L276">			LOGGER.debug(&quot;exportConfigurationAttributeValues: &quot; + String.valueOf(configuration.isPackageExportConfigurationAttributeValues()));</span>
+<span class="nc" id="L277">			LOGGER.debug(&quot;exportConfigSecureStringAttributeValues: &quot; + String.valueOf(configuration.isPackageExportConfigSecureStringAttributeValues()));</span>
+
+			//if set to true in the properties this value will be taken with priority
+<span class="nc" id="L280">			boolean packageExportConfigurationValuesFinal = configuration.isPackageExportConfigurationAttributeValues();</span>
+<span class="nc bnc" id="L281" title="All 2 branches missed.">			if (exportConfigAttributeValues) {</span>
+<span class="nc" id="L282">				packageExportConfigurationValuesFinal = true;</span>
+			}
+			//if set to true in the properties this value will be taken with priority
+<span class="nc" id="L285">			boolean exportConfigurationSecureStringValuesFinal = configuration.isPackageExportConfigSecureStringAttributeValues();</span>
+<span class="nc bnc" id="L286" title="All 2 branches missed.">			if (exportConfigSecureStringValues) {</span>
+<span class="nc" id="L287">				exportConfigurationSecureStringValuesFinal = true;</span>
+			}
+
+<span class="nc" id="L290">			url = getURIBuilder().setPath(&quot;/vco/api/packages/&quot; + pkg.getFQName() + &quot;/&quot;)</span>
+<span class="nc" id="L291">					.setParameter(&quot;exportConfigurationAttributeValues&quot;, String.valueOf(packageExportConfigurationValuesFinal))</span>
+<span class="nc" id="L292">                    .setParameter(&quot;exportGlobalTags&quot;, String.valueOf(configuration.isPackageExportGlobalTags()))</span>
+<span class="nc" id="L293">                    .setParameter(&quot;exportVersionHistory&quot;, String.valueOf(configuration.isPackageExportVersionHistory()))</span>
+<span class="nc" id="L294">                    .setParameter(&quot;exportAsZip&quot;, String.valueOf(configuration.isPackgeExportAsZip()))</span>
+<span class="nc" id="L295">					.setParameter(&quot;exportGlobalTags&quot;, String.valueOf(Boolean.TRUE))</span>
+<span class="nc" id="L296">					.setParameter(&quot;exportConfigSecureStringAttributeValues&quot;, String.valueOf(exportConfigurationSecureStringValuesFinal))</span>
+<span class="nc" id="L297">                    .build();</span>
+<span class="nc" id="L298">        } catch (URISyntaxException e) {</span>
+<span class="nc" id="L299">            throw new RuntimeException(e);</span>
+<span class="nc" id="L300">        }</span>
+
+<span class="nc" id="L302">        restTemplate.execute(url, HttpMethod.GET, requestCallback, responseExtractor);</span>
+
+<span class="nc" id="L304">        return pkg;</span>
+    }
+
+    /**
+     * Importing a package allowing merge option.
+     * @param filesystemPackage The package.
+     * @param mergePackages override or merge.
+     */
+	private void importPackageWithMerge(Package filesystemPackage, boolean mergePackages) {
+<span class="nc bnc" id="L313" title="All 2 branches missed.">		String overwritePackages = mergePackages ? Boolean.FALSE.toString() : Boolean.TRUE.toString();</span>
+<span class="nc bnc" id="L314" title="All 2 branches missed.">		if (mergePackages) {</span>
+<span class="nc" id="L315">			LOGGER.warn(&quot;Overwrite Package: {}&quot;, overwritePackages);</span>
+<span class="nc" id="L316">			LOGGER.warn(&quot;The {} package will be updated ONLY with the partial content. Use this option only for faster development&quot;, filesystemPackage.getFQName());</span>
+		}
+<span class="nc" id="L318">		importPackageForce(filesystemPackage, overwritePackages);</span>
+<span class="nc" id="L319">	}</span>
+
+    /**
+     * Import package with force option.
+     * @param filesystemPackage The package.
+     * @param overwritePackage overwrite or merge.
+     */
+    private void importPackageForce(Package filesystemPackage, String overwritePackage) {
+		URI url;
+        try {
+<span class="nc" id="L329">            url = getURIBuilder()</span>
+<span class="nc" id="L330">                    .setPath(&quot;/vco/api/packages&quot;)</span>
+<span class="nc" id="L331">                    .setParameter(&quot;overwrite&quot;, overwritePackage)</span>
+<span class="nc" id="L332">                    .setParameter(&quot;tagImportMode&quot;, configuration.getPackageTagsImportMode())</span>
+<span class="nc" id="L333">                    .setParameter(&quot;importConfigurationAttributeValues&quot;, String.valueOf(configuration.isPackageImportConfigurationAttributeValues()))</span>
+<span class="nc" id="L334">                    .setParameter(&quot;importConfigSecureStringAttributeValues&quot;, String.valueOf(configuration.isPackageImportConfigSecureStringAttributeValues()))</span>
+<span class="nc" id="L335">                    .build();</span>
+<span class="nc" id="L336">        } catch (URISyntaxException e) {</span>
+<span class="nc" id="L337">            throw new RuntimeException(e);</span>
+<span class="nc" id="L338">        }</span>
+
+        try {
+<span class="nc" id="L341">            FileSystemResource f = new FileSystemResource(filesystemPackage.getFilesystemPath());</span>
+<span class="nc" id="L342">            LOGGER.debug(String.format(&quot;Package to imports: %s&quot;, filesystemPackage.getFilesystemPath()));</span>
+<span class="nc" id="L343">            LOGGER.debug(String.format(&quot;File length: %s&quot;, f.contentLength()));</span>
+<span class="nc bnc" id="L344" title="All 2 branches missed.">            LOGGER.debug(String.format(&quot;File is null: %s&quot;, f.getFile() == null));</span>
+<span class="nc" id="L345">            LOGGER.debug(String.format(&quot;File filename: %s&quot;, f.getFilename()));</span>
+<span class="nc" id="L346">            LOGGER.debug(String.format(&quot;File exists: %s&quot;, f.exists()));</span>
+
+<span class="nc" id="L348">        } catch (Exception e) {</span>
+<span class="nc" id="L349">            LOGGER.debug(String.format(&quot;Exception throw: %s&quot;, e));</span>
+<span class="nc" id="L350">        }</span>
+
+<span class="nc" id="L352">        LinkedMultiValueMap&lt;String, Object&gt; contentMap = new LinkedMultiValueMap&lt;&gt;();</span>
+
+<span class="nc" id="L354">        contentMap.add(&quot;name&quot;, filesystemPackage);</span>
+<span class="nc" id="L355">        contentMap.add(&quot;Content-Type&quot;, &quot;application/octet-stream&quot;);</span>
+<span class="nc" id="L356">        contentMap.add(&quot;file&quot;, new FileSystemResource(filesystemPackage.getFilesystemPath()));</span>
+
+<span class="nc" id="L358">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L359">        headers.setContentType(MediaType.MULTIPART_FORM_DATA);</span>
+<span class="nc" id="L360">        HttpEntity&lt;LinkedMultiValueMap&lt;String, Object&gt;&gt; requestEntity = new HttpEntity&lt;&gt;(contentMap, headers);</span>
+
+        try {
+<span class="nc" id="L363">            ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);</span>
+
+<span class="nc bnc" id="L365" title="All 2 branches missed.">            if (!HttpStatus.ACCEPTED.equals(response.getStatusCode())) {</span>
+<span class="nc" id="L366">                throw new RuntimeException(String.format(&quot;Error during import of package %s, REST API call returned %s&quot;, filesystemPackage, response.getStatusCode()));</span>
+            }
+<span class="nc" id="L368">        } catch (HttpClientErrorException e) {</span>
+<span class="nc" id="L369">            StringBuilder messageBuilder = new StringBuilder();</span>
+<span class="nc" id="L370">            messageBuilder.append(HttpMethod.POST).append(&quot; &quot;).append(url).append(&quot;\n&quot;);</span>
+<span class="nc" id="L371">            messageBuilder.append(headers.keySet().stream().map(</span>
+<span class="nc" id="L372">                (String k) -&gt; headers.get(k).stream().map(</span>
+<span class="nc" id="L373">                    h -&gt; k + &quot;: &quot; + h</span>
+<span class="nc" id="L374">                ).collect(Collectors.joining(&quot;\n&quot;)) </span>
+<span class="nc" id="L375">            ).collect(Collectors.joining(&quot;\n&quot;)));</span>
+<span class="nc bnc" id="L376" title="All 2 branches missed.">            if (requestEntity.hasBody()) {</span>
+<span class="nc" id="L377">                messageBuilder.append(&quot;\n\n&quot;);</span>
+                try {
+<span class="nc" id="L379">                    ObjectMapper mapper = new ObjectMapper();</span>
+<span class="nc" id="L380">                    messageBuilder.append(mapper.writeValueAsString(&quot;&lt;Multipart Form Data&gt;&quot;));</span>
+<span class="nc" id="L381">                } catch (JacksonException jsonException) {</span>
+<span class="nc" id="L382">                    messageBuilder.append(&quot;&lt;Body Not shown due to Exception: &quot; + jsonException.getClass().getName() + &quot;:&quot; + jsonException.getLocalizedMessage() + &quot;&gt;&quot;);</span>
+<span class="nc" id="L383">                }</span>
+            }
+<span class="nc" id="L385">            throw new RuntimeException(String.format(&quot;Error during import of package %s, REST API call Request was %s\n\nAnd Caused Exception: %s&quot;,</span>
+<span class="nc" id="L386">                filesystemPackage, messageBuilder.toString(), e.getLocalizedMessage()));</span>
+<span class="nc" id="L387">        }</span>
+<span class="nc" id="L388">    }</span>
+
+    /**
+     * Import a package with drurun and maerge option.
+     * @param filesystemPackage The package.
+     * @param dryrun  Dry run option.
+     * @param mergePackages merge or overwrite.
+     * @return The imported package.
+     */
+    public Package importPackage(Package filesystemPackage, boolean dryrun, boolean mergePackages) {
+<span class="nc bnc" id="L398" title="All 2 branches missed.">        if (!dryrun) {</span>
+<span class="nc" id="L399">            importPackageWithMerge(filesystemPackage, mergePackages);</span>
+        }
+
+<span class="nc" id="L402">        return filesystemPackage;</span>
+    }
+
+    /**
+     * Import a list of packages with dru run and merge option.
+     * @param filesystemPackages The package.
+     * @param dryrun Dry run option.
+     * @param mergePackages merge or overwrite.
+     * @return The list of imported packages.
+     */
+    public List&lt;Package&gt; importAllPackages(List&lt;Package&gt; filesystemPackages, boolean dryrun, boolean mergePackages) {
+<span class="nc" id="L413">        return filesystemPackages.stream().map(pkg -&gt; importPackage(pkg, dryrun, mergePackages)).collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Delete/Removee a specific packae.
+     * @param pkg The package id.
+     * @param withContent If true, then also remoce package content.
+     * @param dryrun Dry run option.
+     * @return Information about the package deleted.
+     */
+    public Package deletePackage(Package pkg, boolean withContent, boolean dryrun) {
+<span class="nc" id="L424">        URIBuilder builder = getURIBuilder().setPath(&quot;/vco/api/packages/&quot; + pkg.getFQName());</span>
+<span class="nc bnc" id="L425" title="All 2 branches missed.">        if (withContent) {</span>
+<span class="nc" id="L426">            builder.setParameter(&quot;option&quot;, &quot;deletePackageWithContent&quot;);</span>
+        }
+
+<span class="nc" id="L429">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L430">        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L431">        HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+
+<span class="nc bnc" id="L433" title="All 2 branches missed.">        if (!dryrun) {</span>
+<span class="nc" id="L434">            restTemplate.exchange(this.getURI(builder), HttpMethod.DELETE, entity, String.class);</span>
+        }
+
+<span class="nc" id="L437">        return pkg;</span>
+    }
+
+    /**
+     * Delete content.
+     * @param content content
+     * @param dryrun Dry run option.
+     */
+    public void deleteContent(Content&lt;VroPackageContent.ContentType&gt; content, boolean dryrun) {
+<span class="nc" id="L446">        String deletePath = null;</span>
+
+<span class="nc bnc" id="L448" title="All 5 branches missed.">        switch (content.getType()) {</span>
+<span class="nc" id="L449">            case WORKFLOW: deletePath = &quot;/vco/api/workflows/&quot;; break;</span>
+<span class="nc" id="L450">            case ACTION: deletePath = &quot;/vco/api/actions/&quot;; break;</span>
+<span class="nc" id="L451">            case RESOURCE: deletePath = &quot;/vco/api/resources/&quot;; break;</span>
+<span class="nc" id="L452">            case CONFIGURATION: deletePath = &quot;/vco/api/configurations/&quot;; break;</span>
+<span class="nc" id="L453">			default: throw new IllegalArgumentException(&quot;Content of type \&quot;&quot; + content.getType() + &quot;\&quot;&quot;</span>
+				+ &quot;is not supported. Suported content types are \&quot;&quot; + ContentType.WORKFLOW + &quot;\&quot;, \&quot;&quot;
+				+  ContentType.ACTION + &quot;\&quot;, &quot; + ContentType.RESOURCE + &quot;\&quot; and \&quot;&quot; + ContentType.CONFIGURATION + &quot;.&quot;);
+        }
+
+<span class="nc" id="L458">        URI url = getURI(getURIBuilder().setPath(deletePath + content.getId()).setParameter(&quot;force&quot;, &quot;true&quot;));</span>
+<span class="nc" id="L459">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L460">        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L461">        HttpEntity&lt;String&gt; entity = new HttpEntity&lt;String&gt;(headers);</span>
+
+<span class="nc bnc" id="L463" title="All 2 branches missed.">        if (!dryrun) {</span>
+<span class="nc" id="L464">            restTemplate.exchange(url, HttpMethod.DELETE, entity, String.class);</span>
+        }
+<span class="nc" id="L466">    }</span>
+
+    /**
+     * Get the content of a given package.
+     * @param pkg The package.
+     * @return The content of the package.
+     */
+    public VroPackageContent getPackageContent(Package pkg) {
+        URI url;
+        try {
+<span class="nc" id="L476">            url = getURIBuilder().setPath(&quot;/vco/api/packages/&quot; + pkg.getFQName()).build();</span>
+<span class="nc" id="L477">        } catch (URISyntaxException e) {</span>
+<span class="nc" id="L478">            throw new RuntimeException(e);</span>
+<span class="nc" id="L479">        }</span>
+
+<span class="nc" id="L481">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L482">        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L483">        HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+<span class="nc" id="L484">        ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);</span>
+
+<span class="nc" id="L486">        return this.getPackageContent(JsonPath.parse(response.getBody()));</span>
+    }
+
+    private VroPackageContent getPackageContent(DocumentContext context) {
+<span class="nc" id="L490">        List&lt;Content&lt;VroPackageContent.ContentType&gt;&gt; content = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L491">        content.addAll(getContent(context, ContentType.WORKFLOW));</span>
+<span class="nc" id="L492">        content.addAll(getContent(context, ContentType.ACTION));</span>
+<span class="nc" id="L493">        content.addAll(getContent(context, ContentType.CONFIGURATION));</span>
+<span class="nc" id="L494">        content.addAll(getContent(context, ContentType.RESOURCE));</span>
+
+<span class="nc" id="L496">        return new VroPackageContent(content);</span>
+    }
+
+    private List&lt;Content&lt;VroPackageContent.ContentType&gt;&gt; getContent(DocumentContext context, ContentType type) {
+<span class="nc" id="L500">        String category = null;</span>
+<span class="nc" id="L501">        String name = null;</span>
+
+<span class="nc bnc" id="L503" title="All 5 branches missed.">        switch (type) {</span>
+<span class="nc" id="L504">            case WORKFLOW: category = &quot;workflows&quot;; name = &quot;workflow&quot;; break;</span>
+<span class="nc" id="L505">            case ACTION: category = &quot;actions&quot;; name = &quot;actions&quot;; break;</span>
+<span class="nc" id="L506">            case RESOURCE: category = &quot;resources&quot;; name = &quot;resource&quot;; break;</span>
+<span class="nc" id="L507">            case CONFIGURATION: category = &quot;configurations&quot;; name = &quot;configuration&quot;; break;</span>
+<span class="nc" id="L508">			default: throw new IllegalArgumentException(&quot;Unsupported content type \&quot;&quot; + type</span>
+				+ &quot;\&quot;. Supported content types are \&quot;&quot; + ContentType.WORKFLOW + &quot;\&quot;, \&quot;&quot; + ContentType.ACTION + &quot;\&quot;, \&quot;&quot;
+				+ ContentType.RESOURCE + &quot;\&quot; and \&quot;&quot; + ContentType.CONFIGURATION + &quot;\&quot;.&quot;);
+        }
+
+<span class="nc" id="L513">        String template = &quot;$.%s[*].%s.attributes[?(@.name == '%s')].value&quot;;</span>
+<span class="nc" id="L514">        List&lt;String&gt; ids = context.read(String.format(template, category, name, &quot;id&quot;));</span>
+<span class="nc" id="L515">        List&lt;String&gt; names = context.read(String.format(template, category, name, &quot;name&quot;));</span>
+
+<span class="nc bnc" id="L517" title="All 2 branches missed.">        if (ids.size() != names.size()) {</span>
+<span class="nc" id="L518">            LOGGER.error(&quot;Broken package. Count of conttent IDs does not match the count of the names.&quot;);</span>
+<span class="nc" id="L519">            throw new RuntimeException(&quot;Broken vRO package&quot;);</span>
+        }
+
+<span class="nc" id="L522">        List&lt;Content&lt;VroPackageContent.ContentType&gt;&gt; content = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L523" title="All 2 branches missed.">        for (int i = 0; i &lt; ids.size(); i++) {</span>
+<span class="nc" id="L524">            content.add(new Content&lt;&gt;(type, ids.get(i), names.get(i)));</span>
+        }
+
+<span class="nc" id="L527">        return content;</span>
+    }
+
+    /**
+     * Start an asynchronous execution of a workflow and returns a token.
+     *
+     * @param workflowId workflow id to start
+     * @param params     workflow parameters of type string
+     * @param inputParametersTypes containing info about workflow input parameters types
+     * @return the execution token id of the started workflow
+     */
+    public String startWorkflow(String workflowId, Properties params, Properties inputParametersTypes) {
+<span class="fc" id="L539">        URI executionsUrl = this.buildUri(&quot;/vco/api/workflows/&quot;, workflowId, &quot;/executions&quot;);</span>
+<span class="fc" id="L540">        String requestBody = this.buildParametersJson(params, inputParametersTypes);</span>
+<span class="fc" id="L541">        RequestEntity&lt;String&gt; request = RequestEntity.post(executionsUrl).accept(MediaType.APPLICATION_JSON_UTF8)</span>
+<span class="fc" id="L542">                .header(&quot;Content-Type&quot;, MediaType.APPLICATION_JSON_UTF8_VALUE)</span>
+<span class="fc" id="L543">                .body(requestBody);</span>
+<span class="fc" id="L544">        ResponseEntity&lt;String&gt; response = null;</span>
+        try {
+<span class="fc" id="L546">            response = restTemplate.exchange(request, String.class);</span>
+<span class="nc" id="L547">        } catch (Exception e) {</span>
+<span class="nc" id="L548">            throw new RuntimeException(String.format(&quot;Unable to fetch execution data for workflow id '%s' : %s&quot;, workflowId, e.getMessage()));</span>
+<span class="fc" id="L549">        }</span>
+<span class="fc" id="L550">        DocumentContext responseBody = JsonPath.parse(response.getBody());</span>
+<span class="pc bpc" id="L551" title="1 of 2 branches missed.">        if (!responseBody.jsonString().contains(&quot;id&quot;)) {</span>
+<span class="nc" id="L552">            throw new RuntimeException(String.format(&quot;Unable to fetch execution data for workflow id '%s' : No execution ID provided&quot;, workflowId));</span>
+        }
+
+<span class="fc" id="L555">        return responseBody.read(&quot;$.id&quot;);</span>
+    }
+
+
+    /**
+     * Get workflow input paramaters types.
+     *
+     * @param workflowId workflow id to check
+     * @return Properties containing all input parameters types of the workflow
+     */
+    public Properties getInputParametersTypes(String workflowId) {
+<span class="fc" id="L566">        Properties parametersTypes = new Properties();</span>
+
+<span class="fc" id="L568">        URI workflowContentUri = this.buildUri(&quot;/vco/api/workflows/&quot;, workflowId, &quot;/content&quot;);</span>
+
+<span class="fc" id="L570">        ResponseEntity&lt;String&gt; response = null;</span>
+        try {
+<span class="fc" id="L572">            response = restTemplate.exchange(workflowContentUri, HttpMethod.GET, this.buildHttpEntry(), String.class);</span>
+<span class="nc" id="L573">        } catch (Exception e) {</span>
+<span class="nc" id="L574">            throw new RuntimeException(String.format(&quot;Unable to fetch input parameters types for workflow id '%s' : %s&quot;, workflowId, e.getMessage()));</span>
+<span class="fc" id="L575">        }</span>
+
+<span class="fc" id="L577">        final JsonArray params = new Gson().fromJson(response.getBody(), JsonObject.class).getAsJsonObject(&quot;input&quot;).getAsJsonArray(&quot;param&quot;);</span>
+<span class="fc" id="L578">        params.iterator().forEachRemaining((element) -&gt; {</span>
+<span class="fc" id="L579">            final JsonObject entry = element.getAsJsonObject();</span>
+<span class="fc" id="L580">            final String name = entry.getAsJsonPrimitive(&quot;name&quot;).getAsString();</span>
+<span class="fc" id="L581">            final String type = entry.getAsJsonPrimitive(&quot;type&quot;).getAsString();</span>
+<span class="fc" id="L582">            parametersTypes.setProperty(name, type);</span>
+<span class="fc" id="L583">        });</span>
+        
+<span class="fc" id="L585">        return parametersTypes;</span>
+    }
+
+    /**
+     * Checks whether given workflow exists.
+     *
+     * @param workflowId workflow id to check
+     * @return boolean - true if workflow exists, otherwise false
+     */
+    public boolean isWorkflowExisting(String workflowId) {
+<span class="nc" id="L595">        URI workflowContentUri = this.buildUri(&quot;/vco/api/workflows/&quot;, workflowId, &quot;/content&quot;);</span>
+
+<span class="nc" id="L597">        ResponseEntity&lt;String&gt; response = null;</span>
+        try {
+<span class="nc" id="L599">            response = restTemplate.exchange(workflowContentUri, HttpMethod.GET, this.buildHttpEntry(), String.class);</span>
+<span class="nc" id="L600">        } catch (Exception e) {</span>
+<span class="nc" id="L601">            return false;</span>
+<span class="nc" id="L602">        }</span>
+<span class="nc" id="L603">        DocumentContext responseBody = JsonPath.parse(response.getBody());</span>
+<span class="nc bnc" id="L604" title="All 2 branches missed.">        String targetWorkflowId = responseBody.jsonString().contains(&quot;id&quot;) ? responseBody.read(&quot;$.id&quot;) : null;</span>
+
+<span class="nc bnc" id="L606" title="All 2 branches missed.">        return !StringUtils.isEmpty(targetWorkflowId);</span>
+    }
+
+    /**
+     * Retrieves a workflow execution state, either running, completed or failed.
+     *
+     * @param workflowId  the workflow ID
+     * @param executionId the id of the workflow execution token as returned by startWorkflow
+     * @return running|completed|failed|canceled
+     */
+    public String getExecutionState(String workflowId, String executionId) {
+<span class="nc" id="L617">        URI executionStateUri = this.buildUri(&quot;/vco/api/workflows/&quot;, workflowId, &quot;/executions/&quot;, executionId, &quot;/state&quot;);</span>
+<span class="nc" id="L618">        HttpEntity&lt;String&gt; executionEntity = this.buildHttpEntry();</span>
+<span class="nc" id="L619">        ResponseEntity&lt;String&gt; response = null;</span>
+        try {
+<span class="nc" id="L621">            response = restTemplate.exchange(executionStateUri, HttpMethod.GET, executionEntity, String.class);</span>
+<span class="nc" id="L622">        } catch (Exception e) {</span>
+<span class="nc" id="L623">            throw new RuntimeException(String.format(&quot;Unable to fetch execution state for workflow execution '%s' of workfow '%s' : %s&quot;, executionId, workflowId, e.getMessage()));</span>
+<span class="nc" id="L624">        }</span>
+<span class="nc" id="L625">        DocumentContext responseBody = JsonPath.parse(response.getBody());</span>
+
+<span class="nc bnc" id="L627" title="All 2 branches missed.">        return responseBody.jsonString().contains(&quot;value&quot;) ? responseBody.read(&quot;$.value&quot;) : null;</span>
+    }
+
+    /**
+     * Gets the workflow execution logs.
+     *
+     * @param workflowId  the workflow ID
+     * @param executionId the id of the workflow execution token as returned by startWorkflow
+     * @param severity the minimum severity of the returned log messages (debug, info, warn or error)
+     * @param sinceTimestamp a timestamp filter (in milliseconds)
+     * @return the execution of the started workflow, including state, error (if any), string input and output parameters
+     */
+    public List&lt;String&gt; getWorkflowLogs(String workflowId, String executionId, String severity, long sinceTimestamp) {
+<span class="nc" id="L640">        URI syslogsUri = this.buildUri(&quot;/vco/api/workflows/&quot;, workflowId, &quot;/executions/&quot;, executionId, &quot;/syslogs&quot;);</span>
+
+<span class="nc" id="L642">        String vroVersion = this.getVersion();</span>
+<span class="nc" id="L643">        ResponseEntity&lt;String&gt; response = null;</span>
+<span class="nc bnc" id="L644" title="All 2 branches missed.">        if (vroVersion.startsWith(&quot;6&quot;)</span>
+<span class="nc bnc" id="L645" title="All 2 branches missed.">                || vroVersion.startsWith(&quot;7.0&quot;)</span>
+<span class="nc bnc" id="L646" title="All 2 branches missed.">                || vroVersion.startsWith(&quot;7.1&quot;)</span>
+<span class="nc bnc" id="L647" title="All 2 branches missed.">                || vroVersion.startsWith(&quot;7.2&quot;)</span>
+<span class="nc bnc" id="L648" title="All 2 branches missed.">                || vroVersion.startsWith(&quot;7.3&quot;)</span>
+<span class="nc bnc" id="L649" title="All 2 branches missed.">                || vroVersion.startsWith(&quot;7.4&quot;)</span>
+<span class="nc bnc" id="L650" title="All 2 branches missed.">                || vroVersion.startsWith(&quot;7.5&quot;)) {</span>
+            // The REST API accepts older-than parameter that actually returns only log messages printed since that timestamp
+<span class="nc" id="L652">            String requestBody = String.format(&quot;{\&quot;severity\&quot;: \&quot;%s\&quot;,\&quot;older-than\&quot;: %d}&quot;, severity, sinceTimestamp);</span>
+<span class="nc" id="L653">            RequestEntity&lt;String&gt; request = RequestEntity.post(syslogsUri)</span>
+<span class="nc" id="L654">                    .accept(MediaType.APPLICATION_JSON_UTF8)</span>
+<span class="nc" id="L655">                    .header(&quot;Content-Type&quot;, &quot;application/json&quot;)</span>
+<span class="nc" id="L656">                    .body(requestBody);</span>
+<span class="nc" id="L657">            response = restTemplate.exchange(request, String.class);</span>
+<span class="nc" id="L658">        } else {</span>
+            // API change in vRO 7.6 - GET instead of POST
+<span class="nc" id="L660">            response = restTemplate.exchange(syslogsUri, HttpMethod.GET, this.buildHttpEntry(), String.class);</span>
+        }
+
+<span class="nc" id="L663">        final List&lt;String&gt; result = new LinkedList&lt;&gt;();</span>
+<span class="nc" id="L664">        final JsonArray logs = new Gson().fromJson(response.getBody(), JsonObject.class).getAsJsonArray(&quot;logs&quot;);</span>
+<span class="nc" id="L665">        logs.iterator().forEachRemaining((element) -&gt; {</span>
+<span class="nc" id="L666">            final JsonObject entry = element.getAsJsonObject().getAsJsonObject(&quot;entry&quot;);</span>
+<span class="nc" id="L667">            final String origin = entry.getAsJsonPrimitive(&quot;origin&quot;).getAsString();</span>
+<span class="nc" id="L668">            final String timestamp = entry.getAsJsonPrimitive(&quot;time-stamp&quot;).getAsString();</span>
+<span class="nc" id="L669">            final String logSeverity = entry.getAsJsonPrimitive(&quot;severity&quot;).getAsString();</span>
+<span class="nc" id="L670">            final String shortDescr = entry.getAsJsonPrimitive(&quot;short-description&quot;).getAsString();</span>
+<span class="nc bnc" id="L671" title="All 2 branches missed.">            final String longDescr = entry.has(&quot;long-description&quot;) ? entry.getAsJsonPrimitive(&quot;long-description&quot;).getAsString() : null;</span>
+
+<span class="nc bnc" id="L673" title="All 2 branches missed.">            if (!&quot;server&quot;.equals(origin)) { // skip server messages, as they are always included in the result</span>
+<span class="nc" id="L674">                final String message = String.format(&quot;[%s] [%s] %s&quot;,</span>
+<span class="nc bnc" id="L675" title="All 2 branches missed.">                        timestamp, logSeverity, StringUtils.isEmpty(longDescr) ? shortDescr : longDescr);</span>
+<span class="nc" id="L676">                result.add(message);</span>
+            }
+<span class="nc" id="L678">        });</span>
+
+<span class="nc" id="L680">        return result;</span>
+    }
+
+    /**
+     * Gets the workflow execution information.
+     *
+     * @param workflowId  the workflow ID
+     * @param executionId the id of the workflow execution token as returned by startWorkflow
+     * @return the execution of the started workflow, including state, error (if any), string input and output parameters
+     */
+    public WorkflowExecution getExecution(String workflowId, String executionId) {
+<span class="nc" id="L691">        URI executionUri = this.buildUri(&quot;/vco/api/workflows/&quot;, workflowId, &quot;/executions/&quot;, executionId);</span>
+<span class="nc" id="L692">        HttpEntity&lt;String&gt; executionEntity = this.buildHttpEntry();</span>
+
+<span class="nc" id="L694">        ResponseEntity&lt;String&gt; response = restTemplate.exchange(executionUri, HttpMethod.GET, executionEntity, String.class);</span>
+<span class="nc" id="L695">        DocumentContext json = JsonPath.parse(response.getBody());</span>
+<span class="nc" id="L696">        Properties input = parseWorkflowStringParameters(json, &quot;$.input-parameters.*&quot;);</span>
+<span class="nc" id="L697">        Properties output = parseWorkflowStringParameters(json, &quot;$.output-parameters.*&quot;);</span>
+<span class="nc" id="L698">        String state = json.read(&quot;$.state&quot;);</span>
+<span class="nc" id="L699">        String error = null;</span>
+
+<span class="nc bnc" id="L701" title="All 2 branches missed.">        if (state.equalsIgnoreCase(&quot;failed&quot;)) {</span>
+            try {
+<span class="nc" id="L703">                error = json.read(&quot;$.content-exception&quot;);</span>
+<span class="nc" id="L704">            } catch (PathNotFoundException ex) {</span>
+<span class="nc" id="L705">                error = &quot;Unknown error: workflow exception information is missing.&quot;;</span>
+<span class="nc" id="L706">            }</span>
+        }
+
+<span class="nc" id="L709">        return new WorkflowExecution(input, output, state, error);</span>
+    }
+
+    /**
+     * Parses the string parameters of a workflow execution at the given path, i.e. input or output
+     *
+     * @param ctx  document context, e.g. JsonPath.parse(response.getBody());
+     * @param path the path to read parameters from, e.g. &quot;$.output-parameters.*&quot;
+     * @return The parameters in the form of Properties object.
+     */
+    private Properties parseWorkflowStringParameters(DocumentContext ctx, String path) {
+<span class="nc" id="L720">        Properties output = new Properties();</span>
+<span class="nc" id="L721">        List&lt;Map&lt;String, Object&gt;&gt; outputParams = ctx.read(path, List.class);</span>
+<span class="nc bnc" id="L722" title="All 2 branches missed.">        for (Map&lt;String, Object&gt; param : outputParams) {</span>
+<span class="nc" id="L723">            String paramName = (String) param.get(&quot;name&quot;);</span>
+<span class="nc bnc" id="L724" title="All 2 branches missed.">            if (param.containsKey(&quot;value&quot;)) {</span>
+<span class="nc" id="L725">                Map&lt;String, Object&gt; value = (Map&lt;String, Object&gt;) param.get(&quot;value&quot;);</span>
+<span class="nc bnc" id="L726" title="All 2 branches missed.">                if (value.containsKey(&quot;string&quot;)) {</span>
+<span class="nc" id="L727">                    Map&lt;String, String&gt; stringValue = (Map&lt;String, String&gt;) value.get(&quot;string&quot;);</span>
+<span class="nc" id="L728">                    output.setProperty(paramName, stringValue.get(&quot;value&quot;));</span>
+                }
+            }
+<span class="nc" id="L731">        }</span>
+
+<span class="nc" id="L733">        return output;</span>
+    }
+
+    private HttpEntity&lt;String&gt; buildHttpEntry() {
+<span class="fc" id="L737">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L738">        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+
+<span class="fc" id="L740">        return new HttpEntity&lt;&gt;(headers);</span>
+    }
+
+    private URI buildUri(String... paths) {
+<span class="fc" id="L744">        StringBuilder pathBuilder = new StringBuilder();</span>
+<span class="fc bfc" id="L745" title="All 2 branches covered.">        for (String path : paths) {</span>
+<span class="fc" id="L746">			pathBuilder.append(path);</span>
+		}
+
+        try {
+<span class="fc" id="L750">            return getURIBuilder().setPath(pathBuilder.toString()).build();</span>
+<span class="nc" id="L751">        } catch (URISyntaxException e) {</span>
+<span class="nc" id="L752">            throw new RuntimeException(e);</span>
+        }
+    }
+
+    /**
+     * Build parameters JSON.
+     * @param params Parameters.
+     * @param inputParametersTypes Input parameter types.
+     * @return JSON representation as a string.
+     */
+    protected String buildParametersJson(Properties params, Properties inputParametersTypes) {
+<span class="fc" id="L763">        WorkflowParameters workflowParameters = new WorkflowParameters();</span>
+<span class="fc" id="L764">        List&lt;Parameter&gt; paramsList = new ArrayList&lt;&gt;();</span>
+
+<span class="fc bfc" id="L766" title="All 2 branches covered.">		for (Map.Entry&lt;Object, Object&gt; entry : params.entrySet()) {</span>
+<span class="fc" id="L767">			Parameter parameter = new Parameter();</span>
+<span class="fc" id="L768">			parameter.setScope(&quot;local&quot;);</span>
+<span class="fc" id="L769">			parameter.setName(entry.getKey().toString());</span>
+<span class="fc" id="L770">			String keyType = null;</span>
+
+<span class="pc bpc" id="L772" title="1 of 2 branches missed.">			if (inputParametersTypes.containsKey(entry.getKey())) {</span>
+<span class="fc" id="L773">				keyType = inputParametersTypes.get(entry.getKey()).toString();</span>
+			}
+
+<span class="fc bfc" id="L776" title="All 4 branches covered.">            switch (keyType) {</span>
+                case &quot;Array/string&quot;: 
+<span class="fc" id="L778">                    ArrayStringValue arrayStringValue = new ArrayStringValue();</span>
+<span class="fc" id="L779">                    String jsonArray = StringEscapeUtils.unescapeJava(entry.getValue().toString());</span>
+<span class="fc" id="L780">                    String[] arrName = new Gson().fromJson(jsonArray, String[].class);</span>
+<span class="fc" id="L781">                    parameter.setType(&quot;Array/string&quot;);</span>
+<span class="fc" id="L782">                    List&lt;WorkflowParameters.StringValue&gt; stringValueList = new ArrayList&lt;&gt;();</span>
+
+<span class="fc bfc" id="L784" title="All 2 branches covered.">                    for (String name : arrName) {</span>
+<span class="fc" id="L785">                        WorkflowParameters.StringValue stringValue = new WorkflowParameters.StringValue();</span>
+<span class="fc" id="L786">                        WorkflowParameters.String value = new WorkflowParameters.String();</span>
+<span class="fc" id="L787">                        value.setValue(name);</span>
+<span class="fc" id="L788">                        stringValue.setString(value);</span>
+<span class="fc" id="L789">                        stringValueList.add(stringValue);</span>
+                    }
+<span class="fc" id="L791">                    ArrayElements elements = new ArrayElements();</span>
+<span class="fc" id="L792">                    elements.setElements(stringValueList);</span>
+<span class="fc" id="L793">                    arrayStringValue.setArray(elements);</span>
+<span class="fc" id="L794">                    parameter.setValue(arrayStringValue);</span>
+<span class="fc" id="L795">                    break;</span>
+
+                case &quot;number&quot;:
+<span class="fc" id="L798">                    NumberValue numberValue = new NumberValue();</span>
+<span class="fc" id="L799">                    WorkflowParameters.Number wfPNumber = new WorkflowParameters.Number();</span>
+<span class="fc" id="L800">                    wfPNumber.setValue(entry.getValue().toString());</span>
+<span class="fc" id="L801">                    parameter.setType(&quot;number&quot;);</span>
+<span class="fc" id="L802">                    numberValue.setNumber(wfPNumber);</span>
+<span class="fc" id="L803">                    parameter.setValue(numberValue);</span>
+<span class="fc" id="L804">                    break;</span>
+
+                case &quot;boolean&quot;:
+<span class="fc" id="L807">                    BooleanValue booleanValue = new BooleanValue();</span>
+<span class="fc" id="L808">                    WorkflowParameters.Bool value = new WorkflowParameters.Bool();</span>
+<span class="fc" id="L809">                    value.setValue(entry.getValue().toString());</span>
+<span class="fc" id="L810">                    parameter.setType(&quot;boolean&quot;);</span>
+<span class="fc" id="L811">                    booleanValue.setBoolean(value);</span>
+<span class="fc" id="L812">                    parameter.setValue(booleanValue);</span>
+<span class="fc" id="L813">                    break;</span>
+
+                case &quot;string&quot;:
+                default:
+<span class="fc" id="L817">                    StringValue stringValue = new StringValue();</span>
+<span class="fc" id="L818">                    WorkflowParameters.String wfPString = new WorkflowParameters.String();</span>
+<span class="fc" id="L819">                    wfPString.setValue(entry.getValue().toString());</span>
+<span class="fc" id="L820">                    parameter.setType(&quot;string&quot;);</span>
+<span class="fc" id="L821">                    stringValue.setString(wfPString);</span>
+<span class="fc" id="L822">                    parameter.setValue(stringValue);</span>
+                    break; 
+            }
+<span class="fc" id="L825">			paramsList.add(parameter);</span>
+<span class="fc" id="L826">		}</span>
+
+<span class="fc" id="L828">        workflowParameters.setParameters(paramsList);</span>
+<span class="fc" id="L829">        Gson gson = new Gson();        </span>
+<span class="fc" id="L830">        return gson.toJson(workflowParameters);</span>
+    }
+
+    private static boolean isVraCloud(URI uri) {
+<span class="nc bnc" id="L834" title="All 2 branches missed.">        return VRA_CLOUD_HOSTS.stream().filter(host -&gt; uri.getHost().contains(host)).count() &gt; 0;</span>
+   }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

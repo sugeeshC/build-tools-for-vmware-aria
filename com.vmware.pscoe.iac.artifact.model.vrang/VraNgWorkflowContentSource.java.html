@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgWorkflowContentSource.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.vrang</a> &gt; <span class="el_source">VraNgWorkflowContentSource.java</span></div><h1>VraNgWorkflowContentSource.java</h1><pre class="source lang-java linenums">
+package com.vmware.pscoe.iac.artifact.model.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({&quot;id&quot;, &quot;name&quot;, &quot;description&quot;, &quot;typeId&quot;, &quot;createdAt&quot;, &quot;createdBy&quot;,
+        &quot;lastUpdatedAt&quot;, &quot;lastUpdatedBy&quot;, &quot;config&quot;, &quot;itemsImported&quot;, &quot;itemsFound&quot;,
+        &quot;lastImportStartedAt&quot;, &quot;lastImportCompletedAt&quot;, &quot;lastImportErrors&quot;, &quot;global&quot;})
+<span class="nc" id="L34">public class VraNgWorkflowContentSource extends VraNgContentSourceBase implements Serializable {</span>
+    private static final long serialVersionUID = -3313748896114761975L;
+
+    @JsonProperty(&quot;createdAt&quot;)
+    protected String createdAt;
+
+    @JsonProperty(&quot;createdBy&quot;)
+    protected String createdBy;
+
+    @JsonProperty(&quot;lastUpdatedAt&quot;)
+    protected String lastUpdatedAt;
+
+    @JsonProperty(&quot;lastUpdatedBy&quot;)
+    protected String lastUpdatedBy;
+
+    @JsonProperty(&quot;config&quot;)
+    protected VraNgConfig config;
+
+    @JsonProperty(&quot;lastImportStartedAt&quot;)
+    protected String lastImportStartedAt;
+
+    @JsonProperty(&quot;lastImportCompletedAt&quot;)
+    protected String lastImportCompletedAt;
+
+<span class="nc" id="L58">    @JsonIgnore</span>
+    protected transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+    @JsonProperty(&quot;createdAt&quot;)
+    public String getCreatedAt() {
+<span class="nc" id="L63">        return createdAt;</span>
+    }
+
+    @JsonProperty(&quot;createdAt&quot;)
+    public void setCreatedAt(String createdAt) {
+<span class="nc" id="L68">        this.createdAt = createdAt;</span>
+<span class="nc" id="L69">    }</span>
+
+    @JsonProperty(&quot;createdBy&quot;)
+    public String getCreatedBy() {
+<span class="nc" id="L73">        return createdBy;</span>
+    }
+
+    @JsonProperty(&quot;createdBy&quot;)
+    public void setCreatedBy(String createdBy) {
+<span class="nc" id="L78">        this.createdBy = createdBy;</span>
+<span class="nc" id="L79">    }</span>
+
+    @JsonProperty(&quot;lastUpdatedAt&quot;)
+    public String getLastUpdatedAt() {
+<span class="nc" id="L83">        return lastUpdatedAt;</span>
+    }
+
+    @JsonProperty(&quot;lastUpdatedAt&quot;)
+    public void setLastUpdatedAt(String lastUpdatedAt) {
+<span class="nc" id="L88">        this.lastUpdatedAt = lastUpdatedAt;</span>
+<span class="nc" id="L89">    }</span>
+
+    @JsonProperty(&quot;lastUpdatedBy&quot;)
+    public String getLastUpdatedBy() {
+<span class="nc" id="L93">        return lastUpdatedBy;</span>
+    }
+
+    @JsonProperty(&quot;lastUpdatedBy&quot;)
+    public void setLastUpdatedBy(String lastUpdatedBy) {
+<span class="nc" id="L98">        this.lastUpdatedBy = lastUpdatedBy;</span>
+<span class="nc" id="L99">    }</span>
+
+    @JsonProperty(&quot;config&quot;)
+    public VraNgConfig getConfig() {
+<span class="nc" id="L103">        return config;</span>
+    }
+
+    @JsonProperty(&quot;config&quot;)
+    public void setConfig(VraNgConfig config) {
+<span class="nc" id="L108">        this.config = config;</span>
+<span class="nc" id="L109">    }</span>
+
+    @JsonProperty(&quot;lastImportStartedAt&quot;)
+    public String getLastImportStartedAt() {
+<span class="nc" id="L113">        return lastImportStartedAt;</span>
+    }
+
+    @JsonProperty(&quot;lastImportStartedAt&quot;)
+    public void setLastImportStartedAt(String lastImportStartedAt) {
+<span class="nc" id="L118">        this.lastImportStartedAt = lastImportStartedAt;</span>
+<span class="nc" id="L119">    }</span>
+
+    @JsonProperty(&quot;lastImportCompletedAt&quot;)
+    public String getLastImportCompletedAt() {
+<span class="nc" id="L123">        return lastImportCompletedAt;</span>
+    }
+
+    @JsonProperty(&quot;lastImportCompletedAt&quot;)
+    public void setLastImportCompletedAt(String lastImportCompletedAt) {
+<span class="nc" id="L128">        this.lastImportCompletedAt = lastImportCompletedAt;</span>
+<span class="nc" id="L129">    }</span>
+
+
+    @JsonAnyGetter
+    public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L134">        return this.additionalProperties;</span>
+    }
+
+    @JsonAnySetter
+    public void setAdditionalProperty(String name, Object value) {
+<span class="nc" id="L139">        this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L140">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

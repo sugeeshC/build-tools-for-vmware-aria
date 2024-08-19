@@ -1,0 +1,412 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CliManagerVrops.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.cli</a> &gt; <span class="el_source">CliManagerVrops.java</span></div><h1>CliManagerVrops.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.cli;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.SftpException;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVrops;
+import com.vmware.pscoe.iac.artifact.ssh.SshClient;
+
+public class CliManagerVrops implements AutoCloseable {
+    private static final String VIEW = &quot;view&quot;;
+    private static final String DASHBOARD = &quot;dashboard&quot;;
+    private static final String SUPER_METRIC = &quot;supermetric&quot;;
+    private static final String REPORT = &quot;report&quot;;
+    private static final String FILE = &quot;file&quot;;
+    private static final String METRIC_CONFIG = &quot;reskndmetric&quot;;
+    private static final String EXPORT    = &quot;export&quot;;
+    private static final String IMPORT = &quot;import&quot;;
+    private static final String SHARE = &quot;share&quot;;
+    private static final String UNSHARE = &quot;unshare&quot;;
+    private static final String ACTIVATE = &quot;show&quot;;
+    private static final String DEACTIVATE = &quot;hide&quot;;
+
+    private static final String SHARING_DEFAULT_USER= &quot;admin&quot;;
+
+    private static final String FORCE = &quot;--force&quot;;
+    private static final String ALL_POLICIES = &quot;--policies all&quot;;
+    private static final String CHECK_FALSE = &quot;--check false&quot;;
+
+    private static final String OPSCLI_PATH = &quot;/usr/lib/vmware-vcops/tools/opscli/ops-cli.py&quot;;
+    private static final String UNIX_PATH_SEPARATOR = &quot;/&quot;;
+    private static final String VROPS_SSH_COMMAND_INFO = &quot;Executing vROps SSH command: {} &quot;;
+    private static final String VROPS_SSH_COMMAND_0 = &quot;$VMWARE_PYTHON_3_BIN %s %s %s %s&quot;;
+    private static final String VROPS_SSH_COMMAND_1 = &quot;$VMWARE_PYTHON_3_BIN %s %s %s %s %s&quot;;
+    private static final String VROPS_SSH_COMMAND_2 = &quot;$VMWARE_PYTHON_3_BIN %s %s %s %s %s %s&quot;;
+    private static final String VROPS_SSH_COMMAND_3 = &quot;$VMWARE_PYTHON_3_BIN %s %s %s %s %s %s %s&quot;;
+    private static final String VROPS_SSH_COMMAND_4 = &quot;$VMWARE_PYTHON_3_BIN %s %s %s %s %s %s %s %s&quot;;
+
+<span class="fc" id="L62">    private final Logger logger = LoggerFactory.getLogger(CliManagerVrops.class);</span>
+
+    private ConfigurationVrops config;
+    private Session session;
+    private List&lt;String&gt; cmdList;
+    private List&lt;File&gt; fileList;
+    private final String exportRemotePath;
+    private final String importRemotePath;
+
+<span class="fc" id="L71">    public CliManagerVrops(ConfigurationVrops config) {</span>
+<span class="fc" id="L72">        this.config = config;</span>
+<span class="fc" id="L73">        cmdList = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L74">        fileList = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L75">        String runId = System.currentTimeMillis() + &quot;-&quot; + UUID.randomUUID();</span>
+<span class="fc" id="L76">        exportRemotePath = &quot;/tmp/vrops-export/&quot; + runId;</span>
+<span class="fc" id="L77">        importRemotePath = &quot;/tmp/vrops-import/&quot; + runId;</span>
+<span class="fc" id="L78">    }</span>
+
+    public void connect() throws JSchException {
+<span class="nc" id="L81">        session = SshClient.createSession(getSshUsername(), getSshPassword(), config.getHost(), getSshPort());</span>
+<span class="nc" id="L82">        session.connect();</span>
+<span class="nc" id="L83">        logger.info(&quot;SSH Session opened&quot;);</span>
+<span class="nc" id="L84">    }</span>
+
+    public String getSshUsername() {
+<span class="nc" id="L87">        return config.getUsername();</span>
+    }
+
+    public String getSshPassword() {
+<span class="nc" id="L91">        return config.getPassword();</span>
+    }
+
+    public int getSshPort() {
+<span class="nc" id="L95">        return config.getSshPort();</span>
+    }
+
+    public boolean hasAnyCommands() {
+<span class="nc bnc" id="L99" title="All 2 branches missed.">        return !this.cmdList.isEmpty();</span>
+    }
+
+    @Override
+    public void close() {
+<span class="nc" id="L104">        fileList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L105">        cmdList = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">        if (session != null) {</span>
+<span class="nc" id="L107">            session.disconnect();</span>
+        }
+<span class="nc" id="L109">        session = null;</span>
+<span class="nc" id="L110">    }</span>
+
+    public void cleanup() {
+<span class="nc bnc" id="L113" title="All 2 branches missed.">        if (session != null) {</span>
+<span class="nc" id="L114">            StringBuilder commands = new StringBuilder();</span>
+<span class="nc" id="L115">            commands.append(&quot;rm -r &quot; + exportRemotePath + &quot;;&quot;);</span>
+<span class="nc" id="L116">            commands.append(&quot;rm -r &quot; + importRemotePath + &quot;;&quot;);</span>
+<span class="nc" id="L117">            SshClient.execute(session, commands.toString());</span>
+        }
+<span class="nc" id="L119">    }</span>
+
+    // IMPORT
+    public void addViewToImportList(File file) {
+<span class="nc" id="L123">        String remoteFilePath = importRemotePath + UNIX_PATH_SEPARATOR + file.getName();</span>
+<span class="nc" id="L124">        String command = String.format(VROPS_SSH_COMMAND_1,</span>
+<span class="nc" id="L125">                escapeShellCharacters(OPSCLI_PATH),    escapeShellCharacters(VIEW),</span>
+<span class="nc" id="L126">                escapeShellCharacters(IMPORT),         escapeShellCharacters(remoteFilePath),</span>
+<span class="nc" id="L127">                escapeShellCharacters(FORCE));</span>
+
+<span class="nc" id="L129">        cmdList.add(command);</span>
+<span class="nc" id="L130">        fileList.add(file);</span>
+<span class="nc" id="L131">    }</span>
+
+    public void addDashboardToImportList(File file) {
+<span class="nc" id="L134">        String remoteFilePath = importRemotePath + UNIX_PATH_SEPARATOR + file.getName();</span>
+<span class="nc" id="L135">        String command = String.format(VROPS_SSH_COMMAND_2,</span>
+<span class="nc" id="L136">                escapeShellCharacters(OPSCLI_PATH),    escapeShellCharacters(DASHBOARD),</span>
+<span class="nc" id="L137">                escapeShellCharacters(IMPORT),         &quot;all&quot;,</span>
+<span class="nc" id="L138">                escapeShellCharacters(remoteFilePath), escapeShellCharacters(FORCE));</span>
+
+<span class="nc" id="L140">        cmdList.add(command);</span>
+<span class="nc" id="L141">        fileList.add(file);</span>
+<span class="nc" id="L142">    }</span>
+
+    public void shareDashboard(String dashboard, String[] groups) {
+<span class="nc" id="L145">        String command = String.format(VROPS_SSH_COMMAND_2,</span>
+<span class="nc" id="L146">                escapeShellCharacters(OPSCLI_PATH), escapeShellCharacters(DASHBOARD),</span>
+<span class="nc" id="L147">                escapeShellCharacters(SHARE), escapeShellCharacters(SHARING_DEFAULT_USER),</span>
+<span class="nc" id="L148">                escapeShellCharacters(dashboard), escapeShellCharacters(String.join(&quot;, &quot;, groups)));</span>
+        try {
+<span class="nc" id="L150">            logger.info(&quot;Sharing dashboards using command:\n{}&quot;, command);</span>
+<span class="nc" id="L151">            List&lt;String&gt; output = SshClient.execute(session, command);</span>
+<span class="nc" id="L152">            output.stream().forEach(logger::info);</span>
+<span class="nc" id="L153">        } catch (Exception e) {</span>
+<span class="nc" id="L154">            throw new RuntimeException(e);</span>
+<span class="nc" id="L155">        }</span>
+<span class="nc" id="L156">    }</span>
+
+    public void unshareDashboard(String dashboard, String[] groups) {
+<span class="nc" id="L159">        String command = String.format(VROPS_SSH_COMMAND_2,</span>
+<span class="nc" id="L160">                escapeShellCharacters(OPSCLI_PATH), escapeShellCharacters(DASHBOARD),</span>
+<span class="nc" id="L161">                escapeShellCharacters(UNSHARE), escapeShellCharacters(SHARING_DEFAULT_USER),</span>
+<span class="nc" id="L162">                escapeShellCharacters(dashboard), escapeShellCharacters(String.join(&quot;, &quot;, groups)));</span>
+        try {
+<span class="nc" id="L164">            logger.info(&quot;Unsharing dashboards using command:\n{}&quot;, command);</span>
+<span class="nc" id="L165">            List&lt;String&gt; output = SshClient.execute(session, command);</span>
+<span class="nc" id="L166">            output.stream().forEach(logger::info);</span>
+<span class="nc" id="L167">        } catch (Exception e) {</span>
+<span class="nc" id="L168">            throw new RuntimeException(e);</span>
+<span class="nc" id="L169">        }</span>
+<span class="nc" id="L170">    }</span>
+
+    public void activateDashboard(String dashboard, List&lt;String&gt; resources, boolean isGroupResource) {
+<span class="nc" id="L173">    	List&lt;String&gt; commands = new ArrayList&lt;String&gt;();</span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">    	for (String resource : resources) {</span>
+<span class="nc bnc" id="L175" title="All 2 branches missed.">        	if (isGroupResource) {</span>
+<span class="nc" id="L176">                commands.add(String.format(VROPS_SSH_COMMAND_1,</span>
+<span class="nc" id="L177">                        escapeShellCharacters(OPSCLI_PATH), escapeShellCharacters(DASHBOARD),</span>
+<span class="nc" id="L178">                        escapeShellCharacters(ACTIVATE), &quot;group:&quot;+escapeShellCharacters(resource),</span>
+<span class="nc" id="L179">                        escapeShellCharacters(dashboard)));</span>
+        	} else {
+<span class="nc" id="L181">                commands.add(String.format(VROPS_SSH_COMMAND_1,</span>
+<span class="nc" id="L182">                        escapeShellCharacters(OPSCLI_PATH), escapeShellCharacters(DASHBOARD),</span>
+<span class="nc" id="L183">                        escapeShellCharacters(ACTIVATE), escapeShellCharacters(resource),</span>
+<span class="nc" id="L184">                        escapeShellCharacters(dashboard)));</span>
+        	}
+<span class="nc" id="L186">    	}</span>
+    	try {
+<span class="nc" id="L188">            logger.info(&quot;Activating dashboards using command(s):\n{}&quot;, String.join(&quot;;\n&quot;, commands));</span>
+<span class="nc" id="L189">            List&lt;String&gt; output = SshClient.execute(session, String.join(&quot;;&quot;, commands));</span>
+<span class="nc" id="L190">            output.stream().forEach(logger::info);</span>
+<span class="nc" id="L191">        } catch (Exception e) {</span>
+<span class="nc" id="L192">            throw new RuntimeException(e);</span>
+<span class="nc" id="L193">        }</span>
+<span class="nc" id="L194">    }</span>
+
+    public void deactivateDashboard(String dashboard, List&lt;String&gt; resources, boolean isGroupResource) {
+<span class="nc" id="L197">    	List&lt;String&gt; commands = new ArrayList&lt;String&gt;();</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">    	for (String resource : resources) {</span>
+<span class="nc bnc" id="L199" title="All 2 branches missed.">        	if (isGroupResource) {</span>
+<span class="nc" id="L200">                commands.add(String.format(VROPS_SSH_COMMAND_1,</span>
+<span class="nc" id="L201">                        escapeShellCharacters(OPSCLI_PATH), escapeShellCharacters(DASHBOARD),</span>
+<span class="nc" id="L202">                        escapeShellCharacters(DEACTIVATE), &quot;group:&quot;+escapeShellCharacters(resource),</span>
+<span class="nc" id="L203">                        escapeShellCharacters(dashboard)));</span>
+        	} else {
+<span class="nc" id="L205">                commands.add(String.format(VROPS_SSH_COMMAND_1,</span>
+<span class="nc" id="L206">                        escapeShellCharacters(OPSCLI_PATH), escapeShellCharacters(DASHBOARD),</span>
+<span class="nc" id="L207">                        escapeShellCharacters(DEACTIVATE), escapeShellCharacters(resource),</span>
+<span class="nc" id="L208">                        escapeShellCharacters(dashboard)));</span>
+        	}
+<span class="nc" id="L210">    	}</span>
+
+    	try {
+<span class="nc" id="L213">            logger.info(&quot;Deactivating dashboards using command(s):\n{}&quot;, String.join(&quot;;\n&quot;, commands));</span>
+<span class="nc" id="L214">            List&lt;String&gt; output = SshClient.execute(session, String.join(&quot;;&quot;, commands));</span>
+<span class="nc" id="L215">            output.stream().forEach(logger::info);</span>
+<span class="nc" id="L216">        } catch (Exception e) {</span>
+<span class="nc" id="L217">            throw new RuntimeException(e);</span>
+<span class="nc" id="L218">        }</span>
+<span class="nc" id="L219">    }</span>
+
+    public void addReportToImportList(File file) {
+<span class="nc" id="L222">        String remoteFilePath = importRemotePath + UNIX_PATH_SEPARATOR + file.getName();</span>
+<span class="nc" id="L223">        String command = String.format(VROPS_SSH_COMMAND_1,</span>
+<span class="nc" id="L224">                escapeShellCharacters(OPSCLI_PATH), escapeShellCharacters(REPORT),</span>
+<span class="nc" id="L225">                escapeShellCharacters(IMPORT),      escapeShellCharacters(remoteFilePath),</span>
+<span class="nc" id="L226">                escapeShellCharacters(FORCE));</span>
+
+<span class="nc" id="L228">        cmdList.add(command);</span>
+<span class="nc" id="L229">        fileList.add(file);</span>
+<span class="nc" id="L230">    }</span>
+
+    public void addSuperMetricsToImportList(File file) {
+<span class="nc" id="L233">        String remoteFilePath = importRemotePath + UNIX_PATH_SEPARATOR + file.getName();</span>
+<span class="nc" id="L234">        String command = String.format(VROPS_SSH_COMMAND_3,</span>
+<span class="nc" id="L235">                escapeShellCharacters(OPSCLI_PATH), escapeShellCharacters(SUPER_METRIC),</span>
+<span class="nc" id="L236">                escapeShellCharacters(IMPORT), escapeShellCharacters(remoteFilePath), escapeShellCharacters(FORCE), ALL_POLICIES, CHECK_FALSE);</span>
+
+<span class="nc" id="L238">        this.cmdList.add(command);</span>
+<span class="nc" id="L239">        this.fileList.add(file);</span>
+<span class="nc" id="L240">    }</span>
+
+    public void addMetricConfigsToImportList(File file) {
+<span class="nc" id="L243">        String remoteFilePath = importRemotePath + UNIX_PATH_SEPARATOR + file.getName();</span>
+<span class="nc" id="L244">        String command = String.format(VROPS_SSH_COMMAND_4,</span>
+<span class="nc" id="L245">                escapeShellCharacters(OPSCLI_PATH),</span>
+<span class="nc" id="L246">                escapeShellCharacters(FILE),</span>
+<span class="nc" id="L247">                escapeShellCharacters(IMPORT), </span>
+<span class="nc" id="L248">                escapeShellCharacters(METRIC_CONFIG),</span>
+<span class="nc" id="L249">                escapeShellCharacters(remoteFilePath), </span>
+<span class="nc" id="L250">                escapeShellCharacters(FORCE), </span>
+                ALL_POLICIES, 
+                CHECK_FALSE);
+
+<span class="nc" id="L254">        this.cmdList.add(command);</span>
+<span class="nc" id="L255">        this.fileList.add(file);</span>
+<span class="nc" id="L256">    }</span>
+
+    public void importFilesToVrops() {
+        try {
+<span class="nc" id="L260">            logger.info(&quot;Copying files to vrops appliance&quot;);</span>
+
+<span class="nc" id="L262">            reconnect();</span>
+<span class="nc" id="L263">            SshClient.copyLocalToRemote(session, fileList, importRemotePath);</span>
+
+<span class="nc" id="L265">            String remoteCommands = String.join(&quot;;&quot;, cmdList);</span>
+<span class="nc" id="L266">            logger.info(&quot;Executing vROps SSH remote command(s):\n{}&quot;, String.join(&quot;\n&quot;, cmdList));</span>
+
+<span class="nc" id="L268">            List&lt;String&gt; output = SshClient.execute(session, remoteCommands);</span>
+<span class="nc" id="L269">            output.stream().forEach(logger::info);</span>
+<span class="nc" id="L270">        } catch (JSchException | SftpException e) {</span>
+<span class="nc" id="L271">            logger.error(e.getMessage(), e);</span>
+<span class="nc" id="L272">        }</span>
+<span class="nc" id="L273">    }</span>
+
+    private void reconnect() throws JSchException {
+<span class="nc bnc" id="L276" title="All 4 branches missed.">        if (session != null &amp;&amp; session.isConnected()) {</span>
+<span class="nc" id="L277">            return;</span>
+        }
+<span class="nc" id="L279">        logger.warn(&quot;SSH session is closed, trying to reconnect&quot;);</span>
+<span class="nc" id="L280">        connect();</span>
+<span class="nc" id="L281">    }</span>
+
+    // EXPORT
+	public void exportView(String viewName, File localDir) throws JSchException {
+<span class="nc" id="L285">        String remoteFilePath = exportRemotePath + UNIX_PATH_SEPARATOR + &quot;views&quot;;</span>
+<span class="nc" id="L286">        String command = String.format(VROPS_SSH_COMMAND_1,</span>
+<span class="nc" id="L287">                escapeShellCharacters(OPSCLI_PATH), escapeShellCharacters(VIEW),</span>
+<span class="nc" id="L288">                escapeShellCharacters(EXPORT), escapeShellCharacters(viewName),</span>
+<span class="nc" id="L289">                escapeShellCharacters(remoteFilePath));</span>
+<span class="nc" id="L290">        logger.info(VROPS_SSH_COMMAND_INFO, command);</span>
+
+<span class="nc" id="L292">        reconnect();</span>
+<span class="nc" id="L293">        List&lt;String&gt; output = SshClient.execute(session, command);</span>
+<span class="nc" id="L294">        output.stream().forEach(logger::info);</span>
+
+<span class="nc" id="L296">        List&lt;String&gt; files = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L297">        files.add(remoteFilePath + UNIX_PATH_SEPARATOR + viewName + &quot;.zip&quot;);</span>
+
+<span class="nc" id="L299">        SshClient.copyRemoteToLocal(session, files, localDir);</span>
+<span class="nc" id="L300">    }</span>
+
+    public void exportDashboard(String dashboardName, File localDir) throws JSchException {
+<span class="nc" id="L303">        String remoteFilePath = exportRemotePath + UNIX_PATH_SEPARATOR + &quot;dashboards&quot;;</span>
+<span class="nc" id="L304">        String command = String.format(VROPS_SSH_COMMAND_2,</span>
+<span class="nc" id="L305">                escapeShellCharacters(OPSCLI_PATH),   escapeShellCharacters(DASHBOARD),</span>
+<span class="nc" id="L306">                escapeShellCharacters(EXPORT),        escapeShellCharacters(config.getVropsDashboardUser()),</span>
+<span class="nc" id="L307">                escapeShellCharacters(dashboardName), escapeShellCharacters(remoteFilePath));</span>
+<span class="nc" id="L308">        logger.info(VROPS_SSH_COMMAND_INFO, command);</span>
+
+<span class="nc" id="L310">        reconnect();</span>
+<span class="nc" id="L311">        List&lt;String&gt; output = SshClient.execute(session, command);</span>
+<span class="nc" id="L312">        output.stream().forEach(logger::info);</span>
+
+<span class="nc" id="L314">        List&lt;String&gt; files = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L315">        files.add(remoteFilePath + UNIX_PATH_SEPARATOR + dashboardName + &quot;.zip&quot;);</span>
+
+<span class="nc" id="L317">        SshClient.copyRemoteToLocal(session, files, localDir);</span>
+<span class="nc" id="L318">	}</span>
+
+    public void exportSuperMetric(String superMetricName, File localDir) throws JSchException {
+<span class="nc" id="L321">        String remoteFilePath = exportRemotePath + UNIX_PATH_SEPARATOR + &quot;supermetrics&quot;;</span>
+<span class="nc" id="L322">        String command = String.format(VROPS_SSH_COMMAND_1,</span>
+<span class="nc" id="L323">                escapeShellCharacters(OPSCLI_PATH), escapeShellCharacters(SUPER_METRIC),</span>
+<span class="nc" id="L324">                escapeShellCharacters(EXPORT), escapeShellCharacters(superMetricName), escapeShellCharacters(remoteFilePath));</span>
+<span class="nc" id="L325">        logger.info(VROPS_SSH_COMMAND_INFO, command);</span>
+
+<span class="nc" id="L327">        reconnect();</span>
+<span class="nc" id="L328">        List&lt;String&gt; output = SshClient.execute(this.session, command);</span>
+<span class="nc" id="L329">        output.stream().forEach(logger::info);</span>
+
+<span class="nc" id="L331">        List&lt;String&gt; files = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L332">        files.add(remoteFilePath + UNIX_PATH_SEPARATOR + superMetricName + &quot;.json&quot;);</span>
+
+<span class="nc" id="L334">        SshClient.copyRemoteToLocal(session, files, localDir);</span>
+<span class="nc" id="L335">    }</span>
+
+    public void exportMetricConfig(String metricConfigName, File localDir) throws JSchException {
+<span class="nc" id="L338">        String remoteFilePath = exportRemotePath + UNIX_PATH_SEPARATOR + &quot;metricconfigs&quot;;</span>
+
+<span class="nc" id="L340">        String command = String.format(VROPS_SSH_COMMAND_2,</span>
+<span class="nc" id="L341">                escapeShellCharacters(OPSCLI_PATH),</span>
+<span class="nc" id="L342">                escapeShellCharacters(FILE),</span>
+<span class="nc" id="L343">                escapeShellCharacters(EXPORT),</span>
+<span class="nc" id="L344">                escapeShellCharacters(METRIC_CONFIG),</span>
+<span class="nc" id="L345">                escapeShellCharacters(metricConfigName),</span>
+<span class="nc" id="L346">                escapeShellCharacters(remoteFilePath));</span>
+<span class="nc" id="L347">        logger.info(VROPS_SSH_COMMAND_INFO, command);</span>
+
+<span class="nc" id="L349">        reconnect();</span>
+<span class="nc" id="L350">        List&lt;String&gt; output = SshClient.execute(this.session, command);</span>
+<span class="nc" id="L351">        output.stream().forEach(logger::info);</span>
+
+<span class="nc" id="L353">        List&lt;String&gt; files = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L354">        files.add(remoteFilePath + UNIX_PATH_SEPARATOR + metricConfigName);</span>
+        
+<span class="nc" id="L356">        SshClient.copyRemoteToLocal(session, files, localDir);</span>
+<span class="nc" id="L357">    }</span>
+
+    public void exportReport(String reportName, File localDir) throws JSchException {
+<span class="nc" id="L360">        String remoteFilePath = exportRemotePath + UNIX_PATH_SEPARATOR + &quot;reports&quot;;</span>
+<span class="nc" id="L361">        String command = String.format(VROPS_SSH_COMMAND_1,</span>
+<span class="nc" id="L362">                escapeShellCharacters(OPSCLI_PATH),</span>
+<span class="nc" id="L363">                escapeShellCharacters(REPORT), escapeShellCharacters(EXPORT),</span>
+<span class="nc" id="L364">                escapeShellCharacters(reportName), escapeShellCharacters(remoteFilePath));</span>
+<span class="nc" id="L365">        logger.info(VROPS_SSH_COMMAND_INFO, command);</span>
+
+<span class="nc" id="L367">        reconnect();</span>
+<span class="nc" id="L368">        List&lt;String&gt; output = SshClient.execute(session, command);</span>
+<span class="nc" id="L369">        output.stream().forEach(logger::info);</span>
+
+<span class="nc" id="L371">        List&lt;String&gt; files = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L372">        files.add(remoteFilePath + UNIX_PATH_SEPARATOR + reportName + &quot;.zip&quot;);</span>
+
+<span class="nc" id="L374">        SshClient.copyRemoteToLocal(session, files, localDir);</span>
+<span class="nc" id="L375">	}</span>
+
+	@Override
+	public String toString() {
+<span class="nc" id="L379">        return getSshUsername() + &quot;@&quot; + config.getHost() + &quot;:&quot; + getSshPort();</span>
+    }
+
+    public String toSshComand() {
+<span class="nc" id="L383">        return &quot;ssh \'&quot; + getSshUsername() + &quot;@&quot; + config.getHost() + &quot;' -p &quot; + getSshPort();</span>
+    }
+
+
+    private String escapeShellCharacters(String str) {
+<span class="nc bnc" id="L388" title="All 2 branches missed.">        if (str == null) {</span>
+<span class="nc" id="L389">            return null;</span>
+        }
+<span class="nc bnc" id="L391" title="All 2 branches missed.">        if (str.indexOf('\'') == -1) {</span>
+<span class="nc" id="L392">            return &quot;'&quot; + str + &quot;'&quot;;</span>
+        }
+<span class="nc" id="L394">        final char[] special = {'\'', '~', '`', '#', '$', '&amp;', '*', '(', ')', '\\', '|', '[', ']', '{', '}', ';', '&quot;',</span>
+                '&lt;', '&gt;', '?', '!' };
+<span class="nc" id="L396">        StringBuilder buffer = new StringBuilder(&quot;\&quot;&quot;);</span>
+<span class="nc bnc" id="L397" title="All 2 branches missed.">        for (int i = 0; i &lt; str.length(); i++) {</span>
+<span class="nc" id="L398">            char chr = str.charAt(i);</span>
+<span class="nc bnc" id="L399" title="All 2 branches missed.">            for (char element : special) {</span>
+<span class="nc bnc" id="L400" title="All 2 branches missed.">                if (chr == element) {</span>
+<span class="nc" id="L401">                    buffer.append(&quot;\\&quot;);</span>
+                }
+<span class="nc" id="L403">                buffer.append(chr);</span>
+            }
+        }
+<span class="nc" id="L406">        buffer.append(&quot;\&quot;&quot;);</span>
+
+<span class="nc" id="L408">        return buffer.toString();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

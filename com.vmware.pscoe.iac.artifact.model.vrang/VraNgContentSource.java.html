@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgContentSource.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.vrang</a> &gt; <span class="el_source">VraNgContentSource.java</span></div><h1>VraNgContentSource.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.util.List;
+import java.util.Map;
+
+public class VraNgContentSource extends VraNgContentSourceBase {
+    protected String projectId;
+    protected Map&lt;String, String&gt; config;
+
+    public VraNgContentSource(String id, String name, VraNgContentSourceType typeId,
+            String projectId, Integer itemsFound, Integer itemsImported,
+<span class="nc" id="L27">            List&lt;String&gt; importErrors) {</span>
+<span class="nc" id="L28">        this.id = id;</span>
+<span class="nc" id="L29">        this.name = name;</span>
+<span class="nc" id="L30">        this.typeId = typeId.toString();</span>
+<span class="nc" id="L31">        this.projectId = projectId;</span>
+<span class="nc" id="L32">        this.itemsFound = itemsFound;</span>
+<span class="nc" id="L33">        this.itemsImported = itemsImported;</span>
+<span class="nc" id="L34">        this.lastImportErrors = importErrors;</span>
+<span class="nc" id="L35">    }</span>
+
+    public VraNgContentSource(String id, String name, VraNgContentSourceType typeId,
+<span class="nc" id="L38">            String projectId, Integer itemsFound, Integer itemsImported) {</span>
+<span class="nc" id="L39">        this.id = id;</span>
+<span class="nc" id="L40">        this.name = name;</span>
+<span class="nc" id="L41">        this.typeId = typeId.toString();</span>
+<span class="nc" id="L42">        this.projectId = projectId;</span>
+<span class="nc" id="L43">        this.itemsFound = itemsFound;</span>
+<span class="nc" id="L44">        this.itemsImported = itemsImported;</span>
+<span class="nc" id="L45">    }</span>
+
+    public String getProjectId() {
+<span class="nc" id="L48">        return this.projectId;</span>
+    }
+
+    public void setProjectId(String projectId) {
+<span class="nc" id="L52">        this.projectId = projectId;</span>
+<span class="nc" id="L53">    }</span>
+
+    public Map&lt;String, String&gt; getConfig() {
+<span class="nc" id="L56">        return config;</span>
+    }
+
+    public void setConfig(Map&lt;String, String&gt; config) {
+<span class="nc" id="L60">        this.config = config;</span>
+<span class="nc" id="L61">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

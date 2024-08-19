@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Package.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model</a> &gt; <span class="el_source">Package.java</span></div><h1>Package.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+public final class Package implements Comparable&lt;Package&gt; {
+	/**
+	 * The package type.
+	 */
+    private final PackageType type;
+
+	/**
+	 * The package id.
+	 */
+    private final String id;
+
+	/**
+	 * The package name.
+	 */
+    private final String name;
+
+	/**
+	 * The package version.
+	 */
+    private final String version;
+
+	/**
+	 * The package file system path.
+	 */
+    private String filesystemPath;
+
+	/**
+	 *
+	 * @param packageType The package type
+	 * @param packageId The package id
+	 * @param packageName The package name
+	 * @param packageVersion The package version
+	 * @param packageFilesystemPath The package file system path
+	 */
+<span class="fc" id="L52">    protected Package(final PackageType packageType, final String packageId, final String packageName, final String packageVersion, final String packageFilesystemPath) {</span>
+<span class="fc" id="L53">        this.type = packageType;</span>
+<span class="fc" id="L54">        this.id = packageId;</span>
+<span class="fc" id="L55">        this.name = packageName;</span>
+<span class="fc" id="L56">        this.version = packageVersion;</span>
+<span class="fc" id="L57">        this.filesystemPath = packageFilesystemPath;</span>
+<span class="fc" id="L58">    }</span>
+
+	/**
+	 *
+	 * @return returns the package type
+	 */
+    public PackageType getType() {
+<span class="fc" id="L65">        return type;</span>
+    }
+
+    public String getId() {
+<span class="fc" id="L69">        return id;</span>
+    }
+
+    public String getName() {
+<span class="fc" id="L73">        return name;</span>
+    }
+
+    public String getVersion() {
+<span class="fc" id="L77">        return version;</span>
+    }
+
+    public String getFilesystemPath() {
+<span class="fc" id="L81">        return filesystemPath;</span>
+    }
+
+	public void setFilesystemPath(String filesystemPath) {
+<span class="fc" id="L85">		this.filesystemPath = filesystemPath;</span>
+<span class="fc" id="L86">	}</span>
+
+    public boolean hasVersionQualifier() {
+<span class="pc bpc" id="L89" title="1 of 4 branches missed.">        return this.version != null &amp;&amp; this.version.length() &gt; 0;</span>
+    }
+
+    public boolean isSnapshot() {
+<span class="pc bpc" id="L93" title="1 of 4 branches missed.">        return this.hasVersionQualifier() &amp;&amp; this.version.toUpperCase().endsWith(&quot;-SNAPSHOT&quot;);</span>
+    }
+
+    public String getFQName() {
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">        return name + (hasVersionQualifier() ? &quot;-&quot; + version : &quot;&quot;);</span>
+    }
+
+    @Override
+    public int compareTo(Package b) {
+<span class="fc" id="L102">        Package a = this;</span>
+
+<span class="pc bpc" id="L104" title="1 of 2 branches missed.">        if (b == null) {</span>
+<span class="nc" id="L105">            throw new NullPointerException(&quot;Object to be compared is Null.&quot;);</span>
+        }
+
+<span class="pc bpc" id="L108" title="2 of 4 branches missed.">        if (!a.getClass().equals(b.getClass()) || !a.name.equals(b.name)) {</span>
+<span class="nc" id="L109">            throw new ClassCastException(&quot;Cannot compare the versions of packages with different names.&quot;);</span>
+        }
+
+<span class="pc bpc" id="L112" title="3 of 4 branches missed.">        if (a.version == null &amp;&amp; b.version == null) {</span>
+<span class="nc" id="L113">            return 0;</span>
+        }
+
+<span class="pc bpc" id="L116" title="1 of 2 branches missed.">        if (a.version == null) {</span>
+<span class="nc" id="L117">            return -1;</span>
+        }
+
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">        if (b.version == null) {</span>
+<span class="nc" id="L121">            return 1;</span>
+        }
+        
+<span class="fc" id="L124">        return new Version(a.version).compareTo(new Version(b.version));</span>
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+<span class="nc bnc" id="L129" title="All 4 branches missed.">        if (obj == null || !this.getClass().equals(obj.getClass())) {</span>
+<span class="nc" id="L130">            return false;</span>
+        }
+<span class="nc" id="L132">        return this.toString().equals(obj.toString());</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">        if (hasVersionQualifier()) {</span>
+<span class="nc" id="L138">            return getName() + &quot;-&quot; + getVersion() + &quot;.&quot; + type.getPackageExtention();</span>
+        } else {
+<span class="fc" id="L140">            return getName() + &quot;.&quot; + type.getPackageExtention();</span>
+        }
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

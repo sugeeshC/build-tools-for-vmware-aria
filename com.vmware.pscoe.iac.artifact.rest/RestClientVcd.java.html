@@ -1,0 +1,497 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RestClientVcd.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest</a> &gt; <span class="el_source">RestClientVcd.java</span></div><h1>RestClientVcd.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.rest;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+
+import org.apache.commons.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.jayway.jsonpath.JsonPath;
+import com.vmware.pscoe.iac.artifact.configuration.Configuration;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVcd;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.PackageFactory;
+import com.vmware.pscoe.iac.artifact.model.PackageType;
+import com.vmware.pscoe.iac.artifact.model.vcd.VcdNgPackageManifest;
+import com.vmware.pscoe.iac.artifact.rest.helpers.VcdApiHelper;
+import com.vmware.pscoe.iac.artifact.rest.model.VcdPluginMetadataDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.VcdPluginResourceDTO;
+
+import net.minidev.json.JSONArray;
+
+public class RestClientVcd extends RestClient {
+
+	/**
+	 * packageType.
+	 */
+<span class="nc" id="L58">	private static final PackageType PACKAGE_TYPE = PackageType.VCDNG;</span>
+
+	/**
+	 * logger.
+	 */
+<span class="nc" id="L63">	private final Logger logger = LoggerFactory.getLogger(RestClientVcd.class);</span>
+
+	/**
+	 * configuration.
+	 */
+	private ConfigurationVcd configuration;
+
+	/**
+	 * restTemplate.
+	 */
+	private RestTemplate restTemplate;
+
+	/**
+	 * apiVersion.
+	 */
+	private String apiVersion;
+
+	/**
+	 * versions api path.
+	 */
+	private static final String URL_VERSIONS = &quot;api/versions&quot;;
+
+	/**
+	 * extensions api path.
+	 */
+	private static final String URL_UI_EXTENSION_BASE = &quot;cloudapi/extensions/ui&quot;;
+
+	/**
+	 * extension base.
+	 */
+	private static final String URL_UI_EXTENSION_BY_ID = URL_UI_EXTENSION_BASE + &quot;/%s&quot;;
+
+	/**
+	 * url ui extension tenants path.
+	 */
+	private static final String URL_UI_EXTENSION_TENANTS = URL_UI_EXTENSION_BY_ID + &quot;/tenants&quot;;
+
+	/**
+	 * url ui extension tenants publish path.
+	 */
+	private static final String URL_UI_EXTENSION_TENANTS_PUBLISH = URL_UI_EXTENSION_TENANTS + &quot;/publish&quot;;
+
+	/**
+	 * plugin base.
+	 */
+	private static final String URL_UI_PLUGIN_BY_ID = URL_UI_EXTENSION_BASE + &quot;/%s/plugin&quot;;
+
+	/**
+	 * publish all path.
+	 */
+	private static final String URL_UI_PLUGIN_PUBLISH_ALL = URL_UI_EXTENSION_BASE + &quot;/%s/tenants/publishAll&quot;;
+
+	/**
+	 * api version that is supported.
+	 */
+	private static final String API_VERSION_37 = &quot;37.0&quot;;
+
+	/**
+	 * api version that is not yet supported.
+	 */
+	private static final String API_VERSION_38 = &quot;38.0&quot;;
+
+	/**
+	 * tenant scoped key name.
+	 */
+	private static final String TENANT_SCOPED_KEY_NAME = &quot;tenant_scoped&quot;;
+
+	/**
+	 * provider scoped key name.
+	 */
+	private static final String PROVIDER_SCOPED_KEY_NAME = &quot;provider_scoped&quot;;
+
+	/**
+	 * published tenants key name.
+	 */
+	private static final String PUBLISHED_TENANTS_KEY_NAME = &quot;publishedTenants&quot;;
+
+	/**
+	 * publishedTenantsInfo.
+	 */
+	private Map&lt;String, Object&gt; publishedTenantsInfo;
+
+<span class="nc" id="L145">	protected RestClientVcd(ConfigurationVcd configuration, RestTemplate restTemplate) {</span>
+<span class="nc" id="L146">		this.configuration = configuration;</span>
+<span class="nc" id="L147">		this.restTemplate = restTemplate;</span>
+<span class="nc" id="L148">	}</span>
+
+	/**
+	 * getRestTemplate.
+	 * 
+	 * @return RestTemplate
+	 */
+	public RestTemplate getRestTemplate() {
+<span class="nc" id="L156">		return restTemplate;</span>
+	}
+
+	/**
+	 * getConfiguration.
+	 * 
+	 * @return Configuration
+	 */
+	@Override
+	protected Configuration getConfiguration() {
+<span class="nc" id="L166">		return this.configuration;</span>
+	}
+
+	private HttpEntity&lt;String&gt; getVcdHttpEntity() {
+<span class="nc" id="L170">		HttpHeaders headers = getCommonVcdHeaders();</span>
+<span class="nc" id="L171">		return new HttpEntity&lt;String&gt;(headers);</span>
+	}
+
+	private HttpHeaders getCommonVcdHeaders() {
+<span class="nc" id="L175">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L176">		MediaType contentType = VcdApiHelper.buildMediaType(&quot;application/json&quot;, apiVersion);</span>
+
+<span class="nc" id="L178">		List&lt;MediaType&gt; acceptableMediaTypes = new ArrayList&lt;MediaType&gt;();</span>
+<span class="nc" id="L179">		acceptableMediaTypes.add(contentType);</span>
+<span class="nc" id="L180">		headers.setAccept(acceptableMediaTypes);</span>
+<span class="nc" id="L181">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+
+<span class="nc" id="L183">		return headers;</span>
+	}
+
+	/**
+	 * getVersion.
+	 */
+	@Override
+	public String getVersion() {
+<span class="nc bnc" id="L191" title="All 2 branches missed.">		if (this.apiVersion == null) {</span>
+<span class="nc" id="L192">			URI url = getURI(getURIBuilder().setPath(URL_VERSIONS));</span>
+
+<span class="nc" id="L194">			HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L195">			MediaType contentType = VcdApiHelper.buildMediaType(&quot;application/*+json&quot;, null);</span>
+
+<span class="nc" id="L197">			List&lt;MediaType&gt; acceptableMediaTypes = new ArrayList&lt;MediaType&gt;();</span>
+<span class="nc" id="L198">			acceptableMediaTypes.add(contentType);</span>
+<span class="nc" id="L199">			headers.setAccept(acceptableMediaTypes);</span>
+
+<span class="nc" id="L201">			ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, new HttpEntity&lt;String&gt;(headers), String.class);</span>
+<span class="nc" id="L202">			JSONArray versionArray = JsonPath.parse(response.getBody()).read(&quot;$.versionInfo[*].version&quot;);</span>
+<span class="nc" id="L203">			this.apiVersion = versionArray.get(versionArray.size() - 1).toString();</span>
+<span class="nc bnc" id="L204" title="All 2 branches missed.">			if (Double.parseDouble(this.apiVersion) &gt;= Double.parseDouble(API_VERSION_38)) {</span>
+<span class="nc" id="L205">				logger.warn(&quot;Detected vCD API version equal or greater than &quot; + API_VERSION_38 + &quot;. Switching to using API version &quot; + API_VERSION_37);</span>
+<span class="nc" id="L206">				this.apiVersion = API_VERSION_37;</span>
+			}
+
+<span class="nc" id="L209">			logger.debug(&quot;API version is: &quot; + this.apiVersion);</span>
+		}
+
+<span class="nc" id="L212">		return this.apiVersion;</span>
+	}
+
+	/**
+	 * getAllUiExtensions.
+	 * 
+	 * @return list of packages
+	 */
+	@SuppressWarnings(&quot;unchecked&quot;)
+	public List&lt;Package&gt; getAllUiExtensions() {
+<span class="nc" id="L222">		URI url = getURI(getURIBuilder().setPath(URL_UI_EXTENSION_BASE));</span>
+<span class="nc" id="L223">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getVcdHttpEntity(), String.class);</span>
+<span class="nc" id="L224">		List&lt;String&gt; ids = JsonPath.parse(response.getBody()).read(&quot;$[*].id&quot;, List.class);</span>
+<span class="nc" id="L225">		List&lt;Package&gt; extensions = new ArrayList&lt;Package&gt;();</span>
+
+<span class="nc bnc" id="L227" title="All 2 branches missed.">		for (String id : ids) {</span>
+<span class="nc" id="L228">			extensions.add(getUiExtension(id));</span>
+<span class="nc" id="L229">		}</span>
+
+<span class="nc" id="L231">		return extensions;</span>
+	}
+
+	/**
+	 * 
+	 * @param id extension id
+	 * @return Package
+	 * 
+	 * getUiExtension.
+	 */
+	public Package getUiExtension(String id) {
+<span class="nc" id="L242">		logger.debug(&quot;Getting UI extension for ID [&quot; + id + &quot;]...&quot;);</span>
+<span class="nc" id="L243">		URI url = getURI(getURIBuilder().setPath(String.format(URL_UI_EXTENSION_BY_ID, id)));</span>
+
+<span class="nc" id="L245">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getVcdHttpEntity(), String.class);</span>
+<span class="nc" id="L246">		String pluginId = JsonPath.parse(response.getBody()).read(&quot;$.id&quot;);</span>
+<span class="nc" id="L247">		String pluginName = JsonPath.parse(response.getBody()).read(&quot;$.pluginName&quot;);</span>
+<span class="nc" id="L248">		String pluginVersion = JsonPath.parse(response.getBody()).read(&quot;$.version&quot;);</span>
+
+<span class="nc" id="L250">		logger.debug(&quot;UI extension for ID [&quot; + id + &quot;] retrieved.&quot;);</span>
+
+<span class="nc" id="L252">		return PackageFactory.getInstance(PACKAGE_TYPE, pluginId, new File(pluginName + &quot;-&quot; + pluginVersion + &quot;.&quot; + PACKAGE_TYPE));</span>
+	}
+
+	/**
+	 * 
+	 * @param id extension id
+	 * @return Package
+	 * 
+	 * getUiExtensionTenants.
+	 */
+	public JsonArray getUiExtensionTenants(String id) {
+<span class="nc" id="L263">		logger.debug(&quot;Getting UI extension Tenants for ID [&quot; + id + &quot;]...&quot;);</span>
+<span class="nc" id="L264">		URI url = getURI(getURIBuilder().setPath(String.format(URL_UI_EXTENSION_TENANTS, id)));</span>
+<span class="nc" id="L265">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getVcdHttpEntity(), String.class);</span>
+<span class="nc" id="L266">		JsonArray publishedTenants = new Gson().fromJson(response.getBody(), JsonObject.class).getAsJsonArray(&quot;values&quot;);</span>
+<span class="nc" id="L267">		logger.debug(&quot;publishedTenants [&quot; + publishedTenants.toString() + &quot;]...&quot;);</span>
+
+<span class="nc" id="L269">		return publishedTenants;</span>
+	}
+
+	/**
+	 * 
+	 * @param localPkg local package
+	 * @return Package
+	 * 
+	 * getUiExtension.
+	 */
+	public Package getUiExtension(Package localPkg) {
+<span class="nc" id="L280">		List&lt;Package&gt; extensions = getAllUiExtensions();</span>
+<span class="nc bnc" id="L281" title="All 2 branches missed.">		for (Package remotePkg : extensions) {</span>
+<span class="nc bnc" id="L282" title="All 2 branches missed.">			if (localPkg.getName().equals(remotePkg.getName())) {</span>
+<span class="nc" id="L283">				return remotePkg;</span>
+			}
+<span class="nc" id="L285">		}</span>
+
+<span class="nc" id="L287">		return null;</span>
+	}
+
+	/**
+	 * 
+	 * @param pkg package
+	 * @return Package
+	 * 
+	 * addUiExtension.
+	 */
+	public Package addUiExtension(Package pkg) {
+<span class="nc" id="L298">		logger.debug(&quot;Adding UI extension for [&quot; + pkg + &quot;]...&quot;);</span>
+<span class="nc" id="L299">		VcdNgPackageManifest manifest = VcdNgPackageManifest.getInstance(pkg);</span>
+<span class="nc" id="L300">		VcdPluginMetadataDTO vcdPluginMetadataDTO = new VcdPluginMetadataDTO(manifest);</span>
+
+<span class="nc bnc" id="L302" title="All 2 branches missed.">		if (this.publishedTenantsInfo != null) {</span>
+<span class="nc" id="L303">			vcdPluginMetadataDTO.setTenantScoped((boolean) this.publishedTenantsInfo.get(TENANT_SCOPED_KEY_NAME));</span>
+<span class="nc" id="L304">			vcdPluginMetadataDTO.setProviderScoped((boolean) this.publishedTenantsInfo.get(PROVIDER_SCOPED_KEY_NAME));</span>
+		}
+
+<span class="nc" id="L307">		String requestBody = new Gson().toJson(vcdPluginMetadataDTO);</span>
+<span class="nc" id="L308">		URI url = getURI(getURIBuilder().setPath(URL_UI_EXTENSION_BASE));</span>
+<span class="nc" id="L309">		HttpHeaders headers = getCommonVcdHeaders();</span>
+<span class="nc" id="L310">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;String&gt;(requestBody, headers);</span>
+
+<span class="nc" id="L312">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);</span>
+<span class="nc" id="L313">		String pluginId = JsonPath.parse(response.getBody()).read(&quot;$.id&quot;);</span>
+<span class="nc" id="L314">		logger.debug(&quot;UI extension for [&quot; + pkg + &quot;] added.&quot;);</span>
+<span class="nc" id="L315">		return getUiExtension(pluginId);</span>
+	}
+
+	/**
+	 * 
+	 * @param remotePkg remote package
+	 * 
+	 * removeUiExtension.
+	 */
+	public void removeUiExtension(Package remotePkg) {
+<span class="nc" id="L325">		logger.debug(&quot;Removing UI extension for [&quot; + remotePkg + &quot;]...&quot;);</span>
+<span class="nc" id="L326">		URI url = getURI(getURIBuilder().setPath(String.format(URL_UI_EXTENSION_BY_ID, remotePkg.getId())));</span>
+<span class="nc" id="L327">		restTemplate.exchange(url, HttpMethod.DELETE, this.getVcdHttpEntity(), String.class);</span>
+<span class="nc" id="L328">		logger.debug(&quot;UI extension for [&quot; + remotePkg + &quot;] removed.&quot;);</span>
+<span class="nc" id="L329">	}</span>
+
+	/**
+	 * 
+	 * @param localPkg  local package
+	 * @param remotePkg remote package
+	 * 
+	 * uploadUiPlugin.
+	 */
+	public void uploadUiPlugin(Package localPkg, Package remotePkg) {
+<span class="nc" id="L339">		logger.debug(&quot;Uploading plugin resource for [&quot; + remotePkg + &quot;].&quot;);</span>
+<span class="nc" id="L340">		File pkgFile = new File(localPkg.getFilesystemPath());</span>
+<span class="nc" id="L341">		String requestBody = new Gson().toJson(new VcdPluginResourceDTO(pkgFile.getName(), pkgFile.length()));</span>
+
+		// Get upload link
+<span class="nc" id="L344">		URI url = getURI(getURIBuilder().setPath(String.format(URL_UI_PLUGIN_BY_ID, remotePkg.getId())));</span>
+<span class="nc" id="L345">		HttpHeaders headers = getCommonVcdHeaders();</span>
+<span class="nc" id="L346">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;String&gt;(requestBody, headers);</span>
+
+<span class="nc" id="L348">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);</span>
+
+<span class="nc" id="L350">		String linkHeader = response.getHeaders().get(&quot;link&quot;).get(0);</span>
+<span class="nc" id="L351">		String uploadLink = linkHeader.substring(1, linkHeader.indexOf(&quot;&gt;&quot;));</span>
+
+		// Upload package
+<span class="nc" id="L354">		url = getURI(getURIBuilder().setPath(uploadLink.substring(uploadLink.indexOf(&quot;transfer&quot;))));</span>
+<span class="nc" id="L355">		headers = getCommonVcdHeaders();</span>
+<span class="nc" id="L356">		headers.setContentType(VcdApiHelper.buildMediaType(&quot;application/zip&quot;, null));</span>
+
+		byte[] pkgContent;
+		try {
+<span class="nc" id="L360">			pkgContent = IOUtils.toByteArray(new FileInputStream(pkgFile));</span>
+<span class="nc" id="L361">		} catch (IOException e) {</span>
+<span class="nc" id="L362">			throw new RuntimeException(&quot;Unable to find plugin file &quot; + localPkg.getFilesystemPath(), e);</span>
+<span class="nc" id="L363">		}</span>
+<span class="nc" id="L364">		HttpEntity&lt;byte[]&gt; pluginEntity = new HttpEntity&lt;&gt;(pkgContent, headers);</span>
+
+<span class="nc" id="L366">		restTemplate.exchange(url, HttpMethod.PUT, pluginEntity, String.class);</span>
+<span class="nc" id="L367">		logger.debug(&quot;Plugin resource for [&quot; + remotePkg + &quot;] uploaded.&quot;);</span>
+<span class="nc" id="L368">	}</span>
+
+	/**
+	 * 
+	 * @param remotePkg remote package
+	 * 
+	 * deleteUiPlugin.
+	 */
+	public void deleteUiPlugin(Package remotePkg) {
+<span class="nc" id="L377">		logger.debug(&quot;Deleting plugin resource for [&quot; + remotePkg + &quot;]...&quot;);</span>
+<span class="nc" id="L378">		URI url = getURI(getURIBuilder().setPath(String.format(URL_UI_PLUGIN_BY_ID, remotePkg.getId())));</span>
+<span class="nc" id="L379">		restTemplate.exchange(url, HttpMethod.DELETE, this.getVcdHttpEntity(), String.class);</span>
+<span class="nc" id="L380">		logger.debug(&quot;Plugin resource for [&quot; + remotePkg + &quot;] deleted.&quot;);</span>
+<span class="nc" id="L381">	}</span>
+
+	/**
+	 * 
+	 * @param pkg package
+	 * @return Package
+	 * 
+	 * addOrReplaceUiPlugin.
+	 */
+	public Package addOrReplaceUiPlugin(Package pkg) {
+<span class="nc" id="L391">		Package remotePkg = this.getUiExtension(pkg);</span>
+<span class="nc bnc" id="L392" title="All 2 branches missed.">		if (remotePkg != null) {</span>
+<span class="nc" id="L393">			this.setUiExtensionPublishedTenantsInfo(remotePkg.getId());</span>
+<span class="nc" id="L394">			this.deleteUiPlugin(remotePkg);</span>
+<span class="nc" id="L395">			this.removeUiExtension(remotePkg);</span>
+		}
+
+<span class="nc" id="L398">		remotePkg = this.addUiExtension(pkg);</span>
+<span class="nc" id="L399">		this.uploadUiPlugin(pkg, remotePkg);</span>
+<span class="nc" id="L400">		this.publishOrRepublishUIPlugin(remotePkg);</span>
+
+<span class="nc" id="L402">		return remotePkg;</span>
+	}
+
+	/**
+	 * 
+	 * @param remotePkg remote package
+	 * 
+	 * publishUiPlugin.
+	 */
+	public void publishUiPlugin(Package remotePkg) {
+<span class="nc" id="L412">		logger.debug(&quot;Publishing UI extension [&quot; + remotePkg + &quot;] to all tenants...&quot;);</span>
+<span class="nc" id="L413">		URI url = getURI(getURIBuilder().setPath(String.format(URL_UI_PLUGIN_PUBLISH_ALL, remotePkg.getId())));</span>
+
+<span class="nc" id="L415">		HttpHeaders headers = getCommonVcdHeaders();</span>
+<span class="nc" id="L416">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;String&gt;(headers);</span>
+
+<span class="nc" id="L418">		restTemplate.exchange(url, HttpMethod.POST, entity, String.class);</span>
+<span class="nc" id="L419">		logger.debug(&quot;UI extension [&quot; + remotePkg + &quot;] published to all tenants.&quot;);</span>
+<span class="nc" id="L420">	}</span>
+
+	/**
+	 * 
+	 * @param remotePkg remote package
+	 * @param tenants   tenants to publish
+	 * 
+	 * publishUiPluginToTenants.
+	 */
+	public void publishUiPluginToTenants(Package remotePkg, JsonArray tenants) {
+<span class="nc" id="L430">		logger.debug(&quot;Publishing UI plugin [&quot; + remotePkg + &quot;] to specific tenants...&quot;);</span>
+
+<span class="nc" id="L432">		URI url = getURI(getURIBuilder().setPath(String.format(URL_UI_EXTENSION_TENANTS_PUBLISH, remotePkg.getId())));</span>
+<span class="nc" id="L433">		HttpHeaders headers = getCommonVcdHeaders();</span>
+<span class="nc" id="L434">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;String&gt;(tenants.toString(), headers);</span>
+
+<span class="nc" id="L436">		restTemplate.exchange(url, HttpMethod.POST, entity, String.class);</span>
+<span class="nc" id="L437">		logger.debug(&quot;UI plugin [&quot; + remotePkg + &quot;] published to specific tenants.&quot;);</span>
+<span class="nc" id="L438">	}</span>
+
+	/**
+	 * 
+	 * @param id extension id
+	 * 
+	 * getUiExtension.
+	 */
+	private void setUiExtensionPublishedTenantsInfo(String id) {
+<span class="nc" id="L447">		logger.debug(&quot;Getting UI extension published tenants info for ID [&quot; + id + &quot;]...&quot;);</span>
+<span class="nc" id="L448">		URI url = getURI(getURIBuilder().setPath(String.format(URL_UI_EXTENSION_BY_ID, id)));</span>
+
+<span class="nc" id="L450">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getVcdHttpEntity(), String.class);</span>
+<span class="nc" id="L451">		boolean tenantScoped = JsonPath.parse(response.getBody()).read(&quot;$.&quot; + TENANT_SCOPED_KEY_NAME);</span>
+<span class="nc" id="L452">		boolean providerScoped = JsonPath.parse(response.getBody()).read(&quot;$.&quot; + PROVIDER_SCOPED_KEY_NAME);</span>
+
+<span class="nc" id="L454">		this.publishedTenantsInfo = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L455">		this.publishedTenantsInfo.put(TENANT_SCOPED_KEY_NAME, tenantScoped);</span>
+<span class="nc" id="L456">		this.publishedTenantsInfo.put(PROVIDER_SCOPED_KEY_NAME, providerScoped);</span>
+
+<span class="nc bnc" id="L458" title="All 2 branches missed.">		if (tenantScoped) {</span>
+<span class="nc" id="L459">			JsonArray publishedTenants = this.getUiExtensionTenants(id);</span>
+<span class="nc" id="L460">			this.publishedTenantsInfo.put(PUBLISHED_TENANTS_KEY_NAME, publishedTenants);</span>
+		}
+
+<span class="nc" id="L463">		logger.debug(&quot;Getting UI extension published tenants info for ID [&quot; + id + &quot;] retrieved.&quot;);</span>
+<span class="nc" id="L464">	}</span>
+
+	private void publishOrRepublishUIPlugin(Package remotePkg) {
+<span class="nc" id="L467">		logger.debug(&quot;Publish or Republish UI Plugin [&quot; + remotePkg + &quot;] ...&quot;);</span>
+<span class="nc bnc" id="L468" title="All 2 branches missed.">		if (this.publishedTenantsInfo == null) {</span>
+<span class="nc" id="L469">			this.publishUiPlugin(remotePkg);</span>
+<span class="nc bnc" id="L470" title="All 2 branches missed.">		} else if ((boolean) this.publishedTenantsInfo.get(TENANT_SCOPED_KEY_NAME)) {</span>
+<span class="nc" id="L471">			JsonArray publishedTenants = (JsonArray) this.publishedTenantsInfo.get(PUBLISHED_TENANTS_KEY_NAME);</span>
+<span class="nc" id="L472">			boolean checkedAllTenants = this.hasAllTenantsChecked(publishedTenants);</span>
+
+<span class="nc bnc" id="L474" title="All 2 branches missed.">			if (checkedAllTenants) {</span>
+<span class="nc" id="L475">				this.publishUiPlugin(remotePkg);</span>
+			} else {
+<span class="nc" id="L477">				this.publishUiPluginToTenants(remotePkg, publishedTenants);</span>
+			}
+
+		}
+<span class="nc" id="L481">		logger.debug(&quot;Publish or Republish UI Plugin [&quot; + remotePkg + &quot;] is Done.&quot;);</span>
+<span class="nc" id="L482">	}</span>
+
+	private boolean hasAllTenantsChecked(JsonArray tenantsList) {
+<span class="nc" id="L485">		List&lt;String&gt; filteredTenants = new ArrayList&lt;String&gt;();</span>
+<span class="nc" id="L486">		tenantsList.iterator().forEachRemaining((element) -&gt; {</span>
+<span class="nc" id="L487">			final JsonObject entry = element.getAsJsonObject();</span>
+<span class="nc" id="L488">			final String name = entry.getAsJsonPrimitive(&quot;name&quot;).getAsString();</span>
+<span class="nc bnc" id="L489" title="All 2 branches missed.">			if (name.equals(&quot;System&quot;)) {</span>
+<span class="nc" id="L490">				filteredTenants.add(name);</span>
+			}
+<span class="nc" id="L492">		});</span>
+
+<span class="nc bnc" id="L494" title="All 2 branches missed.">		return (filteredTenants.size() &gt; 0);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VrangContentSourceUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.vrang</a> &gt; <span class="el_source">VrangContentSourceUtils.java</span></div><h1>VrangContentSourceUtils.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgContentSource;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgContentSourceBase;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgContentSourceType;
+import com.vmware.pscoe.iac.artifact.rest.RestClientVraNg;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class VrangContentSourceUtils {
+    private static final int CONTENT_SOURCE_SYNC_WAIT_TIME = 1000;
+<span class="fc" id="L35">    private final Logger logger = LoggerFactory.getLogger(VrangContentSourceUtils.class);</span>
+
+    protected RestClientVraNg restClient;
+    protected Package vraNgPackage;
+
+<span class="fc" id="L40">    public VrangContentSourceUtils(RestClientVraNg restClient, Package vraNgPackage) {</span>
+<span class="fc" id="L41">        this.restClient = restClient;</span>
+<span class="fc" id="L42">        this.vraNgPackage = vraNgPackage;</span>
+<span class="fc" id="L43">    }</span>
+
+    public String syncContentSource(VraNgContentSourceBase contentSource, Integer timeout) {
+<span class="nc" id="L46">        String id = this.restClient.createOrUpdateContentSource(contentSource);</span>
+<span class="nc" id="L47">		contentSource.setId(id);</span>
+        try {
+<span class="nc" id="L49">            this.waitForContentSourceSync(contentSource, contentSource.getName(), timeout);</span>
+<span class="nc" id="L50">        } catch (RuntimeException e) {</span>
+<span class="nc" id="L51">            throw new RuntimeException(String.format(&quot;Synchronization of content source %s failed, error %s&quot;, id, e.getMessage()), e);</span>
+<span class="nc" id="L52">        }</span>
+<span class="nc" id="L53">        return id;</span>
+    }
+
+    private void waitForContentSourceSync(VraNgContentSourceBase contentSource, String name, Integer timeout) {
+<span class="nc" id="L57">		String contentSourceId = contentSource.getId();</span>
+<span class="nc" id="L58">        long finish = System.currentTimeMillis() + timeout;</span>
+<span class="nc" id="L59">        boolean isContentSourceSynced = this.isContentSourceSynced(contentSourceId);</span>
+        try {
+<span class="nc" id="L61">            logger.info(&quot;Waiting (max {} ms) content source '{}' ('{}') to be synchronized on target system&quot;, timeout, name, contentSourceId);</span>
+<span class="nc bnc" id="L62" title="All 4 branches missed.">            while (!isContentSourceSynced &amp;&amp; System.currentTimeMillis() &lt; finish) {</span>
+<span class="nc" id="L63">                Thread.sleep(CONTENT_SOURCE_SYNC_WAIT_TIME);</span>
+<span class="nc" id="L64">				isContentSourceSynced = this.isContentSourceSynced(contentSourceId);</span>
+            }
+<span class="nc" id="L66">        } catch (InterruptedException e) {</span>
+<span class="nc" id="L67">            throw new RuntimeException(e);</span>
+<span class="nc" id="L68">        } catch (Exception e) {</span>
+<span class="nc" id="L69">            throw new RuntimeException(e);</span>
+<span class="nc" id="L70">        }</span>
+<span class="nc" id="L71">    }</span>
+
+    private boolean isContentSourceSynced(String contentSourceId) {
+<span class="nc" id="L74">        VraNgContentSourceBase contentSource = this.restClient.getContentSource(contentSourceId);</span>
+<span class="nc bnc" id="L75" title="All 4 branches missed.">		if (contentSource.getLastImportErrors() != null &amp;&amp; !contentSource.getLastImportErrors().isEmpty()) {</span>
+<span class="nc" id="L76">            String message = String.format(&quot;Unable to synchronize content source '%s' due to '%s'&quot;, contentSourceId, contentSource.getLastImportErrors().toString());</span>
+<span class="nc" id="L77">            throw new RuntimeException(message);</span>
+        }
+
+<span class="nc" id="L80">		Integer foundItems = contentSource.getItemsFound();</span>
+<span class="nc" id="L81">		Integer importedItems = contentSource.getItemsImported();</span>
+<span class="nc bnc" id="L82" title="All 6 branches missed.">		Boolean syncCompleted = foundItems != 0 &amp;&amp; importedItems != 0 &amp;&amp; foundItems.equals(importedItems);</span>
+		// Blueprint content sources require another call to update their items details for some reason...
+		// In any case - we're triggering an update on all types
+<span class="nc bnc" id="L85" title="All 4 branches missed.">		if (!syncCompleted &amp;&amp; contentSource.getType() == VraNgContentSourceType.BLUEPRINT) {</span>
+<span class="nc" id="L86">			this.restClient.createOrUpdateContentSource(contentSource);</span>
+		}
+<span class="nc" id="L88">		return syncCompleted;</span>
+    }
+
+    public File storeContentSourceOnFilesystem(VraNgContentSourceBase contentSource) {
+<span class="nc" id="L92">        File store = new File(this.vraNgPackage.getFilesystemPath());</span>
+<span class="nc" id="L93">        File contentSourceFile = Paths.get(store.getPath(), VraNgDirs.DIR_CONTENT_SOURCES, contentSource.getName() + &quot;.json&quot;).toFile();</span>
+<span class="nc" id="L94">        contentSourceFile.getParentFile().mkdirs();</span>
+
+        try {
+<span class="nc" id="L97">            Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="nc" id="L98">            String contentSourceJson = gson.toJson(contentSource, contentSource.getType().getTypeClass());</span>
+<span class="nc" id="L99">            logger.info(&quot;Created file {}&quot;, Files.write(Paths.get(contentSourceFile.getPath()), contentSourceJson.getBytes(), StandardOpenOption.CREATE));</span>
+<span class="nc" id="L100">        } catch (IOException e) {</span>
+<span class="nc" id="L101">            logger.error(&quot;Unable to store workflow content source {} {}&quot;, contentSource.getName(), contentSourceFile.getPath());</span>
+<span class="nc" id="L102">            throw new RuntimeException(&quot;Unable to store workflow content source.&quot;, e);</span>
+<span class="nc" id="L103">        }</span>
+
+<span class="nc" id="L105">        return contentSourceFile;</span>
+    }
+
+    public Boolean isForSameOrNoneProject(VraNgContentSourceBase contentSource, String projectId) {
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        if (contentSource instanceof VraNgContentSource) {</span>
+<span class="nc" id="L110">            VraNgContentSource contentSourceProject = (VraNgContentSource) contentSource;</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">            return projectId.equals(contentSourceProject.getProjectId())</span>
+<span class="nc bnc" id="L112" title="All 2 branches missed.">                    || projectId.equals(contentSourceProject.getConfig().get(&quot;sourceProjectId&quot;));</span>
+        }
+
+<span class="nc" id="L115">        return true;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

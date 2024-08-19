@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ContentPackDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest.model.vrli.v2</a> &gt; <span class="el_source">ContentPackDTO.java</span></div><h1>ContentPackDTO.java</h1><pre class="source lang-java linenums">
+package com.vmware.pscoe.iac.artifact.rest.model.vrli.v2;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.fasterxml.jackson.annotation.*;
+
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({ &quot;name&quot;, &quot;namespace&quot;, &quot;formatVersion&quot;, &quot;contentVersion&quot;, &quot;author&quot;, &quot;url&quot;, &quot;info&quot;, &quot;instructions&quot;, &quot;upgradeInstructions&quot;, &quot;framework&quot; })
+<span class="nc" id="L27">public class ContentPackDTO implements Serializable {</span>
+    private final static long serialVersionUID = 7183649262190355102L;
+
+    @JsonProperty(&quot;name&quot;)
+    private String name;
+
+    @JsonProperty(&quot;namespace&quot;)
+    private String namespace;
+
+    @JsonProperty(&quot;formatVersion&quot;)
+    private String formatVersion;
+
+    @JsonProperty(&quot;contentVersion&quot;)
+    private String contentVersion;
+
+    @JsonProperty(&quot;author&quot;)
+    private String author;
+
+    @JsonProperty(&quot;url&quot;)
+    private String url;
+
+    @JsonProperty(&quot;info&quot;)
+    private String info;
+
+    @JsonProperty(&quot;instructions&quot;)
+    private String instructions;
+
+    @JsonProperty(&quot;upgradeInstructions&quot;)
+    private String upgradeInstructions;
+
+    @JsonProperty(&quot;framework&quot;)
+    private String framework;
+
+<span class="nc" id="L60">    @JsonIgnore</span>
+    private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+    @JsonProperty(&quot;name&quot;)
+    public String getName() {
+<span class="nc" id="L65">        return name;</span>
+    }
+
+    @JsonProperty(&quot;name&quot;)
+    public void setName(String name) {
+<span class="nc" id="L70">        this.name = name;</span>
+<span class="nc" id="L71">    }</span>
+
+    @JsonProperty(&quot;namespace&quot;)
+    public String getNamespace() {
+<span class="nc" id="L75">        return namespace;</span>
+    }
+
+    @JsonProperty(&quot;namespace&quot;)
+    public void setNamespace(String namespace) {
+<span class="nc" id="L80">        this.namespace = namespace;</span>
+<span class="nc" id="L81">    }</span>
+
+    @JsonProperty(&quot;formatVersion&quot;)
+    public String getFormatVersion() {
+<span class="nc" id="L85">        return formatVersion;</span>
+    }
+
+    @JsonProperty(&quot;formatVersion&quot;)
+    public void setFormatVersion(String formatVersion) {
+<span class="nc" id="L90">        this.formatVersion = formatVersion;</span>
+<span class="nc" id="L91">    }</span>
+
+    @JsonProperty(&quot;contentVersion&quot;)
+    public String getContentVersion() {
+<span class="nc" id="L95">        return contentVersion;</span>
+    }
+
+    @JsonProperty(&quot;contentVersion&quot;)
+    public void setContentVersion(String contentVersion) {
+<span class="nc" id="L100">        this.contentVersion = contentVersion;</span>
+<span class="nc" id="L101">    }</span>
+
+    @JsonProperty(&quot;author&quot;)
+    public String getAuthor() {
+<span class="nc" id="L105">        return author;</span>
+    }
+
+    @JsonProperty(&quot;author&quot;)
+    public void setAuthor(String author) {
+<span class="nc" id="L110">        this.author = author;</span>
+<span class="nc" id="L111">    }</span>
+
+    @JsonProperty(&quot;url&quot;)
+    public String getUrl() {
+<span class="nc" id="L115">        return url;</span>
+    }
+
+    @JsonProperty(&quot;url&quot;)
+    public void setUrl(String url) {
+<span class="nc" id="L120">        this.url = url;</span>
+<span class="nc" id="L121">    }</span>
+
+    @JsonProperty(&quot;info&quot;)
+    public String getInfo() {
+<span class="nc" id="L125">        return info;</span>
+    }
+
+    @JsonProperty(&quot;info&quot;)
+    public void setInfo(String info) {
+<span class="nc" id="L130">        this.info = info;</span>
+<span class="nc" id="L131">    }</span>
+
+    @JsonProperty(&quot;instructions&quot;)
+    public String getInstructions() {
+<span class="nc" id="L135">        return instructions;</span>
+    }
+
+    @JsonProperty(&quot;instructions&quot;)
+    public void setInstructions(String instructions) {
+<span class="nc" id="L140">        this.instructions = instructions;</span>
+<span class="nc" id="L141">    }</span>
+
+    @JsonProperty(&quot;upgradeInstructions&quot;)
+    public String getUpgradeInstructions() {
+<span class="nc" id="L145">        return upgradeInstructions;</span>
+    }
+
+    @JsonProperty(&quot;upgradeInstructions&quot;)
+    public void setUpgradeInstructions(String upgradeInstructions) {
+<span class="nc" id="L150">        this.upgradeInstructions = upgradeInstructions;</span>
+<span class="nc" id="L151">    }</span>
+
+    @JsonProperty(&quot;framework&quot;)
+    public String getFramework() {
+<span class="nc" id="L155">        return framework;</span>
+    }
+
+    @JsonProperty(&quot;framework&quot;)
+    public void setFramework(String framework) {
+<span class="nc" id="L160">        this.framework = framework;</span>
+<span class="nc" id="L161">    }</span>
+
+    @JsonAnyGetter
+    public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L165">        return this.additionalProperties;</span>
+    }
+
+    @JsonAnySetter
+    public void setAdditionalProperties(String name, Object value) {
+<span class="nc" id="L170">        this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L171">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

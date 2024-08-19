@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SsoEndpointDto.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest.model.sso</a> &gt; <span class="el_source">SsoEndpointDto.java</span></div><h1>SsoEndpointDto.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.rest.model.sso;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+<span class="nc" id="L24">public class SsoEndpointDto {</span>
+
+    @JsonProperty(&quot;lastUpdated&quot;)
+    private String lastUpdated;
+
+    @JsonProperty(&quot;endPointType&quot;)
+    private EndPointType endPointType;
+
+    @JsonProperty(&quot;serviceInfoId&quot;)
+    private String serviceInfoId;
+
+    @JsonProperty(&quot;createdDate&quot;)
+    private String createdDate;
+
+    @JsonProperty(&quot;endPointAttributes&quot;)
+    private List&lt;EndPointAttributesItem&gt; endPointAttributes;
+
+    @JsonProperty(&quot;id&quot;)
+    private String id;
+
+    @JsonProperty(&quot;sslTrusts&quot;)
+    private List&lt;String&gt; sslTrusts;
+
+    @JsonProperty(&quot;url&quot;)
+    private String url;
+
+    public String getLastUpdated() {
+<span class="nc" id="L51">        return lastUpdated;</span>
+    }
+
+    public EndPointType getEndPointType() {
+<span class="nc" id="L55">        return endPointType;</span>
+    }
+
+    public String getServiceInfoId() {
+<span class="nc" id="L59">        return serviceInfoId;</span>
+    }
+
+    public String getCreatedDate() {
+<span class="nc" id="L63">        return createdDate;</span>
+    }
+
+    public List&lt;EndPointAttributesItem&gt; getEndPointAttributes() {
+<span class="nc" id="L67">        return endPointAttributes;</span>
+    }
+
+    public String getId() {
+<span class="nc" id="L71">        return id;</span>
+    }
+
+    public List&lt;String&gt; getSslTrusts() {
+<span class="nc" id="L75">        return sslTrusts;</span>
+    }
+
+    public String getUrl() {
+<span class="nc" id="L79">        return url;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L84">        return &quot;SsoEndpointDto{&quot; + &quot;lastUpdated = '&quot; + lastUpdated + '\'' + &quot;,endPointType = '&quot; + endPointType + '\'' + &quot;,serviceInfoId = '&quot; + serviceInfoId</span>
+                + '\'' + &quot;,createdDate = '&quot; + createdDate + '\'' + &quot;,endPointAttributes = '&quot; + endPointAttributes + '\'' + &quot;,id = '&quot; + id + '\''
+                + &quot;,sslTrusts = '&quot; + sslTrusts + '\'' + &quot;,url = '&quot; + url + '\'' + &quot;}&quot;;
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

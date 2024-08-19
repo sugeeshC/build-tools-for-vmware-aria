@@ -1,0 +1,815 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RestClientVraPrimitive.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest</a> &gt; <span class="el_source">RestClientVraPrimitive.java</span></div><h1>RestClientVraPrimitive.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.rest;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.StringJoiner;
+import java.util.stream.Collectors;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.vmware.pscoe.iac.artifact.configuration.Configuration;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVra;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.PackageContent.Content;
+import com.vmware.pscoe.iac.artifact.model.vra.VraPackageContent;
+import com.vmware.pscoe.iac.artifact.rest.helpers.JsonHelper;
+import com.vmware.pscoe.iac.artifact.rest.model.VraPackageDTO;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.http.client.utils.URIBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.ClientHttpRequest;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RequestCallback;
+import org.springframework.web.client.ResponseExtractor;
+import org.springframework.web.client.RestTemplate;
+
+public class RestClientVraPrimitive extends RestClient {
+
+	/**
+	 * Initialize logger.
+	 * 
+	 * param logger
+	 */
+<span class="nc" id="L74">	private final Logger logger = LoggerFactory.getLogger(RestClientVraPrimitive.class);</span>
+
+	/**
+	 * param SERVICE_CONTENT.
+	 */
+<span class="nc" id="L79">	private final String SERVICE_CONTENT = &quot;/content-management-service/api/contents&quot;;</span>
+	/**
+	 * param SERVICE_PACKAGE.
+	 */
+<span class="nc" id="L83">	private final String SERVICE_PACKAGE = &quot;/content-management-service/api/packages&quot;;</span>
+	/**
+	 * param SERVICE_CONTENT.
+	 */
+<span class="nc" id="L87">	private final String BLUEPRINT_PACKAGE = &quot;/composition-service/api/blueprints&quot;;</span>
+	/**
+	 * param SERVICE_CONTENT.
+	 */
+<span class="nc" id="L91">	private final String SERVICE_PROPERETY_DEFINITION = &quot;/properties-service/api/propertydefinitions&quot;;</span>
+	/**
+	 * param SERVICE_PROPERTY_GROUP.
+	 */
+<span class="nc" id="L95">    private final String SERVICE_PROPERTY_GROUP = &quot;/properties-service/api/propertygroups&quot;;</span>
+	/**
+	 * param SERVICE_XAAS_OPERATION.
+	 */
+<span class="nc" id="L99">    private final String SERVICE_XAAS_OPERATION = &quot;/advanced-designer-service/api/resourceOperations&quot;;</span>
+	/**
+	 * param SERVICE_XAAS_BLUEPRINT.
+	 */
+<span class="nc" id="L103">    private final String SERVICE_XAAS_BLUEPRINT = &quot;/advanced-designer-service/api/tenants/%s/blueprints&quot;;</span>
+	/**
+	 * param SERVICE_XAAS_TYPE.
+	 */
+<span class="nc" id="L107">    private final String SERVICE_XAAS_TYPE = &quot;/advanced-designer-service/api/tenants/%s/types&quot;;</span>
+	/**
+	 * param SERVICE_CONTENT.
+	 */
+<span class="nc" id="L111">	private final String SERVICE_SOFTWARE = &quot;/software-service/api/softwarecomponenttypes&quot;;</span>
+	/**
+	 * param SERVICE_WORKFLOW_SUBSCRIPTION.
+	 */
+<span class="nc" id="L115">	private final String SERVICE_WORKFLOW_SUBSCRIPTION = &quot;/advanced-designer-service/api/tenants/%s/event-broker/subscriptions&quot;;</span>
+	/**
+	 * param CATALOG_ITEM.
+	 */
+<span class="nc" id="L119">	private final String CATALOG_ITEM = &quot;/catalog-service/api/catalogItems&quot;;</span>
+	/**
+	 * param CATALOG_SERVICE.
+	 */
+<span class="nc" id="L123">	private final String CATALOG_SERVICE = &quot;/catalog-service/api/services&quot;;</span>
+	/**
+	 * param CATALOG_ICON.
+	 */
+<span class="nc" id="L127">	private final String CATALOG_ICON = &quot;/catalog-service/api/icons&quot;;</span>
+
+	/**
+	 * param configuration.
+	 */
+	private ConfigurationVra configuration;
+
+	/**
+	 * param restTemplate.
+	 */
+	private RestTemplate restTemplate;
+
+<span class="nc" id="L139">	protected RestClientVraPrimitive(final ConfigurationVra configuration, final RestTemplate restTemplate) {</span>
+<span class="nc" id="L140">		this.configuration = configuration;</span>
+<span class="nc" id="L141">		this.restTemplate = restTemplate;</span>
+<span class="nc" id="L142">	}</span>
+    
+	/**
+	 * @return Configuration
+	 */
+	@Override
+    protected Configuration getConfiguration() {
+<span class="nc" id="L149">        return this.configuration;</span>
+    }
+    
+	/**
+	 * @return String
+	 */
+	@Override
+    public String getVersion() {
+<span class="nc" id="L157">        URI url = getURI(getURIBuilder().setPath(&quot;identity/api/about&quot;));</span>
+<span class="nc" id="L158">        ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="nc" id="L160">        return JsonPath.parse(response.getBody()).read(&quot;$.productVersion&quot;);</span>
+    }
+
+	/**
+	 * @param url
+	 * @param filter
+	 * @return List&lt;Map&lt;String, String&gt;&gt;
+	 */
+	private List&lt;Map&lt;String, String&gt;&gt; getContentTypePrimitive(final String url, final StringJoiner filter) {
+<span class="nc" id="L169">		URIBuilder uriBuilder = getURIBuilder().setPath(url).setParameter(&quot;page&quot;, &quot;1&quot;).setParameter(&quot;limit&quot;, &quot;100&quot;);</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">		if (filter.length() != 0) {</span>
+<span class="nc" id="L171">			uriBuilder.setParameter(&quot;$filter&quot;, filter.toString());</span>
+		}
+<span class="nc" id="L173">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L174">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L175">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;String&gt;(headers);</span>
+<span class="nc" id="L176">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(getURI(uriBuilder), HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L177">		DocumentContext context = JsonPath.parse(response.getBody());</span>
+<span class="nc" id="L178">		List&lt;Map&lt;String, String&gt;&gt; result = context.read(&quot;$..content.*&quot;);</span>
+<span class="nc" id="L179">		int totalPages = context.read(&quot;$.metadata.totalPages&quot;);</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">		for (int pageNumber = 2; pageNumber &lt;= totalPages; pageNumber++) {</span>
+<span class="nc" id="L181">			uriBuilder.setParameter(&quot;page&quot;, String.valueOf(pageNumber));</span>
+<span class="nc" id="L182">			response = restTemplate.exchange(getURI(uriBuilder), HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L183">			result.addAll(JsonPath.parse(response.getBody()).read(&quot;$..content.*&quot;));</span>
+		}
+
+<span class="nc" id="L186">		return result;</span>
+	}
+
+	/**
+	 * @param urlString
+	 * @param jsonBody
+	 * @return ResponseEntity&lt;String&gt;
+	 * @throws URISyntaxException
+	 */
+	private ResponseEntity&lt;String&gt; postJsonPrimitive(final String urlString, final String jsonBody) throws URISyntaxException {
+<span class="nc" id="L196">		URI url = getURIBuilder().setPath(urlString).build();</span>
+<span class="nc" id="L197">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L198">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L199">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;String&gt;(jsonBody, headers);</span>
+
+<span class="nc" id="L201">		return restTemplate.exchange(url, HttpMethod.POST, entity, String.class);</span>
+	}
+
+	/**
+	 * @param urlString
+	 * @param jsonBody
+	 * @return ResponseEntity&lt;String&gt;
+	 * @throws URISyntaxException
+	 */
+	private ResponseEntity&lt;String&gt; putJsonPrimitive(final String urlString, final String jsonBody) throws URISyntaxException {
+<span class="nc" id="L211">		URI url = getURIBuilder().setPath(urlString).build();</span>
+<span class="nc" id="L212">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L213">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L214">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;String&gt;(jsonBody, headers);</span>
+
+<span class="nc" id="L216">		return restTemplate.exchange(url, HttpMethod.PUT, entity, String.class);</span>
+	}
+
+	/**
+	 * @param contentTypeId content type id
+	 * @param name name
+	 * @return content type primitive collection
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 */
+	protected List&lt;Map&lt;String, String&gt;&gt; getContentPrimitive(final String contentTypeId, final String name)
+			throws URISyntaxException {
+<span class="nc" id="L227">		StringJoiner filter = new StringJoiner(&quot; and &quot;);</span>
+
+<span class="nc bnc" id="L229" title="All 2 branches missed.">		if (contentTypeId != null) {</span>
+<span class="nc" id="L230">			filter.add(&quot;contentTypeId eq '&quot; + contentTypeId + &quot;'&quot;);</span>
+		}
+<span class="nc bnc" id="L232" title="All 2 branches missed.">		if (name != null) {</span>
+<span class="nc" id="L233">			filter.add(&quot;name eq '&quot; + name + &quot;'&quot;);</span>
+		}
+
+<span class="nc" id="L236">		return getContentTypePrimitive(SERVICE_CONTENT, filter);</span>
+	}
+
+	/**
+	 * @return content type primitive collection
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 */
+	protected List&lt;Map&lt;String, String&gt;&gt; getPackagesPrimitive() throws URISyntaxException {
+<span class="nc" id="L244">		return getContentTypePrimitive(SERVICE_PACKAGE, new StringJoiner(&quot;&quot;));</span>
+	}
+
+	/**
+	 * @param pkgId package id
+	 * @return content type primitive collection
+	 */
+	protected List&lt;Map&lt;String, String&gt;&gt; getPackageContentsPrimitive(final String pkgId) {
+<span class="nc" id="L252">		String url = SERVICE_PACKAGE + &quot;/&quot; + pkgId + &quot;/contents&quot;;</span>
+<span class="nc" id="L253">		return getContentTypePrimitive(url, new StringJoiner(&quot;&quot;));</span>
+	}
+
+	/**
+	 * @return content collection
+	 */
+	protected List&lt;Map&lt;String, Object&gt;&gt; getWorkflowSubscriptionsPrimitive() {
+<span class="nc" id="L260">		URIBuilder uriBuilder = getURIBuilder()</span>
+<span class="nc" id="L261">			.setPath(String.format(SERVICE_WORKFLOW_SUBSCRIPTION, configuration.getTenant()))</span>
+<span class="nc" id="L262">			.setParameter(&quot;page&quot;, &quot;1&quot;)</span>
+<span class="nc" id="L263">			.setParameter(&quot;limit&quot;, &quot;100&quot;);</span>
+<span class="nc" id="L264">		URI url = getURI(uriBuilder);		</span>
+
+<span class="nc" id="L266">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L267">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L268">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;String&gt;(headers);</span>
+		
+<span class="nc" id="L270">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L271">		DocumentContext context = JsonPath.parse(response.getBody());</span>
+<span class="nc" id="L272">		List&lt;Map&lt;String, Object&gt;&gt; result = context.read(&quot;$..content.*&quot;);</span>
+<span class="nc" id="L273">		int totalPages = context.read(&quot;$.metadata.totalPages&quot;);</span>
+<span class="nc bnc" id="L274" title="All 2 branches missed.">		for (int pageNumber = 2; pageNumber &lt;= totalPages; pageNumber++) {</span>
+<span class="nc" id="L275">			uriBuilder.setParameter(&quot;page&quot;, String.valueOf(pageNumber));</span>
+<span class="nc" id="L276">			response = restTemplate.exchange(getURI(uriBuilder), HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L277">			result.addAll(JsonPath.parse(response.getBody()).read(&quot;$..content.*&quot;));</span>
+		}
+
+<span class="nc" id="L280">		return result;</span>
+	}
+
+	/**
+	 * @param subscriptionName subscription name
+	 * @return subscriptions
+	 */
+	protected Map&lt;String, Object&gt; getWorkflowSubscriptionByNamePrimitive(final String subscriptionName) {
+<span class="nc" id="L288">		URIBuilder uriBuilder = getURIBuilder()</span>
+<span class="nc" id="L289">		.setPath(String.format(SERVICE_WORKFLOW_SUBSCRIPTION, configuration.getTenant()))</span>
+<span class="nc" id="L290">			.setParameter(&quot;$filter&quot;, &quot;name eq '&quot; + subscriptionName + &quot;'&quot;);</span>
+<span class="nc" id="L291">		URI url = getURI(uriBuilder);</span>
+
+<span class="nc" id="L293">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L294">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L295">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;String&gt;(headers);</span>
+		
+<span class="nc" id="L297">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L298">		DocumentContext context = JsonPath.parse(response.getBody());</span>
+<span class="nc" id="L299">		List&lt;Map&lt;String, Object&gt;&gt; subscriptions = context.read(&quot;$..content.*&quot;);</span>
+<span class="nc bnc" id="L300" title="All 2 branches missed.">		if (subscriptions.size() &gt; 0) {</span>
+<span class="nc" id="L301">			return subscriptions.get(0);</span>
+		}
+<span class="nc" id="L303">		logger.debug(String.format(&quot;Workflow Subscription with name '%s' not found.&quot;, subscriptionName));</span>
+
+<span class="nc" id="L305">		return null;</span>
+	}
+
+	/**
+	 * @param subscriptionName subscription name
+	 * @param jsonBody json body - subscription context
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 */
+	protected void importSubscriptionPrimitive(final String subscriptionName, String jsonBody) throws URISyntaxException {
+<span class="nc" id="L314">		logger.info(String.format(&quot;Updating Workflow Subscription with name '%s'.&quot;, subscriptionName));</span>
+		// If subscription with such name already exists use it's ID to update it. Otherwise just remove the ID to create a new subscription
+<span class="nc" id="L316">		Map&lt;String, Object&gt; subscription = getWorkflowSubscriptionByNamePrimitive(subscriptionName);</span>
+
+<span class="nc" id="L318">		DocumentContext context = JsonPath.parse(jsonBody);</span>
+<span class="nc" id="L319">		Map&lt;String, Object&gt; subscriptionJson = context.read(&quot;$&quot;);</span>
+
+		// Update the subscription tenant ID with the target tenant ID
+<span class="nc" id="L322">		subscriptionJson.put(&quot;tenantId&quot;, configuration.getTenant());</span>
+<span class="nc bnc" id="L323" title="All 2 branches missed.">		if (subscription != null) {</span>
+<span class="nc" id="L324">			logger.debug(String.format(&quot;Workflow Subscription with name '%s' already exist. Updating existing one.&quot;, subscriptionName));</span>
+<span class="nc" id="L325">			subscriptionJson.put(&quot;id&quot;, (String) subscription.get(&quot;id&quot;));</span>
+		} else {
+<span class="nc" id="L327">			logger.debug(String.format(&quot;Workflow Subscription with name '%s' not found. Creating a new one.&quot;, subscriptionName));</span>
+		}
+
+<span class="nc" id="L330">		Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="nc" id="L331">		jsonBody = gson.toJson(subscriptionJson);</span>
+<span class="nc" id="L332">		postJsonPrimitive(String.format(SERVICE_WORKFLOW_SUBSCRIPTION, configuration.getTenant()), jsonBody);</span>
+<span class="nc" id="L333">	}</span>
+
+	/**
+	 * @param bpId blueprint id
+	 * @return String
+	 */
+	protected String getBlueprintCustomFormPrimitive(final String bpId) {
+<span class="nc" id="L340">		URI url = getURI(getURIBuilder().setPath(BLUEPRINT_PACKAGE + &quot;/&quot; + bpId + &quot;/forms/requestform&quot;));</span>
+
+<span class="nc" id="L342">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L343">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L344">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;String&gt;(headers);</span>
+		
+		try {
+<span class="nc" id="L347">			ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);</span>
+			// CustomForms API returns the form as Json primitive string having value the stringified json form
+<span class="nc" id="L349">			return new Gson().fromJson(response.getBody(), JsonPrimitive.class).getAsString();</span>
+<span class="nc" id="L350">		} catch (RuntimeException e) {</span>
+<span class="nc bnc" id="L351" title="All 2 branches missed.">			if (e.getMessage().contains(&quot;404&quot;)) {</span>
+<span class="nc" id="L352">			    logger.info(&quot;Custom form for Blueprint '{}' not found.&quot;, bpId);</span>
+<span class="nc" id="L353">				return null;</span>
+			} else {
+<span class="nc" id="L355">				throw new RuntimeException(e);</span>
+			}
+		}
+	}
+	
+	/** 
+	 * @param bpId blueprint id
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 */
+	protected void activateBlueprintCustomFormPrimitive(final String bpId) throws URISyntaxException {
+<span class="nc" id="L365">		URIBuilder uriBuilder = getURIBuilder().setPath(BLUEPRINT_PACKAGE + &quot;/&quot; + bpId + &quot;/forms/requestform/enable&quot;);</span>
+
+<span class="nc" id="L367">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L368">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L369">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;String&gt;(headers);</span>
+
+<span class="nc" id="L371">		restTemplate.exchange(uriBuilder.build(), HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L372">	}</span>
+	
+	/**
+	 * @param bpId blueprint id
+	 * @param jsonBody post body payload
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 */
+	protected void setBlueprintCustomFormPrimitive(final String bpId, final String jsonBody) throws URISyntaxException {
+<span class="nc" id="L380">		postJsonPrimitive(BLUEPRINT_PACKAGE + &quot;/&quot; + bpId + &quot;/forms/requestform&quot;, jsonBody);</span>
+<span class="nc" id="L381">	}</span>
+	
+	/**
+	 * @param catalogItemName catalog item name
+	 * @return CatalogItem By Name Primitive
+	 */
+	protected Map&lt;String, Object&gt; getCatalogItemByNamePrimitive(final String catalogItemName) {
+<span class="nc" id="L388">		URIBuilder uriBuilder = getURIBuilder()</span>
+<span class="nc" id="L389">			.setPath(CATALOG_ITEM)</span>
+<span class="nc" id="L390">			.setParameter(&quot;$filter&quot;, &quot;name eq '&quot; + catalogItemName + &quot;'&quot;);</span>
+<span class="nc" id="L391">		URI url = getURI(uriBuilder);</span>
+
+<span class="nc" id="L393">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L394">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L395">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;String&gt;(headers);</span>
+		
+<span class="nc" id="L397">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L398">		DocumentContext context = JsonPath.parse(response.getBody());</span>
+<span class="nc" id="L399">		List&lt;Map&lt;String, Object&gt;&gt; catalogItems = context.read(&quot;$..content.*&quot;);</span>
+		
+<span class="nc bnc" id="L401" title="All 2 branches missed.">		if (catalogItems.size() &gt; 0) {</span>
+<span class="nc" id="L402">			return catalogItems.get(0);</span>
+		}
+<span class="nc" id="L404">		logger.debug(String.format(&quot;Catalog Item with name '%s' not found.&quot;, catalogItemName));</span>
+
+<span class="nc" id="L406">		return null;</span>
+	}
+
+	/**
+	 * @param catalogItem catalog item by id
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 */
+	protected void setCatalogItemPrimitive(final Map&lt;String, Object&gt; catalogItem) throws URISyntaxException {
+<span class="nc" id="L414">		String catalogItemJson = JsonHelper.toJson(catalogItem);</span>
+<span class="nc" id="L415">		String catalogItemId = (String) catalogItem.get(&quot;id&quot;);</span>
+<span class="nc" id="L416">		putJsonPrimitive(CATALOG_ITEM + &quot;/&quot; + catalogItemId, catalogItemJson);</span>
+<span class="nc" id="L417">	}</span>
+
+	/**
+	 * get Catalog Service By Name Primitive.
+	 * @param serviceName service name
+	 * @return services
+	 */
+	public Map&lt;String, Object&gt; getCatalogServiceByNamePrimitive(final String serviceName) {
+<span class="nc" id="L425">		URIBuilder uriBuilder = getURIBuilder()</span>
+<span class="nc" id="L426">			.setPath(CATALOG_SERVICE)</span>
+<span class="nc" id="L427">			.setParameter(&quot;$filter&quot;, &quot;name eq '&quot; + serviceName + &quot;'&quot;);</span>
+<span class="nc" id="L428">		URI url = getURI(uriBuilder);</span>
+
+<span class="nc" id="L430">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L431">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L432">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;String&gt;(headers);</span>
+		
+<span class="nc" id="L434">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L435">		DocumentContext context = JsonPath.parse(response.getBody());</span>
+<span class="nc" id="L436">		List&lt;Map&lt;String, Object&gt;&gt; services = context.read(&quot;$..content.*&quot;);</span>
+<span class="nc bnc" id="L437" title="All 2 branches missed.">		if (services.size() &gt; 0) {</span>
+<span class="nc" id="L438">			return services.get(0);</span>
+		}
+<span class="nc" id="L440">		logger.debug(String.format(&quot;Catalog service with name '%s' not found.&quot;, serviceName));</span>
+
+<span class="nc" id="L442">		return null;</span>
+	}
+
+	/** 
+	 * @param iconId icon id
+	 * @return Icon Primitive by id
+	 */
+	protected Map&lt;String, Object&gt; getIconPrimitive(final String iconId) {
+<span class="nc" id="L450">		URIBuilder uriBuilder = getURIBuilder().setPath(CATALOG_ICON + &quot;/&quot; + iconId);</span>
+<span class="nc" id="L451">		URI url = getURI(uriBuilder);</span>
+
+<span class="nc" id="L453">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L454">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L455">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;String&gt;(headers);</span>
+		
+<span class="nc" id="L457">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L458">		DocumentContext context = JsonPath.parse(response.getBody());</span>
+<span class="nc" id="L459">		Map&lt;String, Object&gt; icon = context.read(&quot;$&quot;);</span>
+		
+<span class="nc bnc" id="L461" title="All 2 branches missed.">		if (icon == null) {</span>
+<span class="nc" id="L462">			logger.debug(String.format(&quot;Icon with ID '%s' not found.&quot;, iconId));</span>
+<span class="nc" id="L463">			return null;</span>
+		}
+
+<span class="nc" id="L466">		return icon;</span>
+	}
+
+	/**
+	 * @param icon icon
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 */
+	protected void setIconPrimitive(final Map&lt;String, Object&gt; icon) throws URISyntaxException {
+<span class="nc" id="L474">		String iconJson = JsonHelper.toJson(icon);</span>
+<span class="nc" id="L475">		postJsonPrimitive(CATALOG_ICON, iconJson);</span>
+<span class="nc" id="L476">	}</span>
+
+	/**
+	 * @return Global Property Definitions colelction by tenant id
+	 */
+	protected List&lt;Map&lt;String, Object&gt;&gt; getGlobalPropertyDefinitionsPrimitive() {
+<span class="nc" id="L482">		URIBuilder uriBuilder = getURIBuilder().setPath(SERVICE_PROPERETY_DEFINITION).setParameter(&quot;page&quot;, &quot;1&quot;).setParameter(&quot;limit&quot;, &quot;100&quot;);</span>
+<span class="nc" id="L483">		URI url = getURI(uriBuilder);</span>
+
+<span class="nc" id="L485">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L486">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L487">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;String&gt;(headers);</span>
+		
+<span class="nc" id="L489">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L490">		DocumentContext context = JsonPath.parse(response.getBody());</span>
+<span class="nc" id="L491">		List&lt;Map&lt;String, Object&gt;&gt; result = context.read(&quot;$..content.*&quot;);</span>
+<span class="nc" id="L492">		int totalPages = context.read(&quot;$.metadata.totalPages&quot;);</span>
+<span class="nc bnc" id="L493" title="All 2 branches missed.">		for (int pageNumber = 2; pageNumber &lt;= totalPages; pageNumber++) {</span>
+<span class="nc" id="L494">			uriBuilder.setParameter(&quot;page&quot;, String.valueOf(pageNumber));</span>
+<span class="nc" id="L495">			response = restTemplate.exchange(getURI(uriBuilder), HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L496">			result.addAll(JsonPath.parse(response.getBody()).read(&quot;$..content.*&quot;));</span>
+		}
+
+<span class="nc bnc" id="L499" title="All 2 branches missed.">		return result.stream().filter(pg -&gt; pg.get(&quot;tenantId&quot;) == null).collect(Collectors.toList());</span>
+	}
+
+	/**
+	 * @param propertyDefinitionName property definition name
+	 * @return Global Property Definition By Name
+	 */
+	protected Map&lt;String, Object&gt; getGlobalPropertyDefinitionByNamePrimitive(final String propertyDefinitionName) {
+<span class="nc" id="L507">		URIBuilder uriBuilder = getURIBuilder().setPath(SERVICE_PROPERETY_DEFINITION + &quot;/&quot; + propertyDefinitionName);</span>
+<span class="nc" id="L508">		URI url = getURI(uriBuilder);</span>
+
+<span class="nc" id="L510">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L511">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L512">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;String&gt;(headers);</span>
+<span class="nc" id="L513">		ResponseEntity&lt;String&gt; response = null;</span>
+		try {
+<span class="nc" id="L515">			response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L516">		} catch (HttpClientErrorException e) {</span>
+<span class="nc bnc" id="L517" title="All 2 branches missed.">			if (e.getStatusCode() != HttpStatus.NOT_FOUND) {</span>
+<span class="nc" id="L518">				throw e;</span>
+			}
+<span class="nc" id="L520">		}</span>
+<span class="nc bnc" id="L521" title="All 2 branches missed.">		if (response != null) {</span>
+<span class="nc" id="L522">			DocumentContext context = JsonPath.parse(response.getBody());</span>
+<span class="nc" id="L523">			Map&lt;String, Object&gt; propertyDefinition = context.read(&quot;$&quot;);</span>
+<span class="nc bnc" id="L524" title="All 2 branches missed.">			if (propertyDefinition.get(&quot;tenantId&quot;) == null) {</span>
+<span class="nc" id="L525">				return propertyDefinition;</span>
+			}	
+		}
+<span class="nc" id="L528">		logger.debug(String.format(&quot;Global Property Definition with name '%s' not found.&quot;, propertyDefinitionName));</span>
+
+<span class="nc" id="L530">		return null;</span>
+	}
+	
+	/**
+	 * @param propertyDefinitionName property definitio name
+	 * @param jsonBody json body payload
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 */
+	protected void importGlobalPropertyDefinitionPrimitive(final String propertyDefinitionName, String jsonBody) throws URISyntaxException {
+<span class="nc" id="L539">		logger.debug(String.format(&quot;Updating Global Property Definition with name '%s'.&quot;, propertyDefinitionName));</span>
+
+<span class="nc" id="L541">		Map&lt;String, Object&gt; propertyDefinition = getGlobalPropertyDefinitionByNamePrimitive(propertyDefinitionName);</span>
+<span class="nc" id="L542">		DocumentContext context = JsonPath.parse(jsonBody);</span>
+<span class="nc" id="L543">		Map&lt;String, Object&gt; propertyDefinitionJson = context.read(&quot;$&quot;);</span>
+<span class="nc" id="L544">		Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="nc" id="L545">		jsonBody = gson.toJson(propertyDefinitionJson);</span>
+
+<span class="nc bnc" id="L547" title="All 2 branches missed.">		if (propertyDefinition != null) {</span>
+<span class="nc" id="L548">			logger.debug(String.format(&quot;Global Property Definition with name '%s' already exist. Updating existing one.&quot;, propertyDefinitionName));</span>
+<span class="nc" id="L549">			putJsonPrimitive(SERVICE_PROPERETY_DEFINITION + &quot;/&quot; + propertyDefinitionName, jsonBody);</span>
+		} else {
+<span class="nc" id="L551">			logger.debug(String.format(&quot;Global Property Definition with name '%s' not found. Creating a new one.&quot;, propertyDefinitionName));</span>
+<span class="nc" id="L552">			postJsonPrimitive(SERVICE_PROPERETY_DEFINITION, jsonBody);</span>
+		}
+<span class="nc" id="L554">	}</span>
+
+	/**
+	 * @return Global Property Groups by tenant id
+	 */
+	protected List&lt;Map&lt;String, Object&gt;&gt; getGlobalPropertyGroupsPrimitive() {
+<span class="nc" id="L560">		URIBuilder uriBuilder = getURIBuilder().setPath(SERVICE_PROPERTY_GROUP).setParameter(&quot;page&quot;, &quot;1&quot;).setParameter(&quot;limit&quot;, &quot;100&quot;);</span>
+<span class="nc" id="L561">		URI url = getURI(uriBuilder);</span>
+
+<span class="nc" id="L563">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L564">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L565">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;String&gt;(headers);</span>
+		
+<span class="nc" id="L567">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L568">		DocumentContext context = JsonPath.parse(response.getBody());</span>
+<span class="nc" id="L569">		List&lt;Map&lt;String, Object&gt;&gt; result = context.read(&quot;$..content.*&quot;);</span>
+<span class="nc" id="L570">		int totalPages = context.read(&quot;$.metadata.totalPages&quot;);</span>
+<span class="nc bnc" id="L571" title="All 2 branches missed.">		for (int pageNumber = 2; pageNumber &lt;= totalPages; pageNumber++) {</span>
+<span class="nc" id="L572">			uriBuilder.setParameter(&quot;page&quot;, String.valueOf(pageNumber));</span>
+<span class="nc" id="L573">			response = restTemplate.exchange(getURI(uriBuilder), HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L574">			result.addAll(JsonPath.parse(response.getBody()).read(&quot;$..content.*&quot;));</span>
+		}
+
+<span class="nc bnc" id="L577" title="All 2 branches missed.">		return result.stream().filter(pg -&gt; pg.get(&quot;tenantId&quot;) == null).collect(Collectors.toList());</span>
+	}
+
+	/**
+	 * @param propertyGroupName property group name
+	 * @return Global Property Group By Name
+	 */
+	protected Map&lt;String, Object&gt; getGlobalPropertyGroupByNamePrimitive(final String propertyGroupName) {
+<span class="nc" id="L585">		URIBuilder uriBuilder = getURIBuilder()</span>
+<span class="nc" id="L586">			.setPath(SERVICE_PROPERTY_GROUP)</span>
+<span class="nc" id="L587">			.setParameter(&quot;$filter&quot;, &quot;label eq '&quot; + propertyGroupName + &quot;'&quot;);</span>
+<span class="nc" id="L588">		URI url = getURI(uriBuilder);</span>
+
+<span class="nc" id="L590">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L591">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L592">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;String&gt;(headers);</span>
+		
+<span class="nc" id="L594">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L595">		DocumentContext context = JsonPath.parse(response.getBody());</span>
+<span class="nc" id="L596">		List&lt;Map&lt;String, Object&gt;&gt; propertyGroups = context.read(&quot;$..content.*&quot;);</span>
+<span class="nc bnc" id="L597" title="All 2 branches missed.">		if (propertyGroups.size() &gt; 0) {</span>
+<span class="nc" id="L598">			return propertyGroups.get(0);</span>
+		}
+		
+<span class="nc" id="L601">		logger.debug(String.format(&quot;Global Property Group with name '%s' not found.&quot;, propertyGroupName));</span>
+<span class="nc" id="L602">		return null;</span>
+	}
+
+	/**
+	 * @param propertyGroupName property group name
+	 * @param jsonBody json body payload
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 */
+	protected void importGlobalPropertyGroupPrimitive(final String propertyGroupName, String jsonBody) throws URISyntaxException {
+<span class="nc" id="L611">		logger.debug(String.format(&quot;Updating Global Property Group with name '%s'.&quot;, propertyGroupName));</span>
+
+<span class="nc" id="L613">		Map&lt;String, Object&gt; propertyGroup = getGlobalPropertyGroupByNamePrimitive(propertyGroupName);</span>
+<span class="nc" id="L614">		DocumentContext context = JsonPath.parse(jsonBody);</span>
+<span class="nc" id="L615">		Map&lt;String, Object&gt; propertyGroupJson = context.read(&quot;$&quot;);</span>
+<span class="nc" id="L616">		Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="nc bnc" id="L617" title="All 2 branches missed.">		if (propertyGroup != null) {</span>
+<span class="nc" id="L618">			logger.debug(String.format(&quot;Global Property Group with name '%s' already exist. Updating existing one.&quot;, propertyGroupName));</span>
+<span class="nc" id="L619">			String propertyGroupId = (String) propertyGroup.get(&quot;id&quot;);</span>
+<span class="nc" id="L620">			propertyGroupJson.put(&quot;id&quot;, propertyGroupId);</span>
+<span class="nc" id="L621">			jsonBody = gson.toJson(propertyGroupJson);</span>
+<span class="nc" id="L622">			putJsonPrimitive(SERVICE_PROPERTY_GROUP + &quot;/&quot; + propertyGroupId, jsonBody);			</span>
+<span class="nc" id="L623">		} else {</span>
+<span class="nc" id="L624">			logger.debug(String.format(&quot;Global Property Group with name '%s' not found. Creating a new one.&quot;, propertyGroupName));</span>
+<span class="nc" id="L625">			jsonBody = gson.toJson(propertyGroupJson);</span>
+<span class="nc" id="L626">			postJsonPrimitive(SERVICE_PROPERTY_GROUP, jsonBody);</span>
+		}
+<span class="nc" id="L628">	}</span>
+
+	/**
+	 * @param vraPackage vra package
+	 * @param contentIds content ids list
+	 * @return String
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 */
+	protected String createPackagePrimitive(final Package vraPackage, final List&lt;String&gt; contentIds) throws URISyntaxException {
+<span class="nc" id="L637">		String requestJson = new Gson().toJson(new VraPackageDTO(vraPackage.getFQName(), contentIds));</span>
+		ResponseEntity&lt;String&gt; response;
+		try {
+<span class="nc" id="L640">			response = postJsonPrimitive(SERVICE_PACKAGE, requestJson);</span>
+<span class="nc" id="L641">		} catch (RuntimeException e) {</span>
+<span class="nc bnc" id="L642" title="All 2 branches missed.">			if (e.getMessage().contains(&quot;400&quot;)) {</span>
+<span class="nc" id="L643">				throw new RuntimeException(&quot;Probably package with the same name already exist.&quot;, e);</span>
+			} else {
+<span class="nc" id="L645">				throw new RuntimeException(e);</span>
+			}
+<span class="nc" id="L647">		}</span>
+<span class="nc" id="L648">		List&lt;String&gt; locationHeader = response.getHeaders().get(&quot;Location&quot;);</span>
+<span class="nc" id="L649">		String locationUrl = locationHeader.get(0);</span>
+<span class="nc" id="L650">		String packageId = locationUrl.substring(locationUrl.lastIndexOf(&quot;/&quot;) + 1);</span>
+<span class="nc" id="L651">		logger.debug(&quot;Create Package[&quot; + vraPackage.getFQName() + &quot;] ID[&quot; + packageId + &quot;]&quot;);</span>
+
+<span class="nc" id="L653">		return packageId;</span>
+	}
+
+	/**
+	 * @param vraPackage vra package
+	 */
+	protected void deletePackagePrimitive(final Package vraPackage) {
+<span class="nc" id="L660">		URI url = getURI(getURIBuilder().setPath(SERVICE_PACKAGE + &quot;/&quot; + vraPackage.getId()));</span>
+
+<span class="nc" id="L662">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L663">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L664">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;String&gt;(headers);</span>
+
+<span class="nc" id="L666">		restTemplate.exchange(url, HttpMethod.DELETE, entity, String.class);</span>
+<span class="nc" id="L667">	}</span>
+
+	/**
+	 * @param vraPackage vra package
+	 * @param validate is validate package
+	 * @throws NumberFormatException throws number format exception incase value is not number
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 */
+	protected void exportPackagePrimitive(final Package vraPackage, final boolean validate) throws NumberFormatException, URISyntaxException {
+<span class="nc bnc" id="L676" title="All 2 branches missed.">		URI url = getURIBuilder().setPath(SERVICE_PACKAGE + &quot;/&quot; + vraPackage.getId() + (validate ? &quot;/validate&quot; : &quot;&quot;)).build();</span>
+<span class="nc" id="L677">		RequestCallback requestCallback = new RequestCallback() {</span>
+			@Override
+			public void doWithRequest(final ClientHttpRequest request) throws IOException {
+<span class="nc" id="L680">				request.getHeaders().setAccept(Arrays.asList(MediaType.APPLICATION_OCTET_STREAM, MediaType.ALL));</span>
+<span class="nc" id="L681">			}</span>
+		};
+
+<span class="nc" id="L684">		ResponseExtractor&lt;Void&gt; responseExtractor = new ResponseExtractor&lt;Void&gt;() {</span>
+			public Void extractData(final ClientHttpResponse response) throws IOException {
+<span class="nc bnc" id="L686" title="All 2 branches missed.">				if (validate) {</span>
+<span class="nc" id="L687">					String json = IOUtils.toString(response.getBody(),</span>
+<span class="nc" id="L688">							response.getHeaders().getContentType().getCharset().name());</span>
+<span class="nc" id="L689">					logger.info(JsonHelper.getPrettyJson(json));</span>
+<span class="nc" id="L690">				} else {</span>
+<span class="nc" id="L691">					Files.copy(response.getBody(), Paths.get(vraPackage.getFilesystemPath()),</span>
+							StandardCopyOption.REPLACE_EXISTING);
+<span class="nc" id="L693">					logger.debug(String.format(&quot;EXPORT  | %s to file: %s&quot;, vraPackage, vraPackage.getFilesystemPath()));</span>
+				}
+<span class="nc" id="L695">				return null;</span>
+			}
+		};
+
+		try {
+<span class="nc" id="L700">			restTemplate.execute(url, HttpMethod.GET, requestCallback, responseExtractor);</span>
+<span class="nc" id="L701">		} catch (RuntimeException e) {</span>
+<span class="nc bnc" id="L702" title="All 2 branches missed.">			if (e.getMessage().contains(&quot;400&quot;)) {</span>
+<span class="nc" id="L703">				throw new RuntimeException(&quot;Probably vRA package has no contents.&quot;, e);</span>
+			} else {
+<span class="nc" id="L705">				throw new RuntimeException(e);</span>
+			}
+<span class="nc" id="L707">		}</span>
+<span class="nc" id="L708">	}</span>
+
+	/**
+	 * @param vraPackage vra package
+	 * @param dryrun dry run code or not
+	 * @return VraPackageContent
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 */
+	protected VraPackageContent importPackagePrimitive(final Package vraPackage, final boolean dryrun) throws URISyntaxException {
+<span class="nc bnc" id="L717" title="All 2 branches missed.">		URI url = getURIBuilder().setPath(SERVICE_PACKAGE + (dryrun ? &quot;/validate&quot; : &quot;&quot;))</span>
+				// Ex: /validate?resolution mode=SKIP,OVERWRITE
+<span class="nc" id="L719">				.setParameter(&quot;resolution mode&quot;, configuration.getPackageImportOverwriteMode()).build();</span>
+
+<span class="nc" id="L721">		LinkedMultiValueMap&lt;String, Object&gt; map = new LinkedMultiValueMap&lt;String, Object&gt;();</span>
+<span class="nc" id="L722">		map.add(&quot;name&quot;, new File(vraPackage.getFilesystemPath()).getName());</span>
+<span class="nc" id="L723">		map.add(&quot;Content-Type&quot;, &quot;application/octet-stream&quot;);</span>
+<span class="nc" id="L724">		map.add(&quot;file&quot;, new FileSystemResource(vraPackage.getFilesystemPath()));</span>
+
+<span class="nc" id="L726">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L727">		headers.setContentType(MediaType.MULTIPART_FORM_DATA);</span>
+
+<span class="nc" id="L729">		HttpEntity&lt;LinkedMultiValueMap&lt;String, Object&gt;&gt; requestEntity = new HttpEntity&lt;LinkedMultiValueMap&lt;String, Object&gt;&gt;(map, headers);</span>
+<span class="nc" id="L730">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);</span>
+<span class="nc" id="L731">		String operationStatus = JsonPath.parse(response.getBody()).read(&quot;$.operationStatus&quot;);</span>
+<span class="nc bnc" id="L732" title="All 2 branches missed.">		if (operationStatus.equalsIgnoreCase(&quot;FAILED&quot;)) {</span>
+<span class="nc" id="L733">			logger.error(JsonHelper.getPrettyJson(response.getBody()));</span>
+<span class="nc" id="L734">			throw new RuntimeException(&quot;Import of vRA Package[&quot; + vraPackage.getFilesystemPath() + &quot;] has Failed.&quot;);</span>
+		} else {
+<span class="nc" id="L736">			logger.debug(JsonHelper.getPrettyJson(response.getBody()));</span>
+<span class="nc bnc" id="L737" title="All 2 branches missed.">			logger.debug(String.format(&quot;IMPORT  | %s %s&quot;, vraPackage, (dryrun ? &quot;DRYRUN &quot; : &quot;&quot;)));</span>
+		}
+		
+<span class="nc" id="L740">		return this.getPackageContentPrimitive(response.getBody());</span>
+	}
+
+	/**
+	 * @param content vra package content
+	 * @param dryrun dry run or not
+	 */
+	protected void deleteContentPrimitive(final Content&lt;VraPackageContent.ContentType&gt; content, final boolean dryrun) {
+<span class="nc" id="L748">        String deletePath = null;</span>
+        
+<span class="nc bnc" id="L750" title="All 12 branches missed.">        switch (content.getType()) {</span>
+<span class="nc" id="L751">            case XAAS_BLUEPRINT: deletePath = String.format(SERVICE_XAAS_BLUEPRINT, configuration.getTenant()); break;</span>
+<span class="nc" id="L752">            case XAAS_RESOURCE_TYPE: deletePath = String.format(SERVICE_XAAS_TYPE, configuration.getTenant()); break;</span>
+<span class="nc" id="L753">            case XAAS_RESOURCE_MAPPING: deletePath = String.format(SERVICE_XAAS_TYPE, configuration.getTenant()); break;</span>
+<span class="nc" id="L754">            case XAAS_RESOURCE_ACTION: deletePath = SERVICE_XAAS_OPERATION; break;</span>
+<span class="nc" id="L755">            case COMPOSITE_BLUEPRINT: deletePath = BLUEPRINT_PACKAGE; break;</span>
+<span class="nc" id="L756">            case SOFTWARE_COMPONENT: deletePath = SERVICE_SOFTWARE; break;</span>
+<span class="nc" id="L757">            case PROPERTY_GROUP: deletePath = SERVICE_PROPERTY_GROUP; break;</span>
+<span class="nc" id="L758">			case PROPERTY_DICTIONARY: deletePath = SERVICE_PROPERETY_DEFINITION; break;</span>
+<span class="nc" id="L759">			case WORKFLOW_SUBSCRIPTION: deletePath = String.format(SERVICE_WORKFLOW_SUBSCRIPTION, configuration.getTenant()); break;</span>
+<span class="nc" id="L760">			case GLOBAL_PROPERTY_DEFINITION: deletePath = SERVICE_PROPERETY_DEFINITION; break;</span>
+<span class="nc" id="L761">			case GLOBAL_PROPERTY_GROUP: deletePath = SERVICE_PROPERTY_GROUP; break;</span>
+			default: break;
+        }
+        
+<span class="nc" id="L765">        URI url = getURI(getURIBuilder().setPath(String.format(&quot;%s/%s&quot;, deletePath, content.getId())));</span>
+<span class="nc bnc" id="L766" title="All 2 branches missed.">        if (!dryrun) {</span>
+<span class="nc" id="L767">            restTemplate.exchange(url, HttpMethod.DELETE, getDefaultHttpEntity(), String.class);</span>
+        }
+<span class="nc" id="L769">    }</span>
+
+	/**
+	 * @param pkg vra package
+	 * @return VraPackageContent
+	 */
+	protected VraPackageContent getPackageContentPrimitive(final Package pkg) {
+<span class="nc" id="L776">        URI url = getURI(getURIBuilder().setPath(String.format(&quot;%s/%s/contents&quot;, SERVICE_PACKAGE, pkg.getId())));</span>
+
+<span class="nc" id="L778">        ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);     </span>
+<span class="nc" id="L779">        JsonElement root = JsonParser.parseString(response.getBody());</span>
+<span class="nc" id="L780">        List&lt;Content&lt;VraPackageContent.ContentType&gt;&gt; content = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L781" title="All 2 branches missed.">        if (root.isJsonObject()) {</span>
+<span class="nc" id="L782">            root.getAsJsonObject().getAsJsonArray(&quot;content&quot;).forEach(o -&gt; {</span>
+<span class="nc" id="L783">                JsonObject ob = o.getAsJsonObject();</span>
+<span class="nc" id="L784">                content.add(new Content&lt;&gt;(</span>
+<span class="nc" id="L785">                    VraPackageContent.ContentType.getInstance(ob.get(&quot;contentTypeId&quot;).getAsString()),</span>
+<span class="nc" id="L786">                    ob.get(&quot;contentId&quot;).getAsString(),</span>
+<span class="nc" id="L787">                    ob.get(&quot;name&quot;).getAsString()));</span>
+<span class="nc" id="L788">            });</span>
+        }
+
+<span class="nc" id="L791">        return new VraPackageContent(content);</span>
+    }
+
+	/**
+	 * @param packageImportedResponse package import response
+	 * @return VraPackageContent
+	 */
+	private VraPackageContent getPackageContentPrimitive(final String packageImportedResponse) {
+<span class="nc" id="L799">        JsonElement root = JsonParser.parseString(packageImportedResponse);</span>
+        
+<span class="nc" id="L801">        List&lt;Content&lt;VraPackageContent.ContentType&gt;&gt; content = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L802" title="All 2 branches missed.">        if (root.isJsonObject()) {</span>
+<span class="nc" id="L803">            root.getAsJsonObject().getAsJsonArray(&quot;operationResults&quot;).forEach(o -&gt; {</span>
+<span class="nc" id="L804">                JsonObject ob = o.getAsJsonObject();</span>
+<span class="nc" id="L805">                content.add(new Content&lt;&gt;(</span>
+<span class="nc" id="L806">                    VraPackageContent.ContentType.getInstance(ob.get(&quot;contentTypeId&quot;).getAsString()),</span>
+<span class="nc" id="L807">                    ob.get(&quot;contentId&quot;).getAsString(),</span>
+<span class="nc" id="L808">                    ob.get(&quot;contentName&quot;).getAsString()));</span>
+<span class="nc" id="L809">            });</span>
+        }
+
+<span class="nc" id="L812">        return new VraPackageContent(content);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

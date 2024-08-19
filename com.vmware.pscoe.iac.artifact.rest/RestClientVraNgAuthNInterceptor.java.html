@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RestClientVraNgAuthNInterceptor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest</a> &gt; <span class="el_source">RestClientVraNgAuthNInterceptor.java</span></div><h1>RestClientVraNgAuthNInterceptor.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.rest;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVraNg;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.*;
+import org.springframework.http.client.ClientHttpRequestExecution;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import java.net.URI;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoField;
+import java.util.HashMap;
+import java.util.Map;
+
+public class RestClientVraNgAuthNInterceptor extends RestClientRequestInterceptor&lt;ConfigurationVraNg&gt; {
+    private static final String SERVICE_REFRESH_TOKEN = &quot;/csp/gateway/am/api/auth/api-tokens/authorize&quot;;
+    private static final String SERVICE_CREDENTIALS = &quot;/csp/gateway/am/api/login&quot;;
+    private static final String DEFAULT_TOKEN_TYPE = &quot;Bearer&quot;;
+
+<span class="nc" id="L45">    private final Logger logger = LoggerFactory.getLogger(RestClientVraNgAuthNInterceptor.class);</span>
+
+    private String token;
+    private String tokenType;
+    private LocalDateTime tokenExpirationDate;
+
+    protected RestClientVraNgAuthNInterceptor(ConfigurationVraNg configuration, RestTemplate restTemplate) {
+<span class="nc" id="L52">        super(configuration, restTemplate);</span>
+<span class="nc" id="L53">        this.tokenType = DEFAULT_TOKEN_TYPE;</span>
+<span class="nc" id="L54">    }</span>
+
+    @Override
+    public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) {
+        try {
+<span class="nc bnc" id="L59" title="All 4 branches missed.">            if (!isRequestInBlackList(request) &amp;&amp; !hasValidToken()) {</span>
+<span class="nc" id="L60">                logger.info(&quot;Request URL: {}&quot;, request.getURI());</span>
+<span class="nc" id="L61">                acquireToken(request);</span>
+            }
+<span class="nc bnc" id="L63" title="All 2 branches missed.">            if (this.token != null) {</span>
+<span class="nc" id="L64">               request.getHeaders().add(&quot;Authorization&quot;, this.tokenType + &quot; &quot; + this.token);</span>
+            }
+ 
+<span class="nc" id="L67">            return execution.execute(request, body);</span>
+<span class="nc" id="L68">        } catch (Exception e) {</span>
+<span class="nc" id="L69">            throw new RuntimeException(e);</span>
+        }
+    }
+
+    private void acquireToken(HttpRequest request) throws JsonProcessingException {
+        String refreshToken;
+<span class="nc bnc" id="L75" title="All 4 branches missed.">        if (getConfiguration().getRefreshToken() != null &amp;&amp; !getConfiguration().getRefreshToken().isEmpty()) {</span>
+<span class="nc" id="L76">            logger.info(&quot;Acquiring with refresh token&quot;);</span>
+<span class="nc" id="L77">            refreshToken = getConfiguration().getRefreshToken();</span>
+        } else {
+<span class="nc" id="L79">            logger.info(&quot;Acquiring refresh token with credentials&quot;);</span>
+<span class="nc" id="L80">            ResponseEntity&lt;String&gt; requestWithCredentialsResponse = this.requestWithCredentials(request);</span>
+<span class="nc" id="L81">            DocumentContext requestWithCredentialsResponseBody = JsonPath.parse(requestWithCredentialsResponse.getBody());</span>
+<span class="nc" id="L82">            refreshToken = requestWithCredentialsResponseBody.read(&quot;$.refresh_token&quot;);</span>
+        }
+
+<span class="nc" id="L85">        ResponseEntity&lt;String&gt; response = this.requestWithRefreshToken(request, refreshToken);</span>
+<span class="nc" id="L86">        DocumentContext responseBody = JsonPath.parse(response.getBody());</span>
+<span class="nc" id="L87">        final LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">        final int expiresIn = responseBody.jsonString().contains(&quot;expires_in&quot;) ? responseBody.read(&quot;$.expires_in&quot;) : 0;</span>
+<span class="nc" id="L89">        this.tokenExpirationDate = now.plus(expiresIn, ChronoField.SECOND_OF_MINUTE.getBaseUnit());</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">        this.token = responseBody.jsonString().contains(&quot;access_token&quot;) ? responseBody.read(&quot;$.access_token&quot;) : null;</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">        String tokenTypeFromResponse = responseBody.jsonString().contains(&quot;token_type&quot;) ? responseBody.read(&quot;$.token_type&quot;) : null;</span>
+<span class="nc" id="L92">        this.setTokenType(tokenTypeFromResponse);</span>
+<span class="nc" id="L93">    }</span>
+
+    private ResponseEntity&lt;String&gt; requestWithRefreshToken(HttpRequest request, String refreshToken) {
+<span class="nc" id="L96">        final URI tokenUri = UriComponentsBuilder.newInstance()</span>
+<span class="nc" id="L97">            .scheme(request.getURI().getScheme())</span>
+<span class="nc" id="L98">            .host(this.getConfiguration().getAuthHost())</span>
+<span class="nc" id="L99">			.port(this.getConfiguration().getPort())</span>
+<span class="nc" id="L100">            .path(SERVICE_REFRESH_TOKEN).build().toUri();</span>
+
+<span class="nc" id="L102">        logger.info(&quot;Token URI: {}&quot;, tokenUri);</span>
+        // Prepare Headers
+<span class="nc" id="L104">        final HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L105">        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);</span>
+
+        // Prepare Request
+<span class="nc" id="L108">        final MultiValueMap&lt;String, String&gt; payload = new LinkedMultiValueMap&lt;&gt;();</span>
+<span class="nc" id="L109">        payload.add(&quot;refresh_token&quot;, refreshToken);</span>
+
+<span class="nc" id="L111">        final HttpEntity&lt;MultiValueMap&lt;String, String&gt;&gt; entity = new HttpEntity&lt;&gt;(payload, headers);</span>
+
+<span class="nc" id="L113">        return getRestTemplate().exchange(tokenUri, HttpMethod.POST, entity, String.class);</span>
+    }
+
+    private ResponseEntity&lt;String&gt; requestWithCredentials(HttpRequest request) throws JsonProcessingException {
+<span class="nc" id="L117">        final URI tokenUri = UriComponentsBuilder.newInstance()</span>
+<span class="nc" id="L118">            .scheme(request.getURI().getScheme())</span>
+<span class="nc" id="L119">            .host(this.getConfiguration().getAuthHost())</span>
+<span class="nc" id="L120">			.port(this.getConfiguration().getPort())</span>
+<span class="nc" id="L121">            .path(SERVICE_CREDENTIALS)</span>
+<span class="nc" id="L122">            .queryParam(&quot;access_token&quot;)</span>
+<span class="nc" id="L123">            .build().toUri();</span>
+
+<span class="nc" id="L125">        logger.info(&quot;Auth URL: {}&quot;, tokenUri);</span>
+
+        // Prepare Headers
+<span class="nc" id="L128">        final HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L129">        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+
+        // Prepare Request
+<span class="nc" id="L132">        final Map&lt;String, String&gt; payload = new HashMap&lt;&gt;();</span>
+
+        // try to set domain
+<span class="nc" id="L135">        String domain = getConfiguration().getDomain();</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">        if (domain != null) {</span>
+<span class="nc" id="L137">            logger.debug(&quot;Detected domain '{}'&quot;, domain);</span>
+<span class="nc" id="L138">            payload.put(&quot;domain&quot;, domain);</span>
+        } else {
+<span class="nc" id="L140">            logger.debug(&quot;No domain detected&quot;);</span>
+        }
+<span class="nc" id="L142">        payload.put(&quot;username&quot;, getConfiguration().getUsername());</span>
+<span class="nc" id="L143">        payload.put(&quot;password&quot;, getConfiguration().getPassword());</span>
+<span class="nc" id="L144">        final String requestJson = new ObjectMapper().writeValueAsString(payload);</span>
+<span class="nc" id="L145">        final HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(requestJson, headers);</span>
+
+<span class="nc" id="L147">        return getRestTemplate().exchange(tokenUri, HttpMethod.POST, entity, String.class);</span>
+    }
+
+    private boolean isRequestInBlackList(HttpRequest request) {
+<span class="nc bnc" id="L151" title="All 4 branches missed.">        return request.getURI().getPath().contains(SERVICE_REFRESH_TOKEN) || request.getURI().getPath().contains(SERVICE_CREDENTIALS);</span>
+    }
+
+    private boolean hasValidToken() {
+<span class="nc bnc" id="L155" title="All 4 branches missed.">        return token != null &amp;&amp; LocalDateTime.now(ZoneOffset.UTC).isBefore(tokenExpirationDate);</span>
+    }
+
+    private boolean isValidTokenType(String tokenType) {
+<span class="nc bnc" id="L159" title="All 4 branches missed.">        return tokenType != null &amp;&amp; tokenType.length() &gt; 0;</span>
+    }
+
+    private void setTokenType(String newTokenType) {
+<span class="nc bnc" id="L163" title="All 2 branches missed.">        if (this.isValidTokenType(newTokenType)) {</span>
+            // Capitalized for case sensitive Auth schemes
+<span class="nc" id="L165">            this.tokenType = newTokenType.substring(0,1).toUpperCase() + newTokenType.substring(1).toLowerCase();</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">        } else if (this.tokenType == null) {</span>
+<span class="nc" id="L167">            this.tokenType = DEFAULT_TOKEN_TYPE;</span>
+        }
+<span class="nc" id="L169">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

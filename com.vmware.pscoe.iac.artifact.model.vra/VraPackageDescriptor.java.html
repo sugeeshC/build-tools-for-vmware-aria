@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraPackageDescriptor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.vra</a> &gt; <span class="el_source">VraPackageDescriptor.java</span></div><h1>VraPackageDescriptor.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model.vra;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.vmware.pscoe.iac.artifact.model.PackageDescriptor;
+import com.vmware.pscoe.iac.artifact.model.PackageContent.Content;
+
+<span class="nc" id="L30">public class VraPackageDescriptor extends PackageDescriptor {</span>
+
+    private List&lt;String&gt; propertyGroup;
+    private List&lt;String&gt; propertyDefinition;
+    private List&lt;String&gt; softwareComponent;
+    private List&lt;String&gt; compositeBlueprint;
+    private List&lt;String&gt; xaasBlueprint;
+    private List&lt;String&gt; xaasResourceAction;
+    private List&lt;String&gt; xaasResourceType;
+    private List&lt;String&gt; xaasResourceMapping;
+    private List&lt;String&gt; componentProfileValue;
+    private List&lt;String&gt; workflowSubscription;
+    private List&lt;String&gt; globalPropertyDefinition;
+    private List&lt;String&gt; globalPropertyGroup;
+
+    public List&lt;String&gt; getPropertyGroup() {
+<span class="nc" id="L46">        return propertyGroup;</span>
+    }
+
+    public void setPropertyGroup(List&lt;String&gt; propertyGroup) {
+<span class="nc" id="L50">        this.propertyGroup = propertyGroup;</span>
+<span class="nc" id="L51">    }</span>
+
+    public List&lt;String&gt; getPropertyDefinition() {
+<span class="nc" id="L54">        return propertyDefinition;</span>
+    }
+
+    public void setPropertyDefinition(List&lt;String&gt; propertyDefinition) {
+<span class="nc" id="L58">        this.propertyDefinition = propertyDefinition;</span>
+<span class="nc" id="L59">    }</span>
+
+    public List&lt;String&gt; getSoftwareComponent() {
+<span class="nc" id="L62">        return softwareComponent;</span>
+    }
+
+    public void setSoftwareComponent(List&lt;String&gt; softwareComponent) {
+<span class="nc" id="L66">        this.softwareComponent = softwareComponent;</span>
+<span class="nc" id="L67">    }</span>
+
+    public List&lt;String&gt; getCompositeBlueprint() {
+<span class="nc" id="L70">        return compositeBlueprint;</span>
+    }
+
+    public void setCompositeBlueprint(List&lt;String&gt; compositeBlueprint) {
+<span class="nc" id="L74">        this.compositeBlueprint = compositeBlueprint;</span>
+<span class="nc" id="L75">    }</span>
+
+    public List&lt;String&gt; getXaasBlueprint() {
+<span class="nc" id="L78">        return xaasBlueprint;</span>
+    }
+
+    public void setXaasBlueprint(List&lt;String&gt; xaasBlueprint) {
+<span class="nc" id="L82">        this.xaasBlueprint = xaasBlueprint;</span>
+<span class="nc" id="L83">    }</span>
+
+    public List&lt;String&gt; getXaasResourceAction() {
+<span class="nc" id="L86">        return xaasResourceAction;</span>
+    }
+
+    public void setXaasResourceAction(List&lt;String&gt; xaasResourceAction) {
+<span class="nc" id="L90">        this.xaasResourceAction = xaasResourceAction;</span>
+<span class="nc" id="L91">    }</span>
+
+    public List&lt;String&gt; getXaasResourceType() {
+<span class="nc" id="L94">        return xaasResourceType;</span>
+    }
+
+    public void setXaasResourceType(List&lt;String&gt; xaasResourceType) {
+<span class="nc" id="L98">        this.xaasResourceType = xaasResourceType;</span>
+<span class="nc" id="L99">    }</span>
+
+    public List&lt;String&gt; getXaasResourceMapping() {
+<span class="nc" id="L102">        return xaasResourceMapping;</span>
+    }
+
+    public void setXaasResourceMapping(List&lt;String&gt; xaasResourceMapping) {
+<span class="nc" id="L106">        this.xaasResourceMapping = xaasResourceMapping;</span>
+<span class="nc" id="L107">    }</span>
+
+    public List&lt;String&gt; getComponentProfileValue() {
+<span class="nc" id="L110">        return componentProfileValue;</span>
+    }
+
+    public void setComponentProfileValue(List&lt;String&gt; componentProfileValue) {
+<span class="nc" id="L114">        this.componentProfileValue = componentProfileValue;</span>
+<span class="nc" id="L115">    }</span>
+
+    public List&lt;String&gt; getWorkflowSubscription() {
+<span class="nc" id="L118">        return workflowSubscription;</span>
+    }
+
+    public void setWorkflowSubscription(List&lt;String&gt; workflowSubscription) {
+<span class="nc" id="L122">        this.workflowSubscription = workflowSubscription;</span>
+<span class="nc" id="L123">    }</span>
+
+    public List&lt;String&gt; getGlobalPropertyDefinition() {
+<span class="nc" id="L126">        return globalPropertyDefinition;</span>
+    }
+
+    public void setGlobalPropertyDefinition(List&lt;String&gt; globalPropertyDefinition) {
+<span class="nc" id="L130">        this.globalPropertyDefinition = globalPropertyDefinition;</span>
+<span class="nc" id="L131">    }</span>
+
+    public List&lt;String&gt; getGlobalPropertyGroup() {
+<span class="nc" id="L134">        return globalPropertyGroup;</span>
+    }
+
+    public void setGlobalPropertyGroup(List&lt;String&gt; globalPropertyGroup) {
+<span class="nc" id="L138">        this.globalPropertyGroup = globalPropertyGroup;</span>
+<span class="nc" id="L139">    }</span>
+
+    public List&lt;String&gt; getMembersForType(VraPackageMemberType type) {
+<span class="nc bnc" id="L142" title="All 13 branches missed.">        switch (type) {</span>
+        case COMPOSITE_BLUEPRINT:
+<span class="nc" id="L144">            return getCompositeBlueprint();</span>
+        case PROPERTY_DEFINITION:
+<span class="nc" id="L146">            return getPropertyDefinition();</span>
+        case PROPERTY_GROUP:
+<span class="nc" id="L148">            return getPropertyGroup();</span>
+        case SOFTWARE_COMPONENT:
+<span class="nc" id="L150">            return getSoftwareComponent();</span>
+        case XAAS_BLUEPRINT:
+<span class="nc" id="L152">            return getXaasBlueprint();</span>
+        case XAAS_RESOURCE_ACTION:
+<span class="nc" id="L154">            return getXaasResourceAction();</span>
+        case XAAS_RESOURCE_MAPPING:
+<span class="nc" id="L156">            return getXaasResourceMapping();</span>
+        case XAAS_RESOURCE_TYPE:
+<span class="nc" id="L158">            return getXaasResourceType();</span>
+        case COMPONENT_PROFILE_VALUE:
+<span class="nc" id="L160">            return getComponentProfileValue();</span>
+        case WORKFLOW_SUBSCRIPTION:
+<span class="nc" id="L162">            return getWorkflowSubscription();</span>
+        case GLOBAL_PROPERTY_DEFINITION:
+<span class="nc" id="L164">            return getGlobalPropertyDefinition();</span>
+        case GLOBAL_PROPERTY_GROUP:
+<span class="nc" id="L166">            return getGlobalPropertyGroup();</span>
+        default:
+<span class="nc" id="L168">            throw new RuntimeException(&quot;ContentType is not supported!&quot;);</span>
+        }
+    }
+
+    public boolean hasNativeContent() {
+<span class="nc" id="L173">        return Arrays.stream(VraPackageMemberType.values())</span>
+<span class="nc" id="L174">            .filter(type -&gt; type.isNativeContent())</span>
+<span class="nc" id="L175">            .anyMatch(type -&gt; {</span>
+<span class="nc" id="L176">                List&lt;String&gt; memberNames = this.getMembersForType(type);</span>
+<span class="nc bnc" id="L177" title="All 4 branches missed.">                return memberNames != null &amp;&amp; !memberNames.isEmpty();</span>
+            });
+    }
+
+    public static VraPackageDescriptor getInstance(File filesystemPath) {
+<span class="nc" id="L182">        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());</span>
+<span class="nc" id="L183">        mapper.setPropertyNamingStrategy(PropertyNamingStrategy.KEBAB_CASE);</span>
+        try {
+<span class="nc" id="L185">            return mapper.readValue(filesystemPath, VraPackageDescriptor.class);</span>
+<span class="nc" id="L186">        } catch (Exception e) {</span>
+<span class="nc" id="L187">            throw new RuntimeException(</span>
+<span class="nc" id="L188">                    &quot;Unable to load vRA Package Descriptor[&quot; + filesystemPath.getAbsolutePath() + &quot;]&quot;, e);</span>
+        }
+    }
+
+    public static VraPackageDescriptor getInstance(VraPackageContent content) {
+<span class="nc" id="L193">        HashMap&lt;VraPackageContent.ContentType, List&lt;String&gt;&gt; map = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L194" title="All 2 branches missed.">        for (VraPackageContent.ContentType type : VraPackageContent.ContentType.values()) {</span>
+<span class="nc" id="L195">            map.put(type, new ArrayList&lt;&gt;());</span>
+        }
+
+<span class="nc bnc" id="L198" title="All 2 branches missed.">        for (Content c : content.getContent()) {</span>
+<span class="nc" id="L199">            map.get(c.getType()).add(c.getName());</span>
+<span class="nc" id="L200">        }</span>
+
+<span class="nc" id="L202">        VraPackageDescriptor pd = new VraPackageDescriptor();</span>
+<span class="nc" id="L203">        pd.propertyGroup = map.get(VraPackageContent.ContentType.PROPERTY_GROUP);</span>
+<span class="nc" id="L204">        pd.propertyDefinition = map.get(VraPackageContent.ContentType.PROPERTY_DICTIONARY);</span>
+<span class="nc" id="L205">        pd.softwareComponent = map.get(VraPackageContent.ContentType.SOFTWARE_COMPONENT);</span>
+<span class="nc" id="L206">        pd.compositeBlueprint = map.get(VraPackageContent.ContentType.COMPOSITE_BLUEPRINT);</span>
+<span class="nc" id="L207">        pd.xaasBlueprint = map.get(VraPackageContent.ContentType.XAAS_BLUEPRINT);</span>
+<span class="nc" id="L208">        pd.xaasResourceAction = map.get(VraPackageContent.ContentType.XAAS_RESOURCE_ACTION);</span>
+<span class="nc" id="L209">        pd.xaasResourceType = map.get(VraPackageContent.ContentType.XAAS_RESOURCE_TYPE);</span>
+<span class="nc" id="L210">        pd.xaasResourceMapping = map.get(VraPackageContent.ContentType.XAAS_RESOURCE_MAPPING);</span>
+<span class="nc" id="L211">        pd.workflowSubscription = map.get(VraPackageContent.ContentType.WORKFLOW_SUBSCRIPTION);</span>
+<span class="nc" id="L212">        pd.globalPropertyDefinition = map.get(VraPackageContent.ContentType.GLOBAL_PROPERTY_DEFINITION);</span>
+<span class="nc" id="L213">        pd.globalPropertyGroup = map.get(VraPackageContent.ContentType.GLOBAL_PROPERTY_GROUP);</span>
+
+        // Not supported
+        // pd.componentProfileValue = map.get(VraPackageContent.ContentType);
+
+<span class="nc" id="L218">        return pd;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

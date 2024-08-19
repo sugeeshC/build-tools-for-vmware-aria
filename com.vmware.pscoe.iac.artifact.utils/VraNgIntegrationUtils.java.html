@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgIntegrationUtils.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.utils</a> &gt; <span class="el_source">VraNgIntegrationUtils.java</span></div><h1>VraNgIntegrationUtils.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.utils;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgIntegration;
+import com.vmware.pscoe.iac.artifact.rest.RestClientVraNg;
+
+import java.util.List;
+import java.util.Optional;
+
+public class VraNgIntegrationUtils {
+    public static final String DEFAULT_INTEGRATION_NAME = &quot;embedded-VRO&quot;;
+<span class="nc" id="L26">    private static final VraNgIntegrationUtils instance = new VraNgIntegrationUtils();</span>
+
+<span class="nc" id="L28">    private Optional&lt;VraNgIntegration&gt; retVal = Optional.empty();</span>
+
+<span class="nc" id="L30">    private VraNgIntegrationUtils() {}</span>
+
+    public static VraNgIntegrationUtils getInstance() {
+<span class="nc" id="L33">        return instance;</span>
+    }
+
+    public VraNgIntegration getDefaultVraIntegration(RestClientVraNg restClient) {
+<span class="nc bnc" id="L37" title="All 2 branches missed.">        if(this.retVal.isPresent()) {</span>
+<span class="nc" id="L38">            return this.retVal.get();</span>
+        }
+
+<span class="nc" id="L41">        List&lt;VraNgIntegration&gt; integrations = restClient.getVraWorkflowIntegrations();</span>
+
+<span class="nc" id="L43">        this.retVal = integrations.stream().filter(integration -&gt; DEFAULT_INTEGRATION_NAME.equalsIgnoreCase(integration.getName()))</span>
+<span class="nc" id="L44">                .findFirst();</span>
+
+<span class="nc" id="L46">        return this.retVal.orElse(new VraNgIntegration());</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,454 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgCustomResourceStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.vrang</a> &gt; <span class="el_source">VraNgCustomResourceStore.java</span></div><h1>VraNgCustomResourceStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationException;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVraNg;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCustomResource;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageDescriptor;
+import com.vmware.pscoe.iac.artifact.rest.RestClientVraNg;
+import com.vmware.pscoe.iac.artifact.store.filters.CustomFolderFileFilter;
+import com.vmware.pscoe.iac.artifact.utils.VraNgOrganizationUtil;
+import com.vmware.pscoe.iac.artifact.utils.VraNgProjectUtil;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+
+import org.slf4j.Logger;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.client.HttpClientErrorException;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import static com.vmware.pscoe.iac.artifact.store.vrang.VraNgDirs.DIR_CUSTOM_RESOURCES;
+
+<span class="fc" id="L54">public class VraNgCustomResourceStore extends AbstractVraNgStore {</span>
+
+	/**
+	 * Current Organization Id.
+	 */
+	private String currentOrganizationId;
+
+	/**
+	 * @param restClient
+	 * @param vraNgPackage
+	 * @param config
+	 * @param vraNgPackageDescriptor
+	 */
+	@Override
+	public void init(final RestClientVraNg restClient, final Package vraNgPackage, final ConfigurationVraNg config,
+					final VraNgPackageDescriptor vraNgPackageDescriptor) {
+<span class="fc" id="L70">		super.init(restClient, vraNgPackage, config, vraNgPackageDescriptor);</span>
+<span class="fc" id="L71">		this.currentOrganizationId = VraNgOrganizationUtil.getOrganization(this.restClient, this.config).getId();</span>
+<span class="fc" id="L72">	}</span>
+
+	/**
+	 * @param restClient
+	 * @param vraNgPackage
+	 * @param config
+	 * @param vraNgPackageDescriptor
+	 * @param logger
+	 */
+	@Override
+	public void init(final RestClientVraNg restClient, final Package vraNgPackage, final ConfigurationVraNg config,
+					 final VraNgPackageDescriptor vraNgPackageDescriptor, final Logger logger) {
+<span class="nc" id="L84">		super.init(restClient, vraNgPackage, config, vraNgPackageDescriptor, logger);</span>
+<span class="nc" id="L85">		this.currentOrganizationId = VraNgOrganizationUtil.getOrganization(this.restClient, this.config).getId();</span>
+<span class="nc" id="L86">	}</span>
+
+	/**
+	 * Used to fetch the store's data from the package descriptor.
+	 *
+	 * @return list of custom resources
+	 */
+	@Override
+	protected List&lt;String&gt; getItemListFromDescriptor() {
+<span class="fc" id="L95">		return vraNgPackageDescriptor.getCustomResource();</span>
+	}
+
+	/**
+	 * Called when the List returned from getItemListFromDescriptor is empty.
+	 */
+	@Override
+	protected void exportStoreContent() {
+<span class="fc" id="L103">		Map&lt;String, VraNgCustomResource&gt; customResourcesOnServer = this.restClient.getAllCustomResources();</span>
+
+<span class="fc bfc" id="L105" title="All 2 branches covered.">		for (String customResourceId : customResourcesOnServer.keySet()) {</span>
+<span class="fc" id="L106">			storeCustomResourceOnFilesystem(</span>
+				vraNgPackage,
+<span class="fc" id="L108">				customResourcesOnServer.get(customResourceId).getName(),</span>
+<span class="fc" id="L109">				customResourcesOnServer.get(customResourceId).getJson()</span>
+			);
+<span class="fc" id="L111">		}</span>
+<span class="fc" id="L112">	}</span>
+
+	/**
+	 * Called when the List returned from getItemListFromDescriptor is not empty.
+	 *
+	 * @param customResourcesToExport list of custom resources
+	 */
+	@Override
+	protected void exportStoreContent(final List&lt;String&gt; customResourcesToExport) {
+<span class="fc" id="L121">		Map&lt;String, VraNgCustomResource&gt; customResourcesOnServer = this.restClient.getAllCustomResources();</span>
+<span class="fc" id="L122">		Set&lt;VraNgCustomResource&gt; serverCustomResources =</span>
+<span class="fc" id="L123">			customResourcesOnServer.values().stream().collect(Collectors.toSet());</span>
+
+<span class="fc" id="L125">		customResourcesToExport.forEach(customResourceName -&gt; {</span>
+<span class="fc" id="L126">			VraNgCustomResource customResource = serverCustomResources.stream()</span>
+<span class="fc" id="L127">				.filter(cr -&gt; customResourceName.equals(cr.getName()))</span>
+<span class="fc" id="L128">				.findAny()</span>
+<span class="fc" id="L129">				.orElse(null);</span>
+<span class="fc bfc" id="L130" title="All 2 branches covered.">			if (customResource == null) {</span>
+<span class="fc" id="L131">				throw new IllegalStateException(</span>
+<span class="fc" id="L132">					String.format(&quot;Custom Resource [%s] not found on the server.&quot;, customResourceName));</span>
+			}
+<span class="fc" id="L134">			storeCustomResourceOnFilesystem(</span>
+				vraNgPackage,
+				customResourceName,
+<span class="fc" id="L137">				customResource.getJson()</span>
+			);
+<span class="fc" id="L139">		});</span>
+<span class="fc" id="L140">	}</span>
+
+	/**
+	 * @param sourceDirectory
+	 */
+	public void importContent(final File sourceDirectory) {
+<span class="fc" id="L146">		File customResourcesFolder = Paths.get(sourceDirectory.getPath(), DIR_CUSTOM_RESOURCES).toFile();</span>
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">		if (!customResourcesFolder.exists()) {</span>
+<span class="nc" id="L148">			logger.info(&quot;Custom Resource folder is missing '{}' &quot;, VraNgDirs.DIR_CONTENT_SOURCES);</span>
+<span class="nc" id="L149">			return;</span>
+		}
+		// Check if there are any blueprints to import
+<span class="fc" id="L152">		File[] localList = this.filterBasedOnConfiguration(customResourcesFolder, new CustomFolderFileFilter(this.getItemListFromDescriptor()));</span>
+<span class="pc bpc" id="L153" title="1 of 4 branches missed.">		if (localList == null || localList.length == 0) {</span>
+<span class="fc" id="L154">			logger.info(&quot;No Custom Resource available - skip import&quot;);</span>
+<span class="fc" id="L155">			return;</span>
+		}
+<span class="fc bfc" id="L157" title="All 2 branches covered.">		for (File cr : localList) {</span>
+<span class="fc" id="L158">			this.importCustomResource(cr);</span>
+		}
+<span class="fc" id="L160">	}</span>
+
+	/**
+	 * Save a custom resource to a JSON file.
+	 * Organization ID is removed to enable import in different organizations.
+	 * Custom Resource ID is removed to prevent unintentional deletition
+	 * during future imports of the same custom Resource to different tenant.
+	 *
+	 * @param vraNgPackage       source package
+	 * @param customResourceName source custom resource name
+	 * @param customResourceJson source custom resource json
+	 * @return custom resource file
+	 */
+	private File storeCustomResourceOnFilesystem(final Package vraNgPackage, final String customResourceName,
+												 final String customResourceJson) {
+<span class="fc" id="L175">		File store = new File(vraNgPackage.getFilesystemPath());</span>
+<span class="fc" id="L176">		File customResource = Paths.get(store.getPath(), DIR_CUSTOM_RESOURCES, customResourceName + &quot;.json&quot;).toFile();</span>
+<span class="fc" id="L177">		customResource.getParentFile().mkdirs();</span>
+
+		try {
+<span class="fc" id="L180">			Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="fc" id="L181">			final JsonObject customResourceJsonElement = gson.fromJson(customResourceJson, JsonObject.class);</span>
+
+<span class="fc" id="L183">			this.fixOrgId(customResourceJsonElement, &quot;orgId&quot;);</span>
+
+<span class="fc" id="L185">			customResourceJsonElement.remove(&quot;id&quot;);</span>
+<span class="fc" id="L186">			logger.info(&quot;Custom Resource ID is removed. &quot;</span>
+				+ &quot;Note that Custom Resource binding relies on Resource Type to &quot;
+				+ &quot;prevent unintentional deletitions in multi-tenant environments. &quot;
+				+ &quot;ID is a unique identifier for the entire vRA, not dependant on the tenant.&quot;);
+
+<span class="fc" id="L191">			final String customResourceJsonString = gson.toJson(customResourceJsonElement);</span>
+<span class="fc" id="L192">			logger.info(&quot;Created file {}&quot;, Files.write(Paths.get(customResource.getPath()),</span>
+<span class="fc" id="L193">				customResourceJsonString.getBytes(), StandardOpenOption.CREATE));</span>
+<span class="nc" id="L194">		} catch (IOException e) {</span>
+<span class="nc" id="L195">			logger.error(&quot;Unable to store custom resource {} {}&quot;, customResourceName, customResource.getPath());</span>
+<span class="nc" id="L196">			throw new RuntimeException(&quot;Unable to store custom resource.&quot;, e);</span>
+<span class="fc" id="L197">		}</span>
+
+<span class="fc" id="L199">		return customResource;</span>
+	}
+
+	/**
+	 * Import custom resource from a file.
+	 * In case custom resource with the same resource type already exists in the organization,
+	 * the same is deleted prior the import. Custom resource ID is removed to prevent the deletition
+	 * of existing custom resource with matching ID in another tenant in multi-tenant environments.
+	 *
+	 * @param jsonFile file of the resource action
+	 */
+	private void importCustomResource(final File jsonFile) {
+<span class="fc" id="L211">		String customResourceName = FilenameUtils.removeExtension(jsonFile.getName());</span>
+<span class="fc" id="L212">		String resourceType = &quot;[UNKNOWN]&quot;;</span>
+<span class="fc" id="L213">		String existingObjectId = null;</span>
+<span class="fc" id="L214">		Boolean couldNotDeleteCustomResource = false;</span>
+		try {
+<span class="fc" id="L216">			logger.info(&quot;Importing custom resource {}...&quot;, customResourceName);</span>
+<span class="fc" id="L217">			String customResourceJson = FileUtils.readFileToString(jsonFile, &quot;UTF-8&quot;);</span>
+
+<span class="fc" id="L219">			Gson gson = new GsonBuilder().setLenient().serializeNulls().create();</span>
+<span class="fc" id="L220">			JsonObject customResourceJsonElement = gson.fromJson(customResourceJson, JsonObject.class);</span>
+
+<span class="fc" id="L222">			this.validateCustomResourceDay2ActionName(customResourceJsonElement);</span>
+<span class="fc" id="L223">			this.fixCustomResourceDefinition(customResourceJsonElement);</span>
+<span class="fc" id="L224">			this.populateVroEndpoints(customResourceJsonElement);</span>
+
+<span class="fc" id="L226">			JsonElement resourceTypeElement = customResourceJsonElement.get(&quot;resourceType&quot;);</span>
+<span class="pc bpc" id="L227" title="2 of 4 branches missed.">			if (resourceTypeElement != null &amp;&amp; resourceTypeElement.isJsonPrimitive()) {</span>
+<span class="fc" id="L228">				resourceType = resourceTypeElement.getAsString();</span>
+				// Search for already existing element with the given resource type.
+				// Note that we will be able to list it and find it only if it have been created
+				// by the given organization.
+				// If not found, there is still a posibility that one exists under different
+				// organization.
+<span class="fc" id="L234">				existingObjectId = getIdOfCustomResourceOfType(resourceType);</span>
+			}
+			// If Custom Resource with the same resource type exists - delete it first.
+			// There can only be just one custom resource of a given resource type.
+<span class="fc bfc" id="L238" title="All 2 branches covered.">			if (existingObjectId != null) {</span>
+<span class="fc" id="L239">				logger.info(&quot;Custom resource '{}' already exists and has ID '{}'&quot;, customResourceName,</span>
+					existingObjectId);
+<span class="fc" id="L241">				logger.info(&quot;Trying to delete custom resource '{}' first.&quot;, customResourceName);</span>
+<span class="fc bfc" id="L242" title="All 2 branches covered.">				if (!tryDeleteCustomResource(customResourceName, existingObjectId, customResourceJsonElement)) {</span>
+<span class="fc" id="L243">					couldNotDeleteCustomResource = true;</span>
+<span class="fc" id="L244">					logger.error(&quot;Failed to update Custom Resource '{}'. &quot;</span>
+							+ &quot;Could not delete the existing custom resource due to active deployments. &quot;,
+						customResourceName);
+<span class="fc" id="L247">					logger.warn(&quot;Will attempt to update Custom Resource '{}'&quot;, customResourceName);</span>
+				}
+			}
+
+			// Strip the Custom Resource ID. In case a Custom Resource with the same ID
+			// exists in another tenant, the one would not be deleted.
+<span class="fc" id="L253">			JsonElement idElement = customResourceJsonElement.get(&quot;id&quot;);</span>
+<span class="pc bpc" id="L254" title="1 of 4 branches missed.">			if (idElement != null &amp;&amp; idElement.isJsonPrimitive()) {</span>
+<span class="fc" id="L255">				logger.warn(&quot;Provided Custom Resource ID is removed before import execution. &quot;</span>
+					+ &quot;Custom Resource binding relies on Resource Type instead. &quot;
+					+ &quot;This is required due to the risk of unintentional deletition of Custom Resources &quot;
+					+ &quot;with matching IDs in multi-tenant environments.&quot;);
+<span class="fc" id="L259">				customResourceJsonElement.remove(&quot;id&quot;);</span>
+			}
+
+			// Adds the Pre-Fetched ID of the Custom Resource
+			// in case if the initial CR deletion failed.
+<span class="fc bfc" id="L264" title="All 4 branches covered.">			if (existingObjectId != null &amp;&amp; couldNotDeleteCustomResource) {</span>
+<span class="fc" id="L265">				customResourceJsonElement.add(&quot;id&quot;, new JsonPrimitive(existingObjectId));</span>
+			}
+
+<span class="fc" id="L268">			customResourceJson = gson.toJson(customResourceJsonElement);</span>
+<span class="fc" id="L269">			logger.info(&quot;Create/update custom resource '{}'.&quot;, customResourceName);</span>
+<span class="fc" id="L270">			restClient.importCustomResource(customResourceName, customResourceJson);</span>
+
+<span class="nc" id="L272">		} catch (IOException e) {</span>
+<span class="nc" id="L273">			throw new RuntimeException(&quot;Error reading from file: &quot; + jsonFile.getPath(), e);</span>
+<span class="nc" id="L274">		} catch (HttpClientErrorException clientException) {</span>
+<span class="nc bnc" id="L275" title="All 2 branches missed.">			if (isCustomResourceExistingInDifferentOrganization(clientException)) {</span>
+				// Do warn the user, but don't fail.
+<span class="nc" id="L277">				logger.warn(String.format(&quot;Cannot import Custom Resource '%s', because resource of that type (%s&quot;</span>
+						+ &quot;) already exists under  different organization. Please note that once a Custom Resource is defined in one organization it globally &quot;
+						+ &quot;available in the whole vRA (one can use it in cloud template canvas regardless of organization), still it can be listed, updated or &quot;
+						+ &quot;deleted only from the organization it was created in. Please make sure the correct version of Custom Resource is already in place or &quot;
+						+ &quot;ask the administrator to delete it and then repeat the import. Original Error Message: %s&quot;,
+<span class="nc" id="L282">					customResourceName, resourceType, clientException.getMessage()));</span>
+<span class="nc" id="L283">				return;</span>
+			}
+
+<span class="nc" id="L286">			String message = String.format(&quot;Could not import custom resource with name '%s' : %s&quot;, customResourceName,</span>
+<span class="nc" id="L287">				clientException.getMessage());</span>
+<span class="nc" id="L288">			throw new RuntimeException(message, clientException);</span>
+<span class="nc" id="L289">		} catch (ConfigurationException e) {</span>
+<span class="nc" id="L290">			logger.error(&quot;Error importing custom resource {}...&quot;, customResourceName);</span>
+<span class="nc" id="L291">			throw new RuntimeException(e);</span>
+<span class="fc" id="L292">		} catch (RuntimeException e) {</span>
+<span class="fc" id="L293">			String str = e.getClass().getName() + &quot; : &quot; + e.getMessage();</span>
+<span class="fc" id="L294">			throw new RuntimeException(&quot;Error executing POST to server: &quot; + str, e);</span>
+<span class="fc" id="L295">		}</span>
+<span class="fc" id="L296">	}</span>
+
+	/**
+	 * Custom Resource Second Day action name validation.
+	 *
+	 * @param customResourceJsonElement - The CR to validate
+	 */
+	private void validateCustomResourceDay2ActionName(final JsonObject customResourceJsonElement) {
+<span class="fc" id="L304">		JsonArray additionalActionsArray = customResourceJsonElement.get(&quot;additionalActions&quot;).getAsJsonArray();</span>
+<span class="fc" id="L305">		additionalActionsArray.forEach(action -&gt; {</span>
+<span class="pc bpc" id="L306" title="1 of 2 branches missed.">			if (action != null) {</span>
+<span class="fc" id="L307">				JsonObject actionJson = action.getAsJsonObject();</span>
+<span class="fc" id="L308">				String name = actionJson.get(&quot;name&quot;).getAsString();</span>
+<span class="fc" id="L309">				Pattern pattern = Pattern.compile(&quot;[^a-zA-Z0-9:\\-_.]&quot;);</span>
+<span class="fc" id="L310">        		Matcher matcher = pattern.matcher(name);</span>
+
+<span class="fc" id="L312">				if (</span>
+<span class="fc bfc" id="L313" title="All 2 branches covered.">					matcher.find()</span>
+<span class="fc bfc" id="L314" title="All 2 branches covered.">						|| name.startsWith(&quot;_&quot;)</span>
+<span class="fc bfc" id="L315" title="All 2 branches covered.">						|| name.endsWith(&quot;_&quot;)</span>
+<span class="fc bfc" id="L316" title="All 2 branches covered.">						|| name.startsWith(&quot;.&quot;)</span>
+<span class="fc bfc" id="L317" title="All 2 branches covered.">						|| name.endsWith(&quot;.&quot;)</span>
+<span class="pc bpc" id="L318" title="1 of 2 branches missed.">						|| name.contains(&quot; &quot;)</span>
+				) {
+<span class="fc" id="L320">					throw new RuntimeException(String.format(&quot;Action's name: '%s' must not contain special symbols except . : -&quot; </span>
+						+ &quot;_and must not start or end with a dot or '_' and must not contain spaces.&quot;, name)
+					);
+				}
+			}
+<span class="fc" id="L325">		});</span>
+<span class="fc" id="L326">	}</span>
+
+	private boolean tryDeleteCustomResource(final String customResourceName, final String existingObjectId,
+											final JsonObject customResourceJsonElement) {
+		try {
+<span class="fc" id="L331">			restClient.deleteCustomResource(customResourceName, existingObjectId);</span>
+<span class="fc" id="L332">			customResourceJsonElement.remove(&quot;id&quot;);</span>
+<span class="fc" id="L333">			customResourceJsonElement.add(&quot;id&quot;, new JsonPrimitive(existingObjectId));</span>
+<span class="fc" id="L334">		} catch (HttpClientErrorException ex) {</span>
+<span class="pc bpc" id="L335" title="1 of 2 branches missed.">			if (isCustomResourceActiveAttached(ex)) {</span>
+				// Do warn the user, but don't fail.
+<span class="fc" id="L337">				logger.debug(&quot;Cannot delete Custom Resource '{}', due to active deployments. Original Error Message: {}&quot;,</span>
+<span class="fc" id="L338">					customResourceName, ex.getMessage());</span>
+<span class="fc" id="L339">				return false;</span>
+			} else {
+<span class="nc" id="L341">				throw ex;</span>
+			}
+<span class="fc" id="L343">		}</span>
+<span class="fc" id="L344">		return true;</span>
+	}
+
+	private String getIdOfCustomResourceOfType(final String type) {
+<span class="pc bpc" id="L348" title="1 of 2 branches missed.">		if (type == null) {</span>
+<span class="nc" id="L349">			return null;</span>
+		}
+<span class="fc" id="L351">		Map&lt;String, VraNgCustomResource&gt; allResources = restClient.getAllCustomResources();</span>
+<span class="fc bfc" id="L352" title="All 2 branches covered.">		for (String id : allResources.keySet()) {</span>
+<span class="fc" id="L353">			VraNgCustomResource customResource = allResources.get(id);</span>
+<span class="fc" id="L354">			String json = customResource.getJson();</span>
+<span class="fc" id="L355">			Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="fc" id="L356">			final JsonObject customResourceObject = gson.fromJson(json, JsonObject.class);</span>
+<span class="fc" id="L357">			JsonElement resourceTypeElement = customResourceObject.get(&quot;resourceType&quot;);</span>
+<span class="pc bpc" id="L358" title="2 of 4 branches missed.">			if (resourceTypeElement != null &amp;&amp; resourceTypeElement.isJsonPrimitive()</span>
+<span class="pc bpc" id="L359" title="1 of 2 branches missed.">				&amp;&amp; type.equals(resourceTypeElement.getAsString())) {</span>
+<span class="fc" id="L360">				return id;</span>
+			}
+<span class="nc" id="L362">		}</span>
+<span class="fc" id="L363">		return null;</span>
+	}
+
+	private static boolean isCustomResourceExistingInDifferentOrganization(final HttpClientErrorException clientException) {
+<span class="nc" id="L367">		HttpStatus status = clientException.getStatusCode();</span>
+<span class="nc" id="L368">		final String magicMessage = &quot;Custom resource with the same resource type already exists! Use a different resource type name!&quot;;</span>
+<span class="nc" id="L369">		String message = clientException.getMessage();</span>
+<span class="nc bnc" id="L370" title="All 6 branches missed.">		return (status == HttpStatus.BAD_REQUEST &amp;&amp; message != null &amp;&amp; message.indexOf(magicMessage) != -1);</span>
+	}
+
+	private static boolean isCustomResourceActiveAttached(final HttpClientErrorException clientException) {
+<span class="fc" id="L374">		HttpStatus status = clientException.getStatusCode();</span>
+<span class="fc" id="L375">		final String magicMessage = &quot;Resource type cannot be deleted as there are active resources attached to it&quot;;</span>
+<span class="fc" id="L376">		String message = clientException.getMessage();</span>
+<span class="pc bpc" id="L377" title="3 of 6 branches missed.">		return (status == HttpStatus.BAD_REQUEST &amp;&amp; message != null &amp;&amp; message.indexOf(magicMessage) != -1);</span>
+	}
+
+	/**
+	 * In vRA versions 8.8.x+ the tenant needs to be present in the formDefinition, otherwise the import will fail.
+	 *
+	 * @param customResourceJsonElement - The CR to update
+	 */
+	private void fixCustomResourceDefinition(final JsonObject customResourceJsonElement) {
+		// Remove the organization from the general json object
+<span class="fc" id="L387">		this.fixOrgId(customResourceJsonElement, &quot;orgId&quot;);</span>
+
+<span class="fc" id="L389">		VraNgProjectUtil.changeProjectIdBetweenOrganizations(this.restClient, customResourceJsonElement, &quot;projectId&quot;);</span>
+
+		// Remove foreach additional action the organization id and the
+		// formDefinition.id property
+
+		// Replace the tenant property in the formDefinition with the correct one from the configuration
+<span class="fc" id="L395">		JsonArray additionalActionsArray = customResourceJsonElement.get(&quot;additionalActions&quot;).getAsJsonArray();</span>
+<span class="fc" id="L396">		additionalActionsArray.forEach(action -&gt; {</span>
+<span class="pc bpc" id="L397" title="1 of 2 branches missed.">			if (action != null) {</span>
+<span class="fc" id="L398">				JsonObject actionJson = action.getAsJsonObject();</span>
+<span class="fc" id="L399">				this.fixOrgId(actionJson, &quot;orgId&quot;);</span>
+<span class="pc bpc" id="L400" title="1 of 2 branches missed.">				if (actionJson.get(&quot;formDefinition&quot;) != null) {</span>
+<span class="fc" id="L401">					JsonObject formDefinition = actionJson.get(&quot;formDefinition&quot;).getAsJsonObject();</span>
+<span class="fc" id="L402">					formDefinition.remove(&quot;id&quot;);</span>
+
+<span class="fc" id="L404">					this.fixOrgId(formDefinition, &quot;tenant&quot;);</span>
+
+<span class="fc" id="L406">					VraNgProjectUtil.changeProjectIdBetweenOrganizations(this.restClient, formDefinition, &quot;projectId&quot;);</span>
+				}
+			}
+<span class="fc" id="L409">		});</span>
+<span class="fc" id="L410">	}</span>
+
+	/**
+	 * Fixes the organization id / tenant id in the given object with the one set in the configuration.
+	 * @param jsonObject
+	 * @param key
+	 */
+	private void fixOrgId(final JsonObject jsonObject, final String key) {
+<span class="pc bpc" id="L418" title="1 of 2 branches missed.">		if (jsonObject.has(key)) {</span>
+<span class="fc" id="L419">			jsonObject.remove(key);</span>
+		}
+
+<span class="fc" id="L422">		jsonObject.addProperty(key, this.currentOrganizationId);</span>
+<span class="fc" id="L423">	}</span>
+
+	private void populateVroEndpoints(final JsonObject customResourceJsonElement) throws ConfigurationException {
+<span class="fc" id="L426">		String runnableItemName = &quot;runnableItem&quot;;</span>
+<span class="fc" id="L427">		String endpointLinkName = &quot;endpointLink&quot;;</span>
+		// endpointLink fetched from the target environment/configuration
+<span class="fc" id="L429">		String endpointLink = this.getVroTargetIntegrationEndpointLink();</span>
+
+<span class="fc" id="L431">		JsonObject mainActions = customResourceJsonElement.getAsJsonObject(&quot;mainActions&quot;);</span>
+<span class="fc" id="L432">		JsonElement additionalActions = customResourceJsonElement.get(&quot;additionalActions&quot;);</span>
+
+		// Iterate through the main actions and update endpointLink
+<span class="fc bfc" id="L435" title="All 2 branches covered.">		for (String mainAct : new String[]{&quot;create&quot;, &quot;update&quot;, &quot;delete&quot;}) {</span>
+<span class="pc bpc" id="L436" title="1 of 2 branches missed.">			if (mainActions.getAsJsonObject(mainAct) != null) {</span>
+<span class="fc" id="L437">				mainActions.getAsJsonObject(mainAct).remove(endpointLinkName);</span>
+<span class="fc" id="L438">				mainActions.getAsJsonObject(mainAct).addProperty(endpointLinkName, endpointLink);</span>
+			}
+		}
+
+		// Iterate through the additional actions and update endpointLink
+<span class="pc bpc" id="L443" title="1 of 2 branches missed.">		if (additionalActions != null) {</span>
+<span class="fc" id="L444">			additionalActions.getAsJsonArray().forEach(action -&gt; {</span>
+<span class="fc" id="L445">				JsonObject act = action.getAsJsonObject();</span>
+<span class="pc bpc" id="L446" title="1 of 2 branches missed.">				if (act != null) {</span>
+<span class="fc" id="L447">					act.getAsJsonObject(runnableItemName).remove(endpointLinkName);</span>
+<span class="fc" id="L448">					act.getAsJsonObject(runnableItemName).addProperty(endpointLinkName, endpointLink);</span>
+				}
+<span class="fc" id="L450">			});</span>
+		}
+<span class="fc" id="L452">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

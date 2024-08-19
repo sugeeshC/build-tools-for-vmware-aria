@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VcdNgPackageManifest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.vcd</a> &gt; <span class="el_source">VcdNgPackageManifest.java</span></div><h1>VcdNgPackageManifest.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model.vcd;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.stream.Stream;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.vmware.pscoe.iac.artifact.PackageManager;
+
+public class VcdNgPackageManifest {
+	private String jsonData;
+	
+<span class="nc" id="L36">	private VcdNgPackageManifest(String jsonData) {</span>
+<span class="nc" id="L37">		this.jsonData = jsonData;</span>
+<span class="nc" id="L38">	}</span>
+
+<span class="nc" id="L40">	public class Scope {</span>
+		public static final String TENANT = &quot;tenant&quot;;
+		public static final String PROVIDER = &quot;service-provider&quot;;
+	}
+
+	private JsonElement getJsonMember(String key) {
+<span class="nc" id="L46">		Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="nc" id="L47">		JsonObject obj = gson.fromJson(this.jsonData, JsonObject.class);</span>
+<span class="nc" id="L48">		JsonElement member = obj.get(key);</span>
+<span class="nc bnc" id="L49" title="All 2 branches missed.">		if (member == null) {</span>
+<span class="nc" id="L50">			throw new RuntimeException(&quot;Can't find key &quot; + key + &quot; in metadata.&quot;);</span>
+		}
+
+<span class="nc" id="L53">		return member;</span>
+	}
+
+	public String[] getAsArray(String key) {
+<span class="nc" id="L57">		JsonElement member = getJsonMember(key);</span>
+
+<span class="nc bnc" id="L59" title="All 2 branches missed.">		if (!member.isJsonArray()) {</span>
+<span class="nc" id="L60">			throw new RuntimeException(&quot;Expected metadata member [&quot; + key + &quot;] to be an array, but is not&quot;);</span>
+		}
+		
+<span class="nc" id="L63">		JsonArray jsonArray = member.getAsJsonArray();</span>
+<span class="nc" id="L64">		String[] list = new String[jsonArray.size()];</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">		for (int i = 0; i &lt; jsonArray.size(); i++) {</span>
+<span class="nc" id="L66">			list[i] = jsonArray.get(i).getAsString();</span>
+		}
+
+<span class="nc" id="L69">		return list;</span>
+	}
+
+	public String getAsString(String key) {
+<span class="nc" id="L73">		return getJsonMember(key).getAsString();</span>
+	}
+
+	public String getJsonData() {
+<span class="nc" id="L77">		return jsonData;</span>
+	}
+
+	public String getUrn() {
+<span class="nc" id="L81">		return this.getAsString(&quot;urn&quot;);</span>
+	}
+
+	public String getName() {
+<span class="nc" id="L85">		return this.getAsString(&quot;name&quot;);</span>
+	}
+
+	public String getContainerVersion() {
+<span class="nc" id="L89">		return this.getAsString(&quot;containerVersion&quot;);</span>
+	}
+
+	public String getVersion() {
+<span class="nc" id="L93">		return this.getAsString(&quot;version&quot;);</span>
+	}
+
+	public boolean isTenantScoped() {
+<span class="nc" id="L97">		return Arrays.asList(this.getAsArray(&quot;scope&quot;)).contains(Scope.TENANT);</span>
+	}
+
+	public boolean isProviderScoped() {
+<span class="nc" id="L101">		return Arrays.asList(this.getAsArray(&quot;scope&quot;)).contains(Scope.PROVIDER);</span>
+	}
+
+	public String[] getPermissions() {
+<span class="nc" id="L105">		return this.getAsArray(&quot;permissions&quot;);</span>
+	}
+
+	public String getDescription() {
+<span class="nc" id="L109">		return this.getAsString(&quot;description&quot;);</span>
+	}
+
+	public String getVendor() {
+<span class="nc" id="L113">		return this.getAsString(&quot;vendor&quot;);</span>
+	}
+
+	public String getLicense() {
+<span class="nc" id="L117">		return this.getAsString(&quot;license&quot;);</span>
+	}
+
+	public String getLink() {
+<span class="nc" id="L121">		return this.getAsString(&quot;link&quot;);</span>
+	}
+
+	public String getModule() {
+<span class="nc" id="L125">		return this.getAsString(&quot;module&quot;);</span>
+	}
+
+	public String getRoute() {
+<span class="nc" id="L129">		return this.getAsString(&quot;route&quot;);</span>
+	}
+
+	public static VcdNgPackageManifest getInstance(String manifestContent) {
+<span class="nc" id="L133">		return new VcdNgPackageManifest(manifestContent);</span>
+	}
+
+	public static VcdNgPackageManifest getInstance(com.vmware.pscoe.iac.artifact.model.Package vcdNgPackage) {
+<span class="nc" id="L137">		PackageManager pm = new PackageManager(vcdNgPackage);</span>
+
+		String manifestContent;
+<span class="nc" id="L140">		Path parentFolder = Paths.get(vcdNgPackage.getFilesystemPath()).getParent();</span>
+<span class="nc" id="L141">		Path unpackFolder = Paths.get(parentFolder.toString(), vcdNgPackage.getName() + &quot;-manifest&quot;);</span>
+<span class="nc" id="L142">		Path manifestPath = Paths.get(parentFolder.toString(), vcdNgPackage.getName() + &quot;-manifest&quot;, &quot;manifest.json&quot;);</span>
+
+		try {
+<span class="nc" id="L145">			pm.unpack(unpackFolder.toFile());</span>
+<span class="nc" id="L146">			manifestContent = VcdNgPackageManifest.readFileLineByLine(manifestPath);</span>
+<span class="nc" id="L147">			pm.cleanup(unpackFolder.toFile());</span>
+<span class="nc" id="L148">		} catch (IOException e) {</span>
+<span class="nc" id="L149">			throw new RuntimeException(</span>
+<span class="nc" id="L150">					&quot;Error occurred while loading vCD Package Manifest for package [&quot; + vcdNgPackage.getFQName() + &quot;]&quot;,</span>
+					e);
+<span class="nc" id="L152">		}</span>
+
+<span class="nc" id="L154">		return VcdNgPackageManifest.getInstance(manifestContent);</span>
+	}
+
+	private static String readFileLineByLine(Path filePath) throws IOException {
+<span class="nc" id="L158">		StringBuilder contentBuilder = new StringBuilder();</span>
+
+<span class="nc" id="L160">		try (Stream&lt;String&gt; stream = Files.lines(filePath, StandardCharsets.UTF_8)) {</span>
+<span class="nc" id="L161">			stream.forEach(s -&gt; contentBuilder.append(s).append(&quot;\n&quot;));</span>
+<span class="nc" id="L162">		} catch (IOException e) {</span>
+<span class="nc" id="L163">			throw new IOException(&quot;Error while parsing manifest file.&quot;, e);</span>
+<span class="nc" id="L164">		}</span>
+
+<span class="nc" id="L166">		return contentBuilder.toString();</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

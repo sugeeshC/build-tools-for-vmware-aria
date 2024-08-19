@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VropsPackageDescriptor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.vrops</a> &gt; <span class="el_source">VropsPackageDescriptor.java</span></div><h1>VropsPackageDescriptor.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model.vrops;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.util.List;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.vmware.pscoe.iac.artifact.model.PackageDescriptor;
+
+/**
+ * VropsPackageDescriptor.
+ */
+<span class="fc" id="L29">public class VropsPackageDescriptor extends PackageDescriptor {</span>
+	/**
+	 * view.
+	 */
+	private List&lt;String&gt; view;
+	/**
+	 * dashboard.
+	 */
+	private List&lt;String&gt; dashboard;
+	/**
+	 * report.
+	 */
+	private List&lt;String&gt; report;
+	/**
+	 * alertDefinition.
+	 */
+	private List&lt;String&gt; alertDefinition;
+	/**
+	 * alertDefinition.
+	 */
+	private List&lt;String&gt; symptomDefinition;
+	/**
+	 * symptomDefinition.
+	 */
+	private List&lt;String&gt; recommendation;
+	/**
+	 * supermetric.
+	 */
+	private List&lt;String&gt; supermetric;
+	/**
+	 * metricConfig.
+	 */
+	private List&lt;String&gt; metricConfig;
+	/**
+	 * customGroup.
+	 */
+	private List&lt;String&gt; customGroup;
+	/**
+	 * policy.
+	 */
+	private List&lt;String&gt; policy;
+	/**
+	 * defaultPolicy.
+	 */
+	private String defaultPolicy;
+
+	/**
+	 * getView().
+	 * 
+	 * @return list of views.
+	 */
+	public List&lt;String&gt; getView() {
+<span class="nc" id="L81">		return this.view;</span>
+	}
+
+	/**
+	 * setView().
+	 * 
+	 * @param view list of views.
+	 */
+	public void setView(List&lt;String&gt; view) {
+<span class="nc" id="L90">		this.view = view;</span>
+<span class="nc" id="L91">	}</span>
+
+	/**
+	 * getDashboard().
+	 * 
+	 * @return list of dashboards.
+	 */
+	public List&lt;String&gt; getDashboard() {
+<span class="fc" id="L99">		return this.dashboard;</span>
+	}
+
+	/**
+	 * setDashboard().
+	 * 
+	 * @param dashboard list of dashboards.
+	 */
+	public void setDashboard(List&lt;String&gt; dashboard) {
+<span class="nc" id="L108">		this.dashboard = dashboard;</span>
+<span class="nc" id="L109">	}</span>
+
+	/**
+	 * getReport().
+	 * 
+	 * @return list of reports.
+	 */
+	public List&lt;String&gt; getReport() {
+<span class="fc" id="L117">		return this.report;</span>
+	}
+
+	/**
+	 * setReport().
+	 * 
+	 * @param report list of reports.
+	 */
+	public void setReport(List&lt;String&gt; report) {
+<span class="nc" id="L126">		this.report = report;</span>
+<span class="nc" id="L127">	}</span>
+
+	/**
+	 * getAlertDefinition().
+	 * 
+	 * @return list of alert definitions.
+	 */
+	public List&lt;String&gt; getAlertDefinition() {
+<span class="fc" id="L135">		return this.alertDefinition;</span>
+	}
+
+	/**
+	 * setAlertDefinition().
+	 * 
+	 * @param alertDefinition list of alert definitions.
+	 */
+	public void setAlertDefinition(List&lt;String&gt; alertDefinition) {
+<span class="nc" id="L144">		this.alertDefinition = alertDefinition;</span>
+<span class="nc" id="L145">	}</span>
+
+	/**
+	 * getSymptomDefinition().
+	 * 
+	 * @return list of symptom definitions.
+	 */
+	public List&lt;String&gt; getSymptomDefinition() {
+<span class="fc" id="L153">		return this.symptomDefinition;</span>
+	}
+
+	/**
+	 * setSymptomDefinition().
+	 * 
+	 * @param symptomDefinition list of symptom definitions.
+	 */
+	public void setSymptomDefinition(List&lt;String&gt; symptomDefinition) {
+<span class="nc" id="L162">		this.symptomDefinition = symptomDefinition;</span>
+<span class="nc" id="L163">	}</span>
+
+	/**
+	 * getPolicy().
+	 * 
+	 * @return list of policies.
+	 */
+	public List&lt;String&gt; getPolicy() {
+<span class="fc" id="L171">		return policy;</span>
+	}
+
+	/**
+	 * setPolicy().
+	 * 
+	 * @param policy list of symptom definitions.
+	 */
+	public void setPolicy(List&lt;String&gt; policy) {
+<span class="fc" id="L180">		this.policy = policy;</span>
+<span class="fc" id="L181">	}</span>
+
+	/**
+	 * getDefaultPolicy().
+	 * 
+	 * @return string with default policy.
+	 */
+	public String getDefaultPolicy() {
+<span class="fc" id="L189">		return defaultPolicy;</span>
+	}
+
+	/**
+	 * setDefaultPolicy().
+	 * 
+	 * @param defaultPolicy default policy to be set.
+	 */
+	public void setDefaultPolicy(String defaultPolicy) {
+<span class="fc" id="L198">		this.defaultPolicy = defaultPolicy;</span>
+<span class="fc" id="L199">	}</span>
+
+	/**
+	 * getSupermetric().
+	 * 
+	 * @return list of super metrics.
+	 */
+	public List&lt;String&gt; getSupermetric() {
+<span class="nc" id="L207">		return supermetric;</span>
+	}
+
+	/**
+	 * setSupermetric().
+	 * 
+	 * @param supermetric list of super metrics.
+	 */
+	public void setSupermetric(List&lt;String&gt; supermetric) {
+<span class="nc" id="L216">		this.supermetric = supermetric;</span>
+<span class="nc" id="L217">	}</span>
+
+	/**
+	 * getRecommendation().
+	 * 
+	 * @return list of recommendations.
+	 */
+	public List&lt;String&gt; getRecommendation() {
+<span class="fc" id="L225">		return recommendation;</span>
+	}
+
+	/**
+	 * setRecommendation().
+	 * 
+	 * @param recommendation list of recommendations.
+	 */
+	public void setRecommendation(List&lt;String&gt; recommendation) {
+<span class="nc" id="L234">		this.recommendation = recommendation;</span>
+<span class="nc" id="L235">	}</span>
+
+	/**
+	 * getSuperMetric().
+	 * 
+	 * @return list of super metrics.
+	 */
+	public List&lt;String&gt; getSuperMetric() {
+<span class="fc" id="L243">		return this.supermetric;</span>
+	}
+
+	/**
+	 * setSuperMetric().
+	 * 
+	 * @param sm list of super metrics.
+	 */
+	public void setSuperMetric(List&lt;String&gt; sm) {
+<span class="nc" id="L252">		this.supermetric = sm;</span>
+<span class="nc" id="L253">	}</span>
+
+	/**
+	 * getMetricConfig().
+	 * 
+	 * @return list of metric configs.
+	 */
+	public List&lt;String&gt; getMetricConfig() {
+<span class="fc" id="L261">		return this.metricConfig;</span>
+	}
+
+	/**
+	 * setMetricConfig().
+	 * 
+	 * @param metricConfig of metric configs.
+	 */
+	public void setMetricConfig(List&lt;String&gt; metricConfig) {
+<span class="nc" id="L270">		this.metricConfig = metricConfig;</span>
+<span class="nc" id="L271">	}</span>
+
+	/**
+	 * getCustomGroup().
+	 * 
+	 * @return list of custom groups.
+	 */
+	public List&lt;String&gt; getCustomGroup() {
+<span class="fc" id="L279">		return this.customGroup;</span>
+	}
+
+	/**
+	 * setCustomGroup().
+	 * 
+	 * @param customGroup of custom groups.
+	 */
+	public void setCustomGroup(List&lt;String&gt; customGroup) {
+<span class="nc" id="L288">		this.customGroup = customGroup;</span>
+<span class="nc" id="L289">	}</span>
+
+	/**
+	 * Returns the members based on the member type.
+	 * 
+	 * @param type the type of the vrops package member.
+	 * @return List of the members for given member type.
+	 */
+	public List&lt;String&gt; getMembersForType(VropsPackageMemberType type) {
+<span class="nc bnc" id="L298" title="All 11 branches missed.">		switch (type) {</span>
+			case VIEW:
+<span class="nc" id="L300">				return getView();</span>
+			case DASHBOARD:
+<span class="nc" id="L302">				return getDashboard();</span>
+			case REPORT:
+<span class="nc" id="L304">				return getReport();</span>
+			case ALERT_DEFINITION:
+<span class="nc" id="L306">				return getAlertDefinition();</span>
+			case SYMPTOM_DEFINITION:
+<span class="nc" id="L308">				return getSymptomDefinition();</span>
+			case POLICY:
+<span class="nc" id="L310">				return getPolicy();</span>
+			case RECOMMENDATION:
+<span class="nc" id="L312">				return getRecommendation();</span>
+			case SUPERMETRIC:
+<span class="nc" id="L314">				return getSuperMetric();</span>
+			case METRICCONFIG:
+<span class="nc" id="L316">				return getMetricConfig();</span>
+			case CUSTOM_GROUP:
+<span class="nc" id="L318">				return getCustomGroup();</span>
+			default:
+<span class="nc" id="L320">				throw new RuntimeException(&quot;ContentType is not supported!&quot;);</span>
+		}
+	}
+
+	/**
+	 * Returns the vrops package descriptor based on the contents of the
+	 * content.yaml file.
+	 * 
+	 * @param filesystemPath path to the content.yaml file.
+	 * @return instance of the descriptor based on the contents of the content.yaml
+	 *         file.
+	 */
+	@SuppressWarnings(&quot;deprecation&quot;)
+	public static VropsPackageDescriptor getInstance(File filesystemPath) {
+<span class="nc" id="L334">		ObjectMapper mapper = new ObjectMapper(new YAMLFactory());</span>
+<span class="nc" id="L335">		mapper.setPropertyNamingStrategy(PropertyNamingStrategy.KEBAB_CASE);</span>
+		try {
+<span class="nc" id="L337">			return mapper.readValue(filesystemPath, VropsPackageDescriptor.class);</span>
+<span class="nc" id="L338">		} catch (Exception e) {</span>
+<span class="nc" id="L339">			throw new RuntimeException(&quot;Unable to load vROps Package Descriptor [&quot; + filesystemPath.getAbsolutePath() + &quot;]&quot;, e);</span>
+		}
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

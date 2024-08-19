@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfigurationVra.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.configuration</a> &gt; <span class="el_source">ConfigurationVra.java</span></div><h1>ConfigurationVra.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.configuration;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.util.Properties;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
+
+import com.vmware.pscoe.iac.artifact.model.PackageType;
+
+public final class ConfigurationVra extends ConfigurationWithRefreshToken {
+
+    // Important - when modify properties refer to comments in @Configuration
+	public static final String TENANT = &quot;tenant&quot;;
+
+	public static final String REFRESH_TOKEN = &quot;refresh.token&quot;;
+
+<span class="nc" id="L33">	private final Logger logger = LoggerFactory.getLogger(Configuration.class);;</span>
+
+    /**
+     * vRA Package Import content conflict resolution mode
+     */
+	public static final String PACKAGE_IMPORT_OVERWRITE_MODE = &quot;packageImportOverwriteMode&quot;;
+
+    private ConfigurationVra(Properties props) {
+<span class="nc" id="L41">        super(PackageType.VRA, props);</span>
+<span class="nc" id="L42">    }</span>
+
+    public String getPackageImportOverwriteMode() {
+<span class="nc" id="L45">        return this.properties.getProperty(PACKAGE_IMPORT_OVERWRITE_MODE, &quot;SKIP,OVERWRITE&quot;);</span>
+    }
+
+    public String getTenant() {
+<span class="nc" id="L49">        return this.properties.getProperty(TENANT);</span>
+    }
+
+	@Override
+	public String getRefreshToken() {
+<span class="nc" id="L54">		return this.properties.getProperty(REFRESH_TOKEN);</span>
+	}
+
+    @Override
+    public String getUsername() {
+<span class="nc" id="L59">        String username = this.properties.getProperty(USERNAME);</span>
+<span class="nc" id="L60">        return username;</span>
+    }
+
+    @Override
+	public void validate(boolean domainOptional) throws ConfigurationException {
+<span class="nc" id="L65">		logger.info(&quot;Checking if exists refresh token&quot;);</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">		boolean useRefreshTokenForAuth = !StringUtils.isEmpty(this.getRefreshToken());</span>
+
+<span class="nc bnc" id="L68" title="All 2 branches missed.">		if(useRefreshTokenForAuth)</span>
+<span class="nc" id="L69">			logger.info(&quot;Refresh token in config for vra will be used&quot;);</span>
+		else
+<span class="nc" id="L71">			logger.info(&quot;Refresh token not detected using predefined auth method&quot;);</span>
+
+<span class="nc" id="L73">		super.validate(domainOptional, useRefreshTokenForAuth);</span>
+
+<span class="nc" id="L75">		StringBuilder message = new StringBuilder();</span>
+
+<span class="nc bnc" id="L77" title="All 2 branches missed.">		if (StringUtils.isEmpty(getTenant())) {</span>
+<span class="nc" id="L78">			message.append(&quot;Tenant &quot;);</span>
+		}
+
+<span class="nc bnc" id="L81" title="All 2 branches missed.">		if (message.length() != 0) {</span>
+<span class="nc" id="L82">			throw new ConfigurationException(&quot;Configuration validation failed: Empty &quot; + message);</span>
+		}
+<span class="nc" id="L84">	}</span>
+
+    public static ConfigurationVra fromProperties(Properties props) throws ConfigurationException {
+<span class="nc" id="L87">    	ConfigurationVra config = new ConfigurationVra(props);</span>
+<span class="nc" id="L88">    	config.validate(false);</span>
+<span class="nc" id="L89">    	return config;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

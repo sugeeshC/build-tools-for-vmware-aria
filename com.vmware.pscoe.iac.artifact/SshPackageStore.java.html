@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SshPackageStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact</a> &gt; <span class="el_source">SshPackageStore.java</span></div><h1>SshPackageStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.SftpException;
+
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationSsh;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.PackageContent;
+import com.vmware.pscoe.iac.artifact.model.PackageContent.Content;
+import com.vmware.pscoe.iac.artifact.model.basic.BasicPackageDescriptor;
+import com.vmware.pscoe.iac.artifact.ssh.SshClient;
+
+public class SshPackageStore extends GenericPackageStore&lt;BasicPackageDescriptor&gt; {
+	/**
+	 * The content directory.
+	 */
+    private static final String DIR_CONTENT = &quot;content&quot;;
+
+	/**
+	 * Variable for logging.
+	 */
+<span class="nc" id="L50">    private final Logger logger = LoggerFactory.getLogger(SshPackageStore.class);</span>
+
+	/**
+	 * The SSH configuration.
+	 */
+    private final ConfigurationSsh config;
+
+	/**
+	 * The session variable.
+	 */
+    private Session session;
+
+	/**
+	 *
+	 * @param sshConfig the ssh configuration
+	 */
+<span class="nc" id="L66">    protected SshPackageStore(final ConfigurationSsh sshConfig) {</span>
+<span class="nc" id="L67">        this.config = sshConfig;</span>
+<span class="nc" id="L68">    }</span>
+
+	/**
+	 * Imports all packages.
+	 * @param pkgs the packages to import
+	 * @param dryrun whether it should be dry run
+	 * @param mergePackages whether to merge the packages
+	 * @param enableBackup whether it should back up the packages on import
+	 * @return the imported packages
+	 */
+    @Override
+    public final List&lt;Package&gt; importAllPackages(final List&lt;Package&gt; pkgs, final boolean dryrun, final boolean mergePackages, final boolean enableBackup) {
+<span class="nc" id="L80">        this.validateFilesystem(pkgs);</span>
+
+<span class="nc" id="L82">        List&lt;Package&gt; sourceEndpointPackages = pkgs;</span>
+<span class="nc bnc" id="L83" title="All 2 branches missed.">        if (sourceEndpointPackages.isEmpty()) {</span>
+<span class="nc" id="L84">            return new ArrayList&lt;&gt;();</span>
+        }
+<span class="nc" id="L86">        List&lt;Package&gt; importedPackages = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L87" title="All 2 branches missed.">        for (Package pkg : sourceEndpointPackages) {</span>
+<span class="nc" id="L88">            importedPackages.add(this.importPackage(pkg, dryrun, mergePackages));</span>
+<span class="nc" id="L89">        }</span>
+
+<span class="nc" id="L91">        return importedPackages;</span>
+    }
+
+	/**
+	 * Exports all packages.
+	 * @param pkgs the packages to export
+	 * @param dryrun whether it should be dry run
+	 * @return the exported packages
+	 */
+    @Override
+    public final List&lt;Package&gt; exportAllPackages(final List&lt;Package&gt; pkgs, final boolean dryrun) {
+<span class="nc" id="L102">    	throw new RuntimeException(&quot;Not implemented!&quot;);</span>
+    }
+
+	/**
+	 * Imports all packages.
+	 * @param pkg the packages to import
+	 * @param dryrun whether it should be dry run
+	 * @param enableBackup whether it should back up the packages on import
+	 * @return the imported packages
+	 */
+	@Override
+	public final List&lt;Package&gt; importAllPackages(final List&lt;Package&gt; pkg, final boolean dryrun, final boolean enableBackup) {
+<span class="nc" id="L114">		return this.importAllPackages(pkg, dryrun, false, enableBackup);</span>
+	}
+
+	/**
+	 * Imports a package.
+	 * @param pkg the package to import
+	 * @param dryrun whether it should be dry run
+	 * @param mergePackages whether to merge the packages
+	 * @return the imported package
+	 */
+	@Override
+    public final Package importPackage(final Package pkg, final boolean dryrun, final boolean mergePackages) {
+<span class="nc" id="L126">        logger.info(String.format(PackageStore.PACKAGE_IMPORT, pkg));</span>
+
+        File tmp;
+        try {
+<span class="nc" id="L130">            tmp = Files.createTempDirectory(&quot;vrbt-temp-import-dir&quot;).toFile();</span>
+<span class="nc" id="L131">            logger.info(&quot;Created temp dir {}&quot;, tmp.getAbsolutePath());</span>
+<span class="nc" id="L132">            new PackageManager(pkg).unpack(tmp);</span>
+<span class="nc" id="L133">        } catch (IOException e) {</span>
+<span class="nc" id="L134">            logger.error(&quot;Unable to extract package '{}' in temporary directory.&quot;, pkg.getFQName());</span>
+<span class="nc" id="L135">            throw new RuntimeException(&quot;Unable to extract pacakge.&quot;, e);</span>
+<span class="nc" id="L136">        }</span>
+
+<span class="nc" id="L138">        importFiles(pkg, tmp);</span>
+
+<span class="nc" id="L140">        return pkg;</span>
+    }
+
+	/**
+	 * Exports a package.
+	 * @param pkg the package to export
+	 * @param dryrun whether it should be a dry run
+	 * @return the exported package
+	 */
+    @Override
+    public final Package exportPackage(final Package pkg, final boolean dryrun) {
+<span class="nc" id="L151">        throw new RuntimeException(&quot;Not implemented!&quot;);</span>
+    }
+
+	/**
+	 * Exports a package.
+	 * @param pkg the package to export
+	 * @param exportDescriptor the descriptor of the package to export
+	 * @param dryrun whether it should be dry run
+	 * @return the exported package
+	 */
+    @Override
+    public final Package exportPackage(final Package pkg, final File exportDescriptor, final boolean dryrun) {
+<span class="nc" id="L163">        BasicPackageDescriptor descriptor = BasicPackageDescriptor.getInstance(exportDescriptor);</span>
+
+<span class="nc" id="L165">        return this.exportPackage(pkg, descriptor, dryrun);</span>
+    }
+
+	/**
+	 * Exports a package.
+	 * @param pkg the package to export
+	 * @param sshPackageDescriptor the package descriptor
+	 * @param dryrun whether it should be dry run
+	 * @return the exported package
+	 */
+    @Override
+    public final Package exportPackage(final Package pkg, final BasicPackageDescriptor sshPackageDescriptor, final boolean dryrun) {
+<span class="nc" id="L177">        logger.info(String.format(PackageStore.PACKAGE_EXPORT, pkg));</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">        String rootDirectory = this.config.getSshDirectory().endsWith(File.separator) ? this.config.getSshDirectory() : this.config.getSshDirectory() + File.separator;</span>
+<span class="nc" id="L179">        List&lt;String&gt; files = sshPackageDescriptor.getContent().stream().map(file -&gt; (rootDirectory + file)).collect(Collectors.toList());</span>
+
+<span class="nc bnc" id="L181" title="All 2 branches missed.">        if (files != null) {</span>
+<span class="nc" id="L182">            exportFiles(pkg, files);</span>
+        } else {
+<span class="nc" id="L184">            logger.info(&quot;No files found in content.yaml&quot;);</span>
+        }
+
+<span class="nc" id="L187">        return pkg;</span>
+    }
+
+	/**
+	 * Gets the packages.
+	 * @return the packages
+	 */
+    @Override
+    public final List&lt;Package&gt; getPackages() {
+<span class="nc" id="L196">        throw new UnsupportedOperationException(&quot;Getting packages is not supported&quot;);</span>
+    }
+
+	/**
+	 * Deletes a package.
+	 * @param pkg the package to delete
+	 * @param withContent whether to delete the package with the content
+	 * @param dryrun whether it should be dry run
+	 * @return the deleted package
+	 */
+	@Override
+    protected final Package deletePackage(final Package pkg, final boolean withContent, final boolean dryrun) {
+<span class="nc" id="L208">        throw new UnsupportedOperationException(&quot;Deleting packages is not supported&quot;);</span>
+    }
+
+	/**
+	 * Gets package content.
+	 * @param pkg the package which content to get
+	 * @return the package content
+	 */
+	@Override
+    protected final PackageContent getPackageContent(final Package pkg) {
+<span class="nc" id="L218">        throw new UnsupportedOperationException(&quot;Parsing package content is not supported&quot;);</span>
+    }
+
+	/**
+	 * Deletes content.
+	 * @param content the content to be deleted
+	 * @param dryrun whether it should be dry run
+	 */
+	@Override
+    protected final void deleteContent(final Content content, final boolean dryrun) {
+<span class="nc" id="L228">        throw new UnsupportedOperationException(&quot;Delete content is not supported&quot;);</span>
+    }
+
+	/**
+	 * Exports files from ssh package.
+	 * @param sshPackage the ssh package from which to export the files
+	 * @param files the exported files
+	 */
+    private void exportFiles(final Package sshPackage, final List&lt;String&gt; files) {
+<span class="nc bnc" id="L237" title="All 4 branches missed.">        if (files == null || files.isEmpty()) {</span>
+<span class="nc" id="L238">            return;</span>
+        }
+
+        try {
+<span class="nc" id="L242">            logger.info(&quot;Copying files to local Host.&quot;);</span>
+
+<span class="nc" id="L244">            File store = new File(sshPackage.getFilesystemPath());</span>
+<span class="nc" id="L245">            File sshFile = Paths.get(store.getPath(), DIR_CONTENT).toFile();</span>
+<span class="nc" id="L246">            Files.deleteIfExists(sshFile.toPath());</span>
+<span class="nc" id="L247">            sshFile.mkdirs();</span>
+
+<span class="nc" id="L249">            reconnect();</span>
+<span class="nc" id="L250">            SshClient.copyRemoteToLocal(session, files, sshFile);</span>
+<span class="nc" id="L251">        } catch (IOException | JSchException e) {</span>
+<span class="nc" id="L252">            String message = &quot;Unable to export content from package '%s', error in connection to '%s'. '%s' : '%s'&quot;;</span>
+<span class="nc" id="L253">            message = String.format(message, sshPackage.getFQName(), this.config.getHost(), e.getClass().getName(),</span>
+<span class="nc" id="L254">                    e.getMessage());</span>
+
+<span class="nc" id="L256">            logger.error(message);</span>
+<span class="nc" id="L257">            throw new RuntimeException(message, e);</span>
+        } finally {
+<span class="nc" id="L259">            close();</span>
+        }
+<span class="nc" id="L261">    }</span>
+
+	/**
+	 * Imports files.
+	 * @param sshPackage the ssh package to import files from
+	 * @param tmp the temporary file
+	 */
+    private void importFiles(final Package sshPackage, final File tmp) {
+<span class="nc" id="L269">        File contentDirectory = Paths.get(tmp.getPath()).toFile();</span>
+
+<span class="nc bnc" id="L271" title="All 2 branches missed.">        if (contentDirectory.exists()) {</span>
+<span class="nc" id="L272">            List&lt;File&gt; files = FileUtils.listFiles(contentDirectory, null, false).stream().collect(Collectors.toList());</span>
+
+            try {
+<span class="nc" id="L275">                logger.info(&quot;Copying files to target Host.&quot;);</span>
+
+<span class="nc" id="L277">                reconnect();</span>
+<span class="nc" id="L278">                SshClient.copyLocalToRemote(session, files, config.getSshDirectory());</span>
+<span class="nc" id="L279">            } catch (JSchException | SftpException e) {</span>
+<span class="nc" id="L280">                String message = &quot;Unable to import content from package '%s', error in connection to '%s'. '%s' : '%s'&quot;;</span>
+<span class="nc" id="L281">                message = String.format(message, sshPackage.getFQName(), config.getHost(), e.getClass().getName(),</span>
+<span class="nc" id="L282">                        e.getMessage());</span>
+
+<span class="nc" id="L284">                logger.error(message);</span>
+<span class="nc" id="L285">                throw new RuntimeException(message, e);</span>
+            } finally {
+<span class="nc" id="L287">                close();</span>
+            }
+        }
+<span class="nc" id="L290">    }</span>
+
+	/**
+	 * Connects.
+	 * @throws JSchException
+	 */
+    private void connect() throws JSchException {
+<span class="nc" id="L297">        session = SshClient.createSession(config.getUsername(), config.getPassword(), config.getHost(),</span>
+<span class="nc" id="L298">                config.getPort());</span>
+<span class="nc" id="L299">        session.connect();</span>
+<span class="nc" id="L300">        logger.info(&quot;SSH Session opened&quot;);</span>
+<span class="nc" id="L301">    }</span>
+
+	/**
+	 * Reconnects.
+	 * @throws JSchException
+	 */
+    private void reconnect() throws JSchException {
+<span class="nc bnc" id="L308" title="All 4 branches missed.">        if (session != null &amp;&amp; session.isConnected()) {</span>
+<span class="nc" id="L309">            return;</span>
+        }
+<span class="nc" id="L311">        logger.warn(&quot;SSH session is closed, trying to reconnect&quot;);</span>
+<span class="nc" id="L312">        connect();</span>
+<span class="nc" id="L313">    }</span>
+
+	/**
+	 * Closes.
+	 */
+    private void close() {
+<span class="nc bnc" id="L319" title="All 2 branches missed.">        if (session != null) {</span>
+<span class="nc" id="L320">            session.disconnect();</span>
+        }
+
+<span class="nc" id="L323">        session = null;</span>
+<span class="nc" id="L324">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,444 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgContentSharingPolicyStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.vrang</a> &gt; <span class="el_source">VraNgContentSharingPolicyStore.java</span></div><h1>VraNgContentSharingPolicyStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.vrang;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonIOException;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.stream.JsonReader;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCatalogItem;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgContentSharingPolicy;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgContentSourceBase;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgItem;
+import com.vmware.pscoe.iac.artifact.store.filters.CustomFolderFileFilter;
+import com.vmware.pscoe.iac.artifact.utils.VraNgOrganizationUtil;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+<span class="fc" id="L45">public class VraNgContentSharingPolicyStore extends AbstractVraNgStore {</span>
+	/**
+	 * Suffix used for all of the resources saved by this store.
+	 */
+	private static final String CUSTOM_RESOURCE_SUFFIX = &quot;.json&quot;;
+	/**
+	 * Sub folder path for content sharing policy.
+	 */
+	private static final String CONTENT_SHARING_POLICY = &quot;content-sharing&quot;;
+	/**
+	 * Content sharing type: content source.
+	 */
+	private static final String CONTENT_SOURCE = &quot;CATALOG_SOURCE_IDENTIFIER&quot;;
+	/**
+	 * Content sharing type: catalog item.
+	 */
+	private static final String CATALOG_ITEM = &quot;CATALOG_ITEM_IDENTIFIER&quot;;
+	/**
+	 * Logger.
+	 */
+<span class="fc" id="L65">	private final Logger logger = LoggerFactory.getLogger(VraNgContentSharingPolicyStore.class);</span>
+
+	/**
+	 * Imports content.
+	 * 
+	 * @param sourceDirectory the directory.
+	 */
+	@Override
+	public void importContent(final File sourceDirectory) {
+<span class="fc" id="L74">		logger.info(&quot;Importing files from the '{}' directory&quot;, com.vmware.pscoe.iac.artifact.store.vrang.VraNgDirs.DIR_POLICIES);</span>
+		// verify directory exists
+<span class="fc" id="L76">		File contentSharingPolicyFolder = Paths</span>
+<span class="fc" id="L77">				.get(sourceDirectory.getPath(), com.vmware.pscoe.iac.artifact.store.vrang.VraNgDirs.DIR_POLICIES, CONTENT_SHARING_POLICY).toFile();</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">		if (!contentSharingPolicyFolder.exists()) {</span>
+<span class="fc" id="L79">			logger.info(&quot;Content sharing policy directory not found.&quot;);</span>
+<span class="fc" id="L80">			return;</span>
+		}
+
+<span class="fc" id="L83">		List&lt;String&gt; csPolicies = this.getItemListFromDescriptor();</span>
+<span class="fc" id="L84">		File[] contentSharingPolicyFiles = this.filterBasedOnConfiguration(contentSharingPolicyFolder, new CustomFolderFileFilter(csPolicies));</span>
+<span class="pc bpc" id="L85" title="2 of 4 branches missed.">		if (contentSharingPolicyFiles != null &amp;&amp; contentSharingPolicyFiles.length == 0) {</span>
+<span class="nc" id="L86">			logger.info(&quot;Could not find any Content Sharing Policies.&quot;);</span>
+<span class="nc" id="L87">			return;</span>
+		}
+
+<span class="fc" id="L90">		logger.info(&quot;Found Content Sharing Policies. Importing...&quot;);</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">		for (File policyFile : contentSharingPolicyFiles) {</span>
+			// exclude hidden files e.g. .DS_Store
+			// exclude files that do not end with a '.json' extension as defined in
+			// CUSTOM_RESOURCE_SUFFIX
+<span class="fc" id="L95">			String filename = policyFile.getName();</span>
+<span class="pc bpc" id="L96" title="2 of 4 branches missed.">			if (!filename.startsWith(&quot;.&quot;) &amp;&amp; filename.endsWith(CUSTOM_RESOURCE_SUFFIX)) {</span>
+<span class="fc" id="L97">				this.handleContentSharingPolicyImport(policyFile);</span>
+			} else {
+<span class="nc" id="L99">				logger.warn(&quot;Skipped unexpected file '{}'&quot;, filename);</span>
+			}
+		}
+<span class="fc" id="L102">	}</span>
+
+	/**
+	 * Get List from descriptor.
+	 * 
+	 * @return null or list of content sharing policies.
+	 */
+	@Override
+	protected List&lt;String&gt; getItemListFromDescriptor() {
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">		if (this.vraNgPackageDescriptor.getPolicy() == null) {</span>
+<span class="nc" id="L112">			logger.debug(&quot;Descriptor policy is null&quot;);</span>
+<span class="nc" id="L113">			return null;</span>
+		} else {
+<span class="fc" id="L115">			logger.debug(&quot;Found items {}&quot;, this.vraNgPackageDescriptor.getPolicy().getContentSharing());</span>
+<span class="fc" id="L116">			return this.vraNgPackageDescriptor.getPolicy().getContentSharing();</span>
+		}
+	}
+
+	/**
+	 * Exports all the content for the given project.
+	 */
+	@Override
+	protected void exportStoreContent() {
+<span class="fc" id="L125">		this.logger.debug(&quot;{}-&gt;exportStoreContent()&quot;, this.getClass());</span>
+<span class="fc" id="L126">		List&lt;VraNgContentSharingPolicy&gt; csPolicies = this.restClient.getContentSharingPolicies();</span>
+<span class="fc" id="L127">		Path policyFolderPath = getPolicyFolderPath();</span>
+
+<span class="fc" id="L129">		this.handleContentSharingPolicyExport(csPolicies, policyFolderPath);</span>
+<span class="fc" id="L130">	}</span>
+
+	/**
+	 * Exports all the content for the given project based on the names in
+	 * content.yaml.
+	 * 
+	 * @param itemNames Item names for export
+	 */
+	@Override
+	protected void exportStoreContent(final List&lt;String&gt; itemNames) {
+<span class="fc" id="L140">		this.logger.debug(&quot;{}-&gt;exportStoreContent({})&quot;, this.getClass(), itemNames.toString());</span>
+<span class="fc" id="L141">		List&lt;VraNgContentSharingPolicy&gt; csPolicies = this.restClient.getContentSharingPolicies();</span>
+<span class="fc" id="L142">		Path policyFolderPath = getPolicyFolderPath();</span>
+<span class="fc" id="L143">		Map&lt;String, VraNgContentSharingPolicy&gt; currentPoliciesOnFileSystem = getCurrentPoliciesOnFileSystem(policyFolderPath);</span>
+
+<span class="fc" id="L145">		csPolicies.forEach(policy -&gt; {</span>
+<span class="pc bpc" id="L146" title="1 of 2 branches missed.">			if (itemNames.contains(policy.getName())) {</span>
+				// getting policy from server
+<span class="fc" id="L148">				VraNgContentSharingPolicy csPolicy = this.restClient.getContentSharingPolicy(policy.getId());</span>
+<span class="fc" id="L149">				storeContentSharingPolicyOnFilesystem(policyFolderPath, csPolicy, currentPoliciesOnFileSystem);</span>
+			}
+<span class="fc" id="L151">		});</span>
+<span class="fc" id="L152">	}</span>
+
+	/**
+	 * . Handles logic to update or create a content sharing policy.
+	 *
+	 * @param contentSharingPolicyFile file where the policy is stored.
+	 */
+	private void handleContentSharingPolicyImport(final File contentSharingPolicyFile) {
+<span class="fc" id="L160">		VraNgContentSharingPolicy csPolicy = jsonFileToVraNgContentSharingPolicy(contentSharingPolicyFile);</span>
+<span class="fc" id="L161">		logger.info(&quot;Attempting to import content sharing policy '{}', from file '{}'&quot;, csPolicy.getName(), contentSharingPolicyFile.getName());</span>
+<span class="fc" id="L162">		this.resolveEntitledUsersOrgAndScope(csPolicy, true);</span>
+<span class="fc" id="L163">		this.enrichContentSharingPolicy(csPolicy);</span>
+<span class="fc" id="L164">		this.restClient.createContentSharingPolicy(csPolicy);</span>
+<span class="fc" id="L165">	}</span>
+
+	/**
+	 * Handles the export of the content sharing policies.
+	 *
+	 * @param csPolicies       policies that need to be exported.
+	 * @param policyFolderPath target directory where the policies should be
+	 *                         exported into.
+	 * 
+	 */
+	private void handleContentSharingPolicyExport(List&lt;VraNgContentSharingPolicy&gt; csPolicies, Path policyFolderPath) {
+<span class="fc" id="L176">		Map&lt;String, VraNgContentSharingPolicy&gt; currentPoliciesOnFileSystem = getCurrentPoliciesOnFileSystem(policyFolderPath);</span>
+<span class="fc" id="L177">		csPolicies.forEach(policy -&gt; {</span>
+			// getting full policy information from server
+<span class="fc" id="L179">			VraNgContentSharingPolicy csPolicy = this.restClient.getContentSharingPolicy(policy.getId());</span>
+<span class="fc" id="L180">			this.resolveEntitledUsersOrgAndScope(csPolicy, false);</span>
+<span class="fc" id="L181">			storeContentSharingPolicyOnFilesystem(policyFolderPath, csPolicy, currentPoliciesOnFileSystem);</span>
+<span class="fc" id="L182">		});</span>
+<span class="fc" id="L183">	}</span>
+
+	/**
+	 * Resolve the entitled users, organization and scope in the DTO object that
+	 * will be serialized / deserialized (depending on the operation type (export or
+	 * import)).
+	 * 
+	 * @param csPolicy         policy that need to be enriched with resolved data.
+	 * @param isByNameResolved a flag whether to resolve the data by name. . In case
+	 *                         import of policies the flag should be true otherwise
+	 *                         it should be false.
+	 *
+	 */
+	private void resolveEntitledUsersOrgAndScope(VraNgContentSharingPolicy csPolicy, boolean isByNameResolved) {
+<span class="pc bpc" id="L197" title="1 of 4 branches missed.">		if (csPolicy.getDefinition() == null || csPolicy.getDefinition().getEntitledUsers() == null) {</span>
+<span class="fc" id="L198">			return;</span>
+		}
+		// enrich entitled users with the item names.
+<span class="fc" id="L201">		List&lt;VraNgContentSourceBase&gt; contentSources = this.restClient.getContentSourcesForProject(csPolicy.getProjectId());</span>
+<span class="fc" id="L202">		List&lt;VraNgCatalogItem&gt; catalogItems = this.restClient.getCatalogItemsForProject(csPolicy.getProjectId());</span>
+<span class="fc" id="L203">		csPolicy.getDefinition().getEntitledUsers().forEach(user -&gt; {</span>
+			// resolve the name of the element based on its type
+<span class="pc bpc" id="L205" title="1 of 2 branches missed.">			if (user.getItems() != null) {</span>
+<span class="fc" id="L206">				user.getItems().forEach(item -&gt; {</span>
+<span class="fc" id="L207">					this.resolveSingleItem(item, isByNameResolved, contentSources, catalogItems);</span>
+<span class="fc" id="L208">				});</span>
+			}
+<span class="fc" id="L210">		});</span>
+
+<span class="pc bpc" id="L212" title="1 of 2 branches missed.">		if (!isByNameResolved) {</span>
+<span class="nc bnc" id="L213" title="All 2 branches missed.">			if (StringUtils.hasLength(csPolicy.getProjectId())) {</span>
+<span class="nc" id="L214">				csPolicy.setScope(this.restClient.getProjectNameById(csPolicy.getProjectId()));</span>
+<span class="nc" id="L215">				csPolicy.setProjectId(null);</span>
+			}
+<span class="nc bnc" id="L217" title="All 2 branches missed.">			if (StringUtils.hasLength(csPolicy.getOrgId())) {</span>
+<span class="nc" id="L218">				csPolicy.setOrganization(this.restClient.getOrganizationById(csPolicy.getOrgId()).getName());</span>
+<span class="nc" id="L219">				csPolicy.setOrgId(null);</span>
+			}
+		}
+<span class="fc" id="L222">	}</span>
+
+	/**
+	 * Resolve the the single vra item name / id.
+	 * 
+	 * @param item             item where data should be resolved.
+	 * @param isByNameResolved a flag whether to resolve the data by name. . In case
+	 *                         import of policies the flag should be false otherwise
+	 *                         it should be true.
+	 * 
+	 * @param contentSources   list of content sources per project
+	 * @param catalogItems     list of catalog items per project
+	 */
+	private void resolveSingleItem(VraNgItem item, boolean isByNameResolved, List&lt;VraNgContentSourceBase&gt; contentSources, List&lt;VraNgCatalogItem&gt; catalogItems) {
+<span class="pc bpc" id="L236" title="2 of 3 branches missed.">		switch (item.getType()) {</span>
+			case CATALOG_ITEM: {
+				VraNgCatalogItem foundCatalogItem;
+<span class="nc bnc" id="L239" title="All 2 branches missed.">				if (isByNameResolved) {</span>
+<span class="nc" id="L240">					foundCatalogItem = catalogItems.stream().filter(catalogItem -&gt; catalogItem.getName().equalsIgnoreCase(item.getName())).findFirst()</span>
+<span class="nc" id="L241">							.orElse(null);</span>
+<span class="nc bnc" id="L242" title="All 2 branches missed.">					if (foundCatalogItem != null) {</span>
+<span class="nc" id="L243">						item.setId(foundCatalogItem.getId());</span>
+<span class="nc" id="L244">						item.setName(null);</span>
+					}
+				} else {
+<span class="nc" id="L247">					foundCatalogItem = catalogItems.stream().filter(catalogItem -&gt; catalogItem.getId().equalsIgnoreCase(item.getId())).findFirst().orElse(null);</span>
+<span class="nc bnc" id="L248" title="All 2 branches missed.">					if (foundCatalogItem != null) {</span>
+<span class="nc" id="L249">						item.setName(foundCatalogItem.getName());</span>
+<span class="nc" id="L250">						item.setId(null);</span>
+					}
+				}
+				break;
+			}
+			case CONTENT_SOURCE: {
+				VraNgContentSourceBase foundContentSource;
+<span class="pc bpc" id="L257" title="1 of 2 branches missed.">				if (isByNameResolved) {</span>
+<span class="pc" id="L258">					foundContentSource = contentSources.stream().filter(contentSource -&gt; contentSource.getName().equalsIgnoreCase(item.getName())).findFirst()</span>
+<span class="fc" id="L259">							.orElse(null);</span>
+<span class="pc bpc" id="L260" title="1 of 2 branches missed.">					if (foundContentSource != null) {</span>
+<span class="nc" id="L261">						item.setId(foundContentSource.getId());</span>
+<span class="nc" id="L262">						item.setName(null);</span>
+					}
+				} else {
+<span class="nc" id="L265">					foundContentSource = contentSources.stream().filter(contentSource -&gt; contentSource.getId().equalsIgnoreCase(item.getId())).findFirst()</span>
+<span class="nc" id="L266">							.orElse(null);</span>
+<span class="nc bnc" id="L267" title="All 2 branches missed.">					if (foundContentSource != null) {</span>
+<span class="nc" id="L268">						item.setName(foundContentSource.getName());</span>
+<span class="nc" id="L269">						item.setId(null);</span>
+					}
+				}
+				break;
+			}
+			default: {
+<span class="nc" id="L275">				this.logger.warn(&quot;Type {}, for definition: {} is unsupported&quot;, item.getType(), item.getId());</span>
+			}
+		}
+<span class="fc" id="L278">	}</span>
+
+	/**
+	 * Converts a JSON catalog item file to VraNgContentSharingPolicy.
+	 *
+	 * @param jsonFile
+	 *
+	 * @return VraNgContentSharingPolicy
+	 */
+	private VraNgContentSharingPolicy jsonFileToVraNgContentSharingPolicy(final File jsonFile) {
+<span class="fc" id="L288">		logger.debug(&quot;Converting content sharing policy file to VraNgContentSharingPolicies. Name: '{}'&quot;, jsonFile.getName());</span>
+
+		try {
+<span class="fc" id="L291">			JsonReader reader = new JsonReader(new FileReader(jsonFile.getPath()));</span>
+<span class="fc" id="L292">			return new Gson().fromJson(reader, VraNgContentSharingPolicy.class);</span>
+<span class="nc" id="L293">		} catch (IOException e) {</span>
+<span class="nc" id="L294">			throw new RuntimeException(String.format(&quot;Error reading from file: %s&quot;, jsonFile.getPath()), e);</span>
+<span class="nc" id="L295">		} catch (JsonIOException | JsonSyntaxException e) {</span>
+<span class="nc" id="L296">			throw new RuntimeException(String.format(&quot;Error parsing file: %s&quot;, jsonFile.getPath()), e);</span>
+<span class="nc" id="L297">		} catch (Exception e) {</span>
+<span class="nc" id="L298">			throw new RuntimeException(String.format(&quot;General error processing file file: %s&quot;, jsonFile.getPath()), e);</span>
+		}
+	}
+
+	/**
+	 * Used while import to override the orgId and ProjectId for the receiving vRA.
+	 * instance.
+	 * 
+	 * @param csPolicy
+	 */
+	private void enrichContentSharingPolicy(final VraNgContentSharingPolicy csPolicy) {
+<span class="pc bpc" id="L309" title="1 of 2 branches missed.">		if (StringUtils.hasLength(csPolicy.getOrganization())) {</span>
+<span class="fc" id="L310">			csPolicy.setOrgId(this.restClient.getOrganizationByName(csPolicy.getOrganization()).getId());</span>
+		} else {
+<span class="nc" id="L312">			csPolicy.setOrgId(VraNgOrganizationUtil.getOrganization(this.restClient, this.config).getId());</span>
+		}
+<span class="fc bfc" id="L314" title="All 2 branches covered.">		if (StringUtils.hasLength(csPolicy.getScope())) {</span>
+<span class="fc" id="L315">			csPolicy.setProjectId(this.restClient.getProjectIdByName(csPolicy.getScope()));</span>
+		} else {
+<span class="fc" id="L317">			csPolicy.setProjectId(this.restClient.getProjectId());</span>
+		}
+<span class="fc" id="L319">		csPolicy.setScope(null);</span>
+<span class="fc" id="L320">		csPolicy.setOrganization(null);</span>
+<span class="fc" id="L321">	}</span>
+
+	/**
+	 * Store content sharing policy in JSON file.
+	 * 
+	 * @param policyFolderPath            Path to the folder where to store the
+	 *                                    file.
+	 * @param contentSharingPolicy        the policy to store.
+	 * @param currentPoliciesOnFileSystem a map of file names and policies, already
+	 *                                    present in the folder, used to avoid
+	 *                                    duplicate file names.
+	 */
+	private void storeContentSharingPolicyOnFilesystem(final Path policyFolderPath, final VraNgContentSharingPolicy contentSharingPolicy,
+			Map&lt;String, VraNgContentSharingPolicy&gt; currentPoliciesOnFileSystem) {
+
+<span class="fc" id="L336">		File contentSharingPolicyFile = getPolicyFile(policyFolderPath, contentSharingPolicy, currentPoliciesOnFileSystem);</span>
+<span class="fc" id="L337">		logger.info(&quot;Storing contentSharingPolicy '{}', to file '{}&quot;, contentSharingPolicy.getName(), contentSharingPolicyFile.getPath());</span>
+		try {
+<span class="pc bpc" id="L339" title="1 of 2 branches missed.">			if (contentSharingPolicy.getDefinition().getEntitledUsers() != null) {</span>
+<span class="nc" id="L340">				contentSharingPolicy.getDefinition().getEntitledUsers().forEach(user -&gt; {</span>
+<span class="nc bnc" id="L341" title="All 2 branches missed.">					if (user.getItems() != null) {</span>
+<span class="nc" id="L342">						user.getItems().forEach(item -&gt; item.setId(null));</span>
+					}
+<span class="nc" id="L344">				});</span>
+			}
+			// serialize the object
+<span class="fc" id="L347">			Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().create();</span>
+<span class="fc" id="L348">			String policyJson = gson.toJson(contentSharingPolicy);</span>
+			// write content sharing file
+<span class="fc" id="L350">			logger.info(&quot;Created content sharing file {}&quot;,</span>
+<span class="fc" id="L351">					Files.write(Paths.get(contentSharingPolicyFile.getPath()), policyJson.getBytes(), StandardOpenOption.CREATE));</span>
+			// after write, put currently policy on the map for the next iteration
+<span class="fc" id="L353">			String fileName = contentSharingPolicyFile.getName().replace(CUSTOM_RESOURCE_SUFFIX, &quot;&quot;);</span>
+<span class="fc" id="L354">			currentPoliciesOnFileSystem.put(fileName, contentSharingPolicy);</span>
+<span class="nc" id="L355">		} catch (IOException e) {</span>
+<span class="nc" id="L356">			logger.error(&quot;Unable to create content sharing {}&quot;, contentSharingPolicyFile.getAbsolutePath());</span>
+<span class="nc" id="L357">			throw new RuntimeException(String.format(&quot;Unable to store content sharing to file %s.&quot;, contentSharingPolicyFile.getAbsolutePath()), e);</span>
+<span class="fc" id="L358">		}</span>
+<span class="fc" id="L359">	}</span>
+
+	/**
+	 * @param policyFolderPath            the correct sub folder path for the
+	 *                                    policy. type.
+	 * @param policy                      the policy that is exported.
+	 * @param currentPoliciesOnFileSystem all the other policies currently in the
+	 *                                    folder.
+	 * @return the file where to store the policy.
+	 */
+	private File getPolicyFile(Path policyFolderPath, VraNgContentSharingPolicy policy, Map&lt;String, VraNgContentSharingPolicy&gt; currentPoliciesOnFileSystem) {
+<span class="fc" id="L370">		String filename = policy.getName();</span>
+<span class="fc" id="L371">		String policyName = policy.getName();</span>
+<span class="pc bpc" id="L372" title="3 of 6 branches missed.">		if (filename.contains(&quot;..&quot;) || filename.contains(&quot;/&quot;) || filename.contains(&quot;\\&quot;)) {</span>
+<span class="nc" id="L373">			throw new IllegalArgumentException(&quot;Invalid filename &quot; + filename);</span>
+		}
+
+		// see if filename already exists in map.
+<span class="fc" id="L377">		int index = 1;</span>
+<span class="fc" id="L378">		boolean match = false;</span>
+<span class="fc bfc" id="L379" title="All 2 branches covered.">		while (!match) {</span>
+<span class="fc bfc" id="L380" title="All 2 branches covered.">			if (currentPoliciesOnFileSystem.containsKey(filename)) {</span>
+				// check if policy is our policy from previous run or a different one.
+<span class="fc bfc" id="L382" title="All 2 branches covered.">				if (policy.getId().equals(currentPoliciesOnFileSystem.get(filename).getId())) {</span>
+<span class="fc" id="L383">					match = true;</span>
+				} else {
+<span class="fc" id="L385">					filename = policyName + &quot;_&quot; + index;</span>
+<span class="fc" id="L386">					index++;</span>
+
+				}
+			} else {
+<span class="fc" id="L390">				match = true;</span>
+			}
+		}
+<span class="fc" id="L393">		logger.debug(&quot;Final Filename is {}, for policy with name {}&quot;, filename, policy.getName());</span>
+<span class="fc" id="L394">		File policyFile = Paths.get(String.valueOf(policyFolderPath), filename + CUSTOM_RESOURCE_SUFFIX).toFile();</span>
+
+<span class="fc" id="L396">		return policyFile;</span>
+	}
+
+	/**
+	 * Read the file system where policies will be stored, make a map of pre
+	 * existing files there, to avoid duplication and/or unintentional overwriting.
+	 * 
+	 * @param policyFolderPath get actual path where policies should be stored.
+	 * @return a map of filenames and policies, found in the path.
+	 */
+	private Map&lt;String, VraNgContentSharingPolicy&gt; getCurrentPoliciesOnFileSystem(Path policyFolderPath) {
+		// First make sure path exists and is a folder.
+<span class="pc bpc" id="L408" title="1 of 2 branches missed.">		if (!policyFolderPath.toFile().isDirectory()) {</span>
+<span class="nc" id="L409">			logger.warn(&quot;Could find directory: {}&quot;, policyFolderPath.toFile().getAbsolutePath());</span>
+<span class="nc" id="L410">			return new HashMap&lt;String, VraNgContentSharingPolicy&gt;();</span>
+		}
+
+<span class="fc" id="L413">		File[] policyFiles = policyFolderPath.toFile().listFiles();</span>
+<span class="fc" id="L414">		Map&lt;String, VraNgContentSharingPolicy&gt; currentPoliciesOnFileSystem = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L415" title="All 2 branches covered.">		for (File policyFile : policyFiles) {</span>
+<span class="fc" id="L416">			String fileNameWithExt = policyFile.getName();</span>
+			// exclude hidden files e.g. .DS_Store
+<span class="pc bpc" id="L418" title="1 of 2 branches missed.">			if (fileNameWithExt.startsWith(&quot;.&quot;)) {</span>
+<span class="nc" id="L419">				continue;</span>
+			}
+<span class="fc" id="L421">			String fileName = fileNameWithExt.replace(CUSTOM_RESOURCE_SUFFIX, &quot;&quot;);</span>
+<span class="fc" id="L422">			currentPoliciesOnFileSystem.put(fileName, this.jsonFileToVraNgContentSharingPolicy(policyFile));</span>
+		}
+
+<span class="fc" id="L425">		return currentPoliciesOnFileSystem;</span>
+	}
+
+	/**
+	 * Extract content-sharing policies sub-folder absolute file system path.
+	 * 
+	 * @return the content-sharing policies sub-folder absolute file system path.
+	 */
+	private Path getPolicyFolderPath() {
+<span class="fc" id="L434">		File store = new File(vraNgPackage.getFilesystemPath());</span>
+
+<span class="fc" id="L436">		Path policyFolderPath = Paths.get(store.getPath(), VraNgDirs.DIR_POLICIES, CONTENT_SHARING_POLICY);</span>
+<span class="pc bpc" id="L437" title="1 of 4 branches missed.">		if (!policyFolderPath.toFile().isDirectory() &amp;&amp; !policyFolderPath.toFile().mkdirs()) {</span>
+<span class="nc" id="L438">			logger.warn(&quot;Could not create folder: {}&quot;, policyFolderPath.getFileName());</span>
+		}
+
+<span class="fc" id="L441">		return policyFolderPath;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

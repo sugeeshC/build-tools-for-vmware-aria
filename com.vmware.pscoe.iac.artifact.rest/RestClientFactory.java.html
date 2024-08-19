@@ -1,0 +1,406 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RestClientFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest</a> &gt; <span class="el_source">RestClientFactory.java</span></div><h1>RestClientFactory.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.rest;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.util.stream.Collectors;
+
+import javax.net.ssl.SSLContext;
+
+import com.vmware.pscoe.iac.artifact.rest.client.vrli.RestClientVrliAuthInterceptor;
+import com.vmware.pscoe.iac.artifact.rest.client.vrli.RestClientVrliV1;
+import com.vmware.pscoe.iac.artifact.rest.client.vrli.RestClientVrliV2;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpHost;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.http.converter.StringHttpMessageConverter;
+import org.springframework.web.client.ResponseErrorHandler;
+import org.springframework.web.client.RestTemplate;
+
+import com.vmware.pscoe.iac.artifact.configuration.Configuration;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVcd;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVra;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVraNg;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVrli;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVro;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVroNg;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVrops;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationCs;
+
+public final class RestClientFactory {
+  	/**
+     * IGNORE_SSL_CERTIFICATE_VERIFICATION: Indicates whether to ignore SSL certificate verification.
+     */
+	public static final String IGNORE_SSL_CERTIFICATE_VERIFICATION = &quot;vrealize.ssl.ignore.certificate&quot;;
+
+    /**
+     * IGNORE_SSL_HOSTNAME_VERIFICATION: Indicates whether to ignore SSL hostname verification.
+     */
+	public static final String IGNORE_SSL_HOSTNAME_VERIFICATION = &quot;vrealize.ssl.ignore.hostname&quot;;
+
+    /**
+     * CONNECTION_TIMEOUT: Indicates the maximum time (in milliseconds) allowed for the client to establish a connection.
+     */
+	public static final String CONNECTION_TIMEOUT = &quot;vrealize.connection.timeout&quot;;
+
+    /**
+     * SOCKET_TIMEOUT: Indicates the maximum time (in milliseconds) allowed for the client to wait for a response from the server.
+     */
+	public static final String SOCKET_TIMEOUT = &quot;vrealize.socket.timeout&quot;;
+
+	/**
+	* This logger is used to log messages and exceptions related to the creation and usage of REST clients.
+ 	*/
+<span class="nc" id="L82">    private static final Logger LOGGER = LoggerFactory.getLogger(RestClientFactory.class);</span>
+
+	/**
+	 * The number of milliseconds in a second.
+	 */
+<span class="nc" id="L87">	private static final Integer TO_MILISECONDS_MULTIPLIER = 1000;</span>
+
+	/**
+	 * The beginning of the HTTP status code range for successful responses.
+	 */
+<span class="nc" id="L92">	private static final Integer STATUS_CODE_2XX_RANGE_BEGIN = 200;</span>
+
+	/**
+	 * The end of the HTTP status code range for successful responses.
+	 */
+<span class="nc" id="L97">	private static final Integer STATUS_CODE_2XX_RANGE_END = 299;</span>
+
+<span class="nc" id="L99">    private RestClientFactory() {</span>
+<span class="nc" id="L100">        throw new IllegalStateException(&quot;Cannot instantiate the factory class: RestClientFactory&quot;);</span>
+    }
+
+    private static boolean ignoreCertificate() {
+<span class="nc" id="L104">        return Boolean.parseBoolean(System.getProperty(IGNORE_SSL_CERTIFICATE_VERIFICATION));</span>
+    }
+
+    private static boolean ignoreHostname() {
+<span class="nc" id="L108">        return Boolean.parseBoolean(System.getProperty(IGNORE_SSL_HOSTNAME_VERIFICATION));</span>
+    }
+
+    private static Integer getConnectionTimeout() {
+<span class="nc" id="L112">        Integer retVal = parseTimeoutValue(System.getProperty(CONNECTION_TIMEOUT), TimeoutType.CONNECTION);</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">        if (retVal == null) {</span>
+<span class="nc" id="L114">            return Configuration.DEFAULT_CONNECTION_TIMEOUT * TO_MILISECONDS_MULTIPLIER;</span>
+        }
+<span class="nc" id="L116">        return retVal;</span>
+    }
+
+    private static Integer getSocketTimeout() {
+<span class="nc" id="L120">        Integer retVal = parseTimeoutValue(System.getProperty(SOCKET_TIMEOUT), TimeoutType.SOCKET);</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        if (retVal == null) {</span>
+<span class="nc" id="L122">            return Configuration.DEFAULT_SOCKET_TIMEOUT * TO_MILISECONDS_MULTIPLIER;</span>
+        }
+<span class="nc" id="L124">        return retVal;</span>
+    }
+
+    private static Integer parseTimeoutValue(String value, TimeoutType type) {
+<span class="nc bnc" id="L128" title="All 2 branches missed.">        if (StringUtils.isEmpty(value)) {</span>
+<span class="nc" id="L129">            return null;</span>
+        }
+        try {
+<span class="nc" id="L132">            return Integer.parseInt(value) * TO_MILISECONDS_MULTIPLIER;</span>
+<span class="nc" id="L133">        } catch (NumberFormatException e) {</span>
+<span class="nc" id="L134">            LOGGER.warn(&quot;Unable to parse {} timeout value '{}', error: '{}'&quot;, type, value, e.getMessage());</span>
+        }
+<span class="nc" id="L136">        return null;</span>
+    }
+
+    private static RestTemplate getInsecureRestTemplate() {
+<span class="nc" id="L140">        return RestClientFactory.getInsecureRestTemplate(null);</span>
+    }
+
+	private static RestTemplate getInsecureRestTemplate(HttpHost proxy) {
+		SSLContext sslContext;
+		try {
+<span class="nc" id="L146">			sslContext = new SSLContextBuilder().loadTrustMaterial(null, (arg0, arg1) -&gt; true).build();</span>
+<span class="nc" id="L147">		} catch (KeyManagementException | NoSuchAlgorithmException | KeyStoreException e) {</span>
+<span class="nc" id="L148">			throw new RuntimeException(e);</span>
+<span class="nc" id="L149">		}</span>
+
+<span class="nc" id="L151">		HttpClientBuilder httpClientBuilder = HttpClients.custom();</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">		if (ignoreCertificate()) {</span>
+<span class="nc" id="L153">			httpClientBuilder.setSSLContext(sslContext);</span>
+<span class="nc" id="L154">			LOGGER.warn(&quot;SSL: You are now ignoring certificate verification.&quot;);</span>
+		}
+<span class="nc bnc" id="L156" title="All 2 branches missed.">		if (ignoreHostname()) {</span>
+<span class="nc" id="L157">			httpClientBuilder.setSSLHostnameVerifier(new NoopHostnameVerifier());</span>
+<span class="nc" id="L158">			LOGGER.warn(&quot;SSL: You are now ignoring hostname verification.&quot;);</span>
+		}
+
+<span class="nc bnc" id="L161" title="All 2 branches missed.">		if (proxy != null) {</span>
+<span class="nc" id="L162">		    httpClientBuilder.setProxy(proxy);</span>
+<span class="nc" id="L163">		    LOGGER.info(&quot;Will use proxy {}&quot;, proxy.toURI());</span>
+        }
+
+<span class="nc" id="L166">        RequestConfig config = RequestConfig.custom()</span>
+<span class="nc" id="L167">                .setConnectTimeout(getConnectionTimeout())</span>
+<span class="nc" id="L168">                .setSocketTimeout(getSocketTimeout())</span>
+<span class="nc" id="L169">                .build();</span>
+<span class="nc" id="L170">        httpClientBuilder.setDefaultRequestConfig(config);</span>
+
+<span class="nc" id="L172">        CloseableHttpClient httpClient = httpClientBuilder.build();</span>
+<span class="nc" id="L173">        RestTemplate restTemplate = new RestTemplate(new HttpComponentsClientHttpRequestFactory(httpClient));</span>
+<span class="nc" id="L174">        restTemplate.getMessageConverters()</span>
+<span class="nc" id="L175">            .add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));</span>
+<span class="nc" id="L176">		restTemplate.setErrorHandler(new ResponseErrorHandler() {</span>
+
+			@Override
+			public boolean hasError(ClientHttpResponse response) throws IOException {
+<span class="nc bnc" id="L180" title="All 4 branches missed.">				return response.getRawStatusCode() &lt; STATUS_CODE_2XX_RANGE_BEGIN || response.getRawStatusCode() &gt; STATUS_CODE_2XX_RANGE_END;</span>
+			}
+
+            @Override
+            public void handleError(ClientHttpResponse response) throws IOException {
+<span class="nc" id="L185">                StringBuilder messageBuilder = new StringBuilder();</span>
+<span class="nc" id="L186">                HttpHeaders headers = response.getHeaders();</span>
+<span class="nc" id="L187">                messageBuilder.append(response.getRawStatusCode()).append(&quot; &quot;).append(response.getStatusText()).append(&quot;\n&quot;);</span>
+<span class="nc" id="L188">                messageBuilder.append(headers.keySet().stream().map(</span>
+<span class="nc" id="L189">                    (String k) -&gt; headers.get(k).stream().map(</span>
+<span class="nc" id="L190">                        h -&gt; k + &quot;: &quot; + h</span>
+<span class="nc" id="L191">                    ).collect(Collectors.joining(&quot;\n&quot;))</span>
+<span class="nc" id="L192">                ).collect(Collectors.joining(&quot;\n&quot;)));</span>
+<span class="nc bnc" id="L193" title="All 4 branches missed.">                if (response.getBody() != null &amp;&amp; ! response.getBody().equals(&quot;&quot;)) {</span>
+<span class="nc" id="L194">                    messageBuilder.append(&quot;\n\n&quot;);</span>
+<span class="nc" id="L195">                    String message = org.apache.commons.io.IOUtils.toString(response.getBody(), StandardCharsets.UTF_8);</span>
+<span class="nc" id="L196">                    messageBuilder.append(message);</span>
+                }
+
+<span class="nc" id="L199">                throw new HttpClientErrorException(response.getStatusCode(), &quot;Invalid/Unreachable FQDN or IP address: &quot; + messageBuilder.toString());</span>
+            }
+
+		});
+
+<span class="nc" id="L204">		return restTemplate;</span>
+	}
+
+	/**
+	 * The function returns a RestClientVro object with a configured RestTemplate and
+	 * RestClientVraNgAuthNInterceptor.
+	 * 
+	 * @param configuration The configuration parameter is an object of type ConfigurationVroNg. It is used
+	 * to provide the necessary configuration settings for the RestClientVroNg class.
+	 * @return The method is returning an instance of the RestClientVro class.
+	 */
+	public static RestClientVro getClientVroNg(ConfigurationVroNg configuration) {
+<span class="nc" id="L216">		RestTemplate restTemplate = getInsecureRestTemplate();</span>
+
+<span class="nc" id="L218">        RestClientRequestInterceptor&lt;ConfigurationVraNg&gt; interceptor = new RestClientVraNgAuthNInterceptor(configuration, restTemplate);</span>
+<span class="nc" id="L219">		restTemplate.getInterceptors().add(interceptor);</span>
+
+<span class="nc" id="L221">		return new RestClientVro(configuration, restTemplate);</span>
+	}
+
+	/**
+	 * The function `getClientVro` returns a `RestClientVro` object based on the provided
+	 * `ConfigurationVro` object and authentication strategy.
+	 * 
+	 * @param configuration The &quot;configuration&quot; parameter is an object of type ConfigurationVro. It
+	 * contains the necessary configuration settings for creating the RestClientVro object.
+	 * @return The method is returning an instance of the RestClientVro class.
+	 */
+	public static RestClientVro getClientVro(ConfigurationVro configuration) {
+<span class="nc" id="L233">		RestTemplate restTemplate = getInsecureRestTemplate(configuration.getProxy());</span>
+		RestClientRequestInterceptor&lt;ConfigurationVro&gt; interceptor;
+
+<span class="nc" id="L236">        LOGGER.info(&quot;Authentication strategy: '{}'&quot;, configuration.getAuth());</span>
+<span class="nc bnc" id="L237" title="All 3 branches missed.">		switch (configuration.getAuth()) {</span>
+		case VRA:
+<span class="nc" id="L239">			interceptor = new RestClientVroSsoAuthNInterceptor(configuration, restTemplate);</span>
+<span class="nc" id="L240">			break;</span>
+		case BASIC:
+<span class="nc" id="L242">			interceptor = new RestClientVroBasicAuthNInterceptor(configuration, restTemplate);</span>
+<span class="nc" id="L243">			break;</span>
+		default:
+<span class="nc" id="L245">			throw new UnsupportedOperationException(&quot;Unsupported authentication provider&quot;);</span>
+		}
+<span class="nc" id="L247">		restTemplate.getInterceptors().add(interceptor);</span>
+
+<span class="nc" id="L249">		return new RestClientVro(configuration, restTemplate);</span>
+	}
+
+	/**
+	 * The function `getClientVrops` returns a `RestClientVrops` object based on the provided
+	 * `ConfigurationVrops` object and authentication provider.
+	 * 
+	 * @param configuration The `configuration` parameter is an object of type `ConfigurationVrops`. It
+	 * contains the configuration settings for the vRealize Operations (vROps) REST client. This includes
+	 * information such as the vROps server URL, authentication provider, and credentials.
+	 * @return The method is returning an instance of the RestClientVrops class.
+	 */
+	public static RestClientVrops getClientVrops(ConfigurationVrops configuration) {
+<span class="nc" id="L262">		RestTemplate restTemplate = getInsecureRestTemplate();</span>
+
+        RestClientRequestInterceptor&lt;ConfigurationVrops&gt; interceptor;
+<span class="nc bnc" id="L265" title="All 3 branches missed.">        switch (configuration.getAuthProvider()) {</span>
+            case BASIC:
+<span class="nc" id="L267">                interceptor = new RestClientVropsBasicAuthInterceptor(configuration, restTemplate);</span>
+<span class="nc" id="L268">                break;</span>
+            case AUTH_N:
+<span class="nc" id="L270">                interceptor = new RestClientVropsAuthNInterceptor(configuration, restTemplate);</span>
+<span class="nc" id="L271">                break;</span>
+            default:
+<span class="nc" id="L273">                throw new UnsupportedOperationException(&quot;Unsupported authentication provider, supported providers: BASIC, AUTH_N&quot;);</span>
+        }
+<span class="nc" id="L275">        restTemplate.getInterceptors().add(interceptor);</span>
+
+<span class="nc" id="L277">		return new RestClientVrops(configuration, restTemplate);</span>
+	}
+
+	/**
+	 * The function getClientVra returns a RestClientVra object with a configured RestTemplate and
+	 * authentication interceptor.
+	 * 
+	 * @param configuration The configuration parameter is an object of type ConfigurationVra. It contains
+	 * the necessary information and settings required to configure the RestClientVra object.
+	 * @return The method is returning an instance of the RestClientVra class.
+	 */
+	public static RestClientVra getClientVra(ConfigurationVra configuration) {
+<span class="nc" id="L289">		RestTemplate restTemplate = getInsecureRestTemplate();</span>
+
+		// Default Authentication is Basic
+		// When other authentication mechanisms are introduced and interceptor
+        // has to be instantiated based on the configuration property
+<span class="nc" id="L294">        RestClientRequestInterceptor&lt;ConfigurationVra&gt; interceptor = new RestClientVraCafeAuthNInterceptor(configuration, restTemplate);</span>
+<span class="nc" id="L295">		restTemplate.getInterceptors().add(interceptor);</span>
+
+<span class="nc" id="L297">		return new RestClientVra(configuration, restTemplate);</span>
+	}
+
+	/**
+	 * The function returns a RestClientVraNg object with a configured RestTemplate and
+	 * RestClientVraNgAuthNInterceptor.
+	 * 
+	 * @param configuration The &quot;configuration&quot; parameter is an instance of the ConfigurationVraNg class.
+	 * It contains the necessary information and settings for creating the RestClientVraNg object.
+	 * @return The method is returning an instance of the RestClientVraNg class.
+	 */
+	public static RestClientVraNg getClientVraNg(ConfigurationVraNg configuration) {
+<span class="nc" id="L309">		RestTemplate restTemplate = getInsecureRestTemplate(configuration.getProxy());</span>
+
+<span class="nc" id="L311">        RestClientRequestInterceptor&lt;ConfigurationVraNg&gt; interceptor = new RestClientVraNgAuthNInterceptor(configuration, restTemplate);</span>
+<span class="nc" id="L312">		restTemplate.getInterceptors().add(interceptor);</span>
+
+<span class="nc" id="L314">		return new RestClientVraNg(configuration, restTemplate);</span>
+	}
+
+	/**
+	 * The function getClientVcd returns a RestClientVcd object with the specified configuration and
+	 * authentication.
+	 * 
+	 * @param configuration The &quot;configuration&quot; parameter is an object of type ConfigurationVcd. It
+	 * contains the necessary configuration settings for connecting to a vCloud Director (vCD) instance.
+	 * This could include information such as the vCD server URL, credentials, and any other required
+	 * settings.
+	 * @return The method is returning an instance of the RestClientVcd class.
+	 */
+	public static RestClientVcd getClientVcd(ConfigurationVcd configuration) {
+<span class="nc" id="L328">		RestTemplate restTemplate = getInsecureRestTemplate();</span>
+
+<span class="nc" id="L330">		RestClientVcd versionRestClient = new RestClientVcd(configuration, restTemplate);</span>
+		// vCD API version is passed to Content-Type headers.
+		// No authentication is required to obtain API version
+<span class="nc" id="L333">		String apiVersion = versionRestClient.getVersion();</span>
+<span class="nc" id="L334">        RestClientRequestInterceptor&lt;ConfigurationVcd&gt; interceptor = new RestClientVcdBasicAuthInterceptor(configuration, restTemplate, apiVersion);</span>
+<span class="nc" id="L335">		restTemplate.getInterceptors().add(interceptor);</span>
+
+<span class="nc" id="L337">		return new RestClientVcd(configuration, restTemplate);</span>
+	}
+
+	/**
+	 * The function returns a RestClientVrliV1 object with a configured RestTemplate and
+	 * RestClientVrliAuthInterceptor.
+	 * 
+	 * @param configuration The &quot;configuration&quot; parameter is an object of type ConfigurationVrli. It is
+	 * used to provide the necessary configuration settings for the RestClientVrliV1 class.
+	 * @return The method is returning an instance of the RestClientVrliV1 class.
+	 */
+	public static RestClientVrliV1 getClientVrliV1(ConfigurationVrli configuration) {
+<span class="nc" id="L349">		RestTemplate restTemplate = getInsecureRestTemplate();</span>
+
+<span class="nc" id="L351">        RestClientRequestInterceptor&lt;ConfigurationVrli&gt; interceptor = new RestClientVrliAuthInterceptor(configuration, restTemplate);</span>
+<span class="nc" id="L352">		restTemplate.getInterceptors().add(interceptor);</span>
+
+<span class="nc" id="L354">		return new RestClientVrliV1(configuration, restTemplate);</span>
+	}
+
+	/**
+	 * The function returns a RestClientVrliV2 object with a configured RestTemplate and
+	 * RestClientVrliAuthInterceptor.
+	 * 
+	 * @param configuration The configuration parameter is an object of type ConfigurationVrli. It contains
+	 * the necessary information and settings required to establish a connection with the VRli API.
+	 * @return The method is returning an instance of the RestClientVrliV2 class.
+	 */
+	public static RestClientVrliV2 getClientVrliV2(ConfigurationVrli configuration) {
+<span class="nc" id="L366">		RestTemplate restTemplate = getInsecureRestTemplate();</span>
+
+<span class="nc" id="L368">		RestClientRequestInterceptor&lt;ConfigurationVrli&gt; interceptor = new RestClientVrliAuthInterceptor(configuration, restTemplate);</span>
+<span class="nc" id="L369">		restTemplate.getInterceptors().add(interceptor);</span>
+
+<span class="nc" id="L371">		return new RestClientVrliV2(configuration, restTemplate);</span>
+	}
+
+/**
+ * An enumeration of the different types of timeouts that can be configured for a connection.
+ */
+<span class="nc" id="L377">public enum TimeoutType {</span>
+    /**
+     * The connection timeout type.
+     * This represents the maximum time in milliseconds to wait for a connection to be established before giving up.
+     */
+<span class="nc" id="L382">    CONNECTION,</span>
+
+    /**
+     * The socket timeout type.
+     * This represents the maximum time in milliseconds to wait for data to be received after a connection has been established before giving up.
+     */
+<span class="nc" id="L388">    SOCKET</span>
+}
+	
+	/**
+	 * The function returns a RestClientCs object with a configured RestTemplate and
+	 * RestClientRequestInterceptor.
+	 * 
+	 * @param configuration An object of type ConfigurationCs, which contains the configuration settings
+	 * for the RestClientCs.
+	 * @return The method is returning an instance of the RestClientCs class.
+	 */
+	public static RestClientCs getClientCs(ConfigurationCs configuration) {
+<span class="nc" id="L400">		RestTemplate restTemplate = getInsecureRestTemplate(configuration.getProxy());</span>
+<span class="nc" id="L401">		RestClientRequestInterceptor&lt;ConfigurationVraNg&gt; interceptor = new RestClientVraNgAuthNInterceptor(configuration, restTemplate);</span>
+<span class="nc" id="L402">		restTemplate.getInterceptors().add(interceptor);</span>
+<span class="nc" id="L403">		return new RestClientCs(configuration, restTemplate);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

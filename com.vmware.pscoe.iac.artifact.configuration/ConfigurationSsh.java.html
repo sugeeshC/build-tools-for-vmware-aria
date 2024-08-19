@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfigurationSsh.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.configuration</a> &gt; <span class="el_source">ConfigurationSsh.java</span></div><h1>ConfigurationSsh.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.configuration;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.net.InetAddress;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
+import java.util.Properties;
+
+import org.apache.http.client.utils.URIBuilder;
+import org.springframework.util.StringUtils;
+
+import com.vmware.pscoe.iac.artifact.model.PackageType;
+
+public final class ConfigurationSsh extends Configuration {
+    // Important - when modify properties refer to comments in @Configuration
+    public static final String SSH_DIRECTORY = &quot;directory&quot;;
+
+    /**
+     * SSH Package Import content conflict resolution mode
+     */
+    public static final String PACKAGE_IMPORT_OVERWRITE_MODE = &quot;packageImportOverwriteMode&quot;;
+    public static final String MSSING_PROPERTY_EXCEPTION = &quot;Configuration validation failed. Empty SSH property. Please make sure you have defined the SSH property '%s'. You may define that in maven 'settings.xml'.&quot;;
+
+    private ConfigurationSsh(Properties props) {
+<span class="nc" id="L39">        super(PackageType.BASIC, props);</span>
+<span class="nc" id="L40">    }</span>
+
+    public String getPackageImportOverwriteMode() {
+<span class="nc" id="L43">        return properties.getProperty(PACKAGE_IMPORT_OVERWRITE_MODE, &quot;SKIP,OVERWRITE&quot;);</span>
+    }
+
+    public String getSshDirectory() {
+<span class="nc" id="L47">        return properties.getProperty(SSH_DIRECTORY);</span>
+    }
+
+    @Override
+    public void validate(boolean domainOptional) throws ConfigurationException {
+<span class="nc bnc" id="L52" title="All 2 branches missed.">        if (StringUtils.isEmpty(getHost())) {</span>
+<span class="nc" id="L53">            throw new ConfigurationException(String.format(MSSING_PROPERTY_EXCEPTION, HOST));</span>
+        }
+
+<span class="nc bnc" id="L56" title="All 2 branches missed.">        if (StringUtils.isEmpty(getPort())) {</span>
+<span class="nc" id="L57">            throw new ConfigurationException(String.format(MSSING_PROPERTY_EXCEPTION, PORT));</span>
+        }
+
+<span class="nc bnc" id="L60" title="All 2 branches missed.">        if (StringUtils.isEmpty(getSshDirectory())) {</span>
+<span class="nc" id="L61">            throw new ConfigurationException(String.format(MSSING_PROPERTY_EXCEPTION, SSH_DIRECTORY));</span>
+        }
+
+<span class="nc bnc" id="L64" title="All 2 branches missed.">        if (StringUtils.isEmpty(getUsername())) {</span>
+<span class="nc" id="L65">            throw new ConfigurationException(String.format(MSSING_PROPERTY_EXCEPTION, USERNAME));</span>
+        }
+
+<span class="nc" id="L68">        String sshPassword = getPassword();</span>
+<span class="nc bnc" id="L69" title="All 4 branches missed.">        if (sshPassword == null || sshPassword.trim().length() == 0) {</span>
+<span class="nc" id="L70">            throw new ConfigurationException(String.format(MSSING_PROPERTY_EXCEPTION, PASSWORD));</span>
+        }
+
+        try {
+<span class="nc" id="L74">            new URIBuilder().setScheme(&quot;https&quot;).setHost(getHost()).setPort(getPort()).build();</span>
+<span class="nc" id="L75">        } catch (URISyntaxException e) {</span>
+<span class="nc" id="L76">            throw new ConfigurationException(e.getMessage(), e);</span>
+<span class="nc" id="L77">        }</span>
+
+<span class="nc" id="L79">        String host = getHost();</span>
+        try {
+<span class="nc" id="L81">            InetAddress.getByName(host);</span>
+<span class="nc" id="L82">        } catch (UnknownHostException uhe) {</span>
+<span class="nc" id="L83">            throw new ConfigurationException(</span>
+<span class="nc" id="L84">                    String.format(&quot;Configuration validation failed. The vrops %s value %s is not valid host / IP address of the server. %s&quot;, HOST, host, uhe.getMessage()));</span>
+<span class="nc" id="L85">        }</span>
+<span class="nc" id="L86">    }</span>
+
+    public static ConfigurationSsh fromProperties(Properties props) throws ConfigurationException {
+<span class="nc" id="L89">        ConfigurationSsh config = new ConfigurationSsh(props);</span>
+
+<span class="nc" id="L91">        config.validate(true);</span>
+
+<span class="nc" id="L93">        return config;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

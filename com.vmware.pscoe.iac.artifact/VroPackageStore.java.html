@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VroPackageStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact</a> &gt; <span class="el_source">VroPackageStore.java</span></div><h1>VroPackageStore.java</h1><pre class="source lang-java linenums">/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+package com.vmware.pscoe.iac.artifact;
+
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.sql.Timestamp;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.vmware.pscoe.iac.artifact.extentions.PackageStoreExtention;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.PackageContent;
+import com.vmware.pscoe.iac.artifact.model.PackageContent.Content;
+import com.vmware.pscoe.iac.artifact.model.Version;
+import com.vmware.pscoe.iac.artifact.model.vro.VroPackageDescriptor;
+import com.vmware.pscoe.iac.artifact.rest.RestClientVro;
+import com.vmware.pscoe.iac.artifact.strategy.Strategy;
+import org.springframework.web.client.HttpClientErrorException;
+
+public class VroPackageStore extends GenericPackageStore&lt;VroPackageDescriptor&gt; {
+	/**
+	 * Variable for logging.
+	 */
+<span class="pc" id="L44">    private final Logger logger = LoggerFactory.getLogger(VroPackageStore.class);</span>
+
+	/**
+	 * The vRO rest client.
+	 */
+    private final RestClientVro restClient;
+
+	/**
+	 * The vRO package store strategies.
+	 */
+    private final List&lt;Strategy&gt; strategies;
+
+	/**
+	 * The vRO package store extensions.
+	 */
+    private final List&lt;PackageStoreExtention&lt;VroPackageDescriptor&gt;&gt; extentions;
+
+	/**
+	 *
+	 * @param vroRestClient the vRO rest client
+	 * @param vroStrategies the vRO strategies
+	 * @param vroExtentions the vRO extensions
+	 */
+<span class="fc" id="L67">    protected VroPackageStore(final RestClientVro vroRestClient, final List&lt;Strategy&gt; vroStrategies, final List&lt;PackageStoreExtention&lt;VroPackageDescriptor&gt;&gt; vroExtentions) {</span>
+<span class="fc" id="L68">        this.restClient = vroRestClient;</span>
+<span class="fc" id="L69">        this.strategies = vroStrategies;</span>
+<span class="fc" id="L70">        this.extentions = vroExtentions;</span>
+<span class="fc" id="L71">    }</span>
+
+	/**
+	 *
+	 * @param vroRestClient the vRO rest client
+	 * @param vroStrategies the vRO strategies
+	 * @param vroExtentions the vRO extensions
+	 * @param vroProductVersion the vRO product version
+	 */
+<span class="nc" id="L80">    protected VroPackageStore(final RestClientVro vroRestClient, final List&lt;Strategy&gt; vroStrategies, final List&lt;PackageStoreExtention&lt;VroPackageDescriptor&gt;&gt; vroExtentions, final Version vroProductVersion) {</span>
+<span class="nc" id="L81">        this.restClient = vroRestClient;</span>
+<span class="nc" id="L82">        this.strategies = vroStrategies;</span>
+<span class="nc" id="L83">        this.extentions = vroExtentions;</span>
+<span class="nc" id="L84">        super.setProductVersion(vroProductVersion);</span>
+<span class="nc" id="L85">    }</span>
+
+	/**
+	 * Gets the vRO packages.
+	 * @return the extracted packages
+	 */
+    @Override
+    public final List&lt;Package&gt; getPackages() {
+<span class="nc" id="L93">        List&lt;Package&gt; pkgs = restClient.getPackages();</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">        for (Package pkg : pkgs) {</span>
+<span class="nc" id="L95">            logger.trace(String.format(PackageStore.PACKAGE_LIST, pkg));</span>
+<span class="nc" id="L96">        }</span>
+
+<span class="nc" id="L98">        return pkgs;</span>
+    }
+
+	/**
+	 * Exports all packages.
+	 * @param vroPackages the packages to export
+	 * @param dryrun whether it should be dry run
+	 * @return the exported packages
+	 */
+    @Override
+    public final List&lt;Package&gt; exportAllPackages(final List&lt;Package&gt; vroPackages, final boolean dryrun) {
+<span class="nc" id="L109">        this.vlidateServer(vroPackages);</span>
+
+<span class="nc" id="L111">        List&lt;Package&gt; sourceEndpointPackages = vroPackages;</span>
+<span class="nc" id="L112">        List&lt;Package&gt; destinationEndpointPackages = vroPackages.stream().filter(pkg -&gt; new File(pkg.getFilesystemPath()).exists()).collect(Collectors.toList());</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">        for (Strategy strategy : strategies) {</span>
+<span class="nc" id="L114">            sourceEndpointPackages = strategy.getExportPackages(sourceEndpointPackages, destinationEndpointPackages);</span>
+<span class="nc" id="L115">        }</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">        if (sourceEndpointPackages.isEmpty()) {</span>
+<span class="nc" id="L117">            return new ArrayList&lt;&gt;();</span>
+        }
+
+<span class="nc" id="L120">        List&lt;Package&gt; exportedPackages = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        for (Package pkg : sourceEndpointPackages) {</span>
+<span class="nc" id="L122">            exportedPackages.add(this.exportPackage(pkg, dryrun));</span>
+<span class="nc" id="L123">        }</span>
+
+<span class="nc" id="L125">        return exportedPackages;</span>
+    }
+
+	/**
+	 * Imports all packages.
+	 * @param pkg the packages to import
+	 * @param dryrun whether it should be dry run
+	 * @param enableBackup whether it should back up the packages on import
+	 * @return the imported packages
+	 */
+	@Override
+	public final List&lt;Package&gt; importAllPackages(final List&lt;Package&gt; pkg, final boolean dryrun, final boolean enableBackup) {
+<span class="fc" id="L137">		return this.importAllPackages(pkg, dryrun, false, enableBackup);</span>
+	}
+
+	/**
+	 * Imports all packages.
+	 * @param vroPackages the packages to import
+	 * @param dryrun whether it should be dry run
+	 * @param mergePackages whether to merge the packages
+	 * @param vroEnableBackup whether it should back up the packages on import
+	 * @return the imported packages
+	 */
+	@Override
+    public final List&lt;Package&gt; importAllPackages(final List&lt;Package&gt; vroPackages, final boolean dryrun, final boolean mergePackages, final boolean vroEnableBackup) {
+<span class="fc" id="L150">		this.validateFilesystem(vroPackages);</span>
+
+<span class="fc" id="L152">		logger.info(&quot;Start executing import all packages...&quot;);</span>
+
+<span class="fc" id="L154">		this.validateFilesystem(vroPackages);</span>
+
+<span class="fc" id="L156">		List&lt;Package&gt; packagesToImport = vroPackages;</span>
+<span class="fc" id="L157">		List&lt;Package&gt; destinationEndpointPackages = restClient.getPackages();</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">		for (Strategy strategy : strategies) {</span>
+<span class="fc" id="L159">			packagesToImport = strategy.getImportPackages(packagesToImport, destinationEndpointPackages); //filtered packages on file system</span>
+<span class="fc" id="L160">		}</span>
+<span class="pc bpc" id="L161" title="1 of 2 branches missed.">		if (packagesToImport.isEmpty()) {</span>
+<span class="nc" id="L162">			return new ArrayList&lt;&gt;();</span>
+		}
+<span class="pc bpc" id="L164" title="2 of 4 branches missed.">		if (vroEnableBackup &amp;&amp; !packagesToImport.isEmpty()) {</span>
+			//TO change the packages to backup to ALL the packages currently present in vRO -&gt; in this if statements replace packagesToImport with destinationEndpointPackages
+<span class="fc" id="L166">			logger.info(&quot;Number of packages to backup: &quot; + packagesToImport.size());</span>
+<span class="fc" id="L167">			logger.info(&quot;Packages to backup: &quot; + packagesToImport);</span>
+
+<span class="fc" id="L169">			boolean exportConfigAttributeValues = true;</span>
+<span class="fc" id="L170">			boolean exportConfigSecureStringValues = true;</span>
+
+<span class="fc" id="L172">			Timestamp timestamp = new Timestamp(System.currentTimeMillis());</span>
+<span class="fc" id="L173">			SimpleDateFormat timeStampFormat = new SimpleDateFormat(&quot;yyyy.MM.dd_HH-mm-ss&quot;);</span>
+<span class="fc" id="L174">			String currentDateTimeString = timeStampFormat.format(timestamp);</span>
+<span class="fc" id="L175">			Package firstPackage = packagesToImport.get(0);</span>
+<span class="fc" id="L176">			String backupFilesDirectory = this.createBackupFileDirectory(firstPackage, currentDateTimeString);</span>
+
+<span class="fc" id="L178">			packagesToImport.forEach(pkg -&gt; {</span>
+<span class="fc" id="L179">				String originalPkgFilePath = pkg.getFilesystemPath();</span>
+
+				try {
+<span class="fc" id="L182">					List&lt;Package&gt; samePackagesInDest = new ArrayList&lt;Package&gt;();</span>
+<span class="pc bpc" id="L183" title="1 of 2 branches missed.">					for (int i = 0; i &lt; destinationEndpointPackages.size(); i++) {</span>
+<span class="nc" id="L184">						String currentVroPackageName = destinationEndpointPackages.get(i).getName();</span>
+
+<span class="nc bnc" id="L186" title="All 2 branches missed.">						if (currentVroPackageName.equals(pkg.getName())) {</span>
+<span class="nc" id="L187">							samePackagesInDest.add(destinationEndpointPackages.get(i));</span>
+						}
+					}
+<span class="fc" id="L190">					logger.info(&quot;Package versions to backup: &quot; + samePackagesInDest);</span>
+<span class="pc bpc" id="L191" title="1 of 2 branches missed.">					if (!samePackagesInDest.isEmpty()) {</span>
+<span class="nc bnc" id="L192" title="All 2 branches missed.">						for (Package eachPkgVersion: samePackagesInDest) {</span>
+<span class="nc" id="L193">							String backupFilePath = this.createBackupFilePath(eachPkgVersion, currentDateTimeString, backupFilesDirectory);</span>
+<span class="nc" id="L194">							eachPkgVersion.setFilesystemPath(backupFilePath);</span>
+<span class="nc" id="L195">							restClient.exportPackage(eachPkgVersion, dryrun, exportConfigAttributeValues, exportConfigSecureStringValues);</span>
+<span class="nc" id="L196">						}</span>
+
+					} else {
+<span class="fc" id="L199">						logger.info(&quot;The package does not exist in vRO and backup is skipped: &quot; + pkg.getName());</span>
+					}
+<span class="nc" id="L201">				} catch (Exception ex) {</span>
+<span class="nc" id="L202">					String exceptionMessage = ex.getMessage();</span>
+<span class="nc" id="L203">					logger.info(&quot;ExceptionMessage: &quot; + exceptionMessage);</span>
+<span class="nc" id="L204">					logger.info(&quot;Package Name: &quot; + pkg.getName());</span>
+
+<span class="nc bnc" id="L206" title="All 2 branches missed.">					if (!exceptionMessage.contains(&quot;404 Not Found&quot;)</span>
+						||
+<span class="nc bnc" id="L208" title="All 2 branches missed.">						!exceptionMessage.contains(pkg.getName())) { //Unexpected exception</span>
+<span class="nc" id="L209">						throw ex;</span>
+					} else { //The package to be imported has been deleted from the server
+<span class="nc" id="L211">						logger.info(&quot;ExceptionMessage: &quot; + ex.getMessage());</span>
+					}
+<span class="fc" id="L213">				}</span>
+
+<span class="fc" id="L215">				logger.info(&quot;Restoring original file path... &quot;);</span>
+
+<span class="fc" id="L217">				pkg.setFilesystemPath(originalPkgFilePath);</span>
+<span class="fc" id="L218">				logger.info(&quot;File path after restoration: &quot; + pkg.getFilesystemPath());</span>
+
+<span class="fc" id="L220">			});</span>
+		}
+
+<span class="fc" id="L223">        List&lt;Package&gt; importedPackages = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L224" title="All 2 branches covered.">        for (Package pkg : packagesToImport) {</span>
+<span class="fc" id="L225">            importedPackages.add(this.importPackage(pkg, dryrun, mergePackages));</span>
+<span class="fc" id="L226">        }</span>
+
+<span class="fc" id="L228">        return importedPackages;</span>
+    }
+
+	/**
+	 * Exports a package.
+	 * @param vraPackage the package to export
+	 * @param dryrun whether it should be a dry run
+	 * @return the exported package
+	 */
+    @Override
+    public final Package exportPackage(final Package vraPackage, final boolean dryrun) {
+<span class="nc" id="L239">		logger.info(String.format(PackageStore.PACKAGE_EXPORT, vraPackage));</span>
+
+<span class="nc" id="L241">		boolean exportConfigAttributeValues = false;</span>
+<span class="nc" id="L242">		boolean exportConfigSecureStringValues = false;</span>
+
+<span class="nc" id="L244">        Package pkg = restClient.exportPackage(vraPackage, dryrun, exportConfigAttributeValues, exportConfigSecureStringValues);</span>
+<span class="nc bnc" id="L245" title="All 2 branches missed.">        for (PackageStoreExtention&lt;VroPackageDescriptor&gt; e : extentions) {</span>
+<span class="nc" id="L246">            e.exportPackage(pkg, null, dryrun);</span>
+<span class="nc" id="L247">        }</span>
+
+<span class="nc" id="L249">        return pkg;</span>
+    }
+
+	/**
+	 * Exports a package.
+	 * @param vraPackage the package to export
+	 * @param vroPackageDescriptor the package descriptor
+	 * @param dryrun whether it should be dry run
+	 * @return the exported package
+	 */
+    @Override
+	public final Package exportPackage(final Package vraPackage, final VroPackageDescriptor vroPackageDescriptor, final boolean dryrun) {
+<span class="nc" id="L261">		logger.info(String.format(PackageStore.PACKAGE_EXPORT, vraPackage));</span>
+
+<span class="nc" id="L263">		boolean exportConfigAttributeValues = false;</span>
+<span class="nc" id="L264">		boolean exportConfigSecureStringValues = false;</span>
+
+<span class="nc" id="L266">		Package pkg = restClient.exportPackage(vraPackage, dryrun, exportConfigAttributeValues, exportConfigSecureStringValues);</span>
+<span class="nc bnc" id="L267" title="All 2 branches missed.">		for (PackageStoreExtention&lt;VroPackageDescriptor&gt; e : extentions) {</span>
+<span class="nc" id="L268">		    e.exportPackage(pkg, vroPackageDescriptor, dryrun);</span>
+<span class="nc" id="L269">		}</span>
+
+<span class="nc" id="L271">		return pkg;</span>
+	}
+
+	/**
+	 * Imports a package.
+	 * @param vraPackage the package to import
+	 * @param dryrun whether it should be dry run
+	 * @param mergePackages whether to merge the packages
+	 * @return the imported package
+	 */
+    @Override
+    public final Package importPackage(final Package vraPackage, final boolean dryrun, final boolean mergePackages) {
+<span class="fc bfc" id="L283" title="All 2 branches covered.">		if (mergePackages) {</span>
+<span class="fc" id="L284">			logger.info(String.format(PackageStore.PACKAGE_MERGE, vraPackage));</span>
+		} else {
+<span class="fc" id="L286">			logger.info(String.format(PackageStore.PACKAGE_IMPORT, vraPackage));</span>
+		}
+
+<span class="fc" id="L289">        logger.debug(String.format(&quot;System path: %s&quot;, vraPackage.getFilesystemPath()));</span>
+		Package pkg;
+
+		try {
+<span class="fc" id="L293">			pkg = restClient.importPackage(vraPackage, dryrun, mergePackages);</span>
+<span class="nc" id="L294">		} catch (HttpClientErrorException e) {</span>
+<span class="nc bnc" id="L295" title="All 2 branches missed.">			if (e.getMessage().contains(&quot;Unknown object type 'Module' caused by: Unknown object type 'Module'&quot;)) {</span>
+<span class="nc" id="L296">				throw new RuntimeException(&quot;One of the actions that we tried to import contains a path that is too long.&quot;, e);</span>
+			}
+
+<span class="nc" id="L299">			throw e;</span>
+<span class="fc" id="L300">		}</span>
+
+<span class="fc bfc" id="L302" title="All 2 branches covered.">        for (PackageStoreExtention&lt;VroPackageDescriptor&gt; e : extentions) {</span>
+<span class="fc" id="L303">            e.importPackage(pkg, dryrun);</span>
+<span class="fc" id="L304">        }</span>
+
+<span class="fc" id="L306">        return pkg;</span>
+    }
+
+	/**
+	 * Exports a package.
+	 * @param vroPackage the package to export
+	 * @param vroPackageDescriptor the descriptor of the package to export
+	 * @param dryrun whether it should be dry run
+	 * @return the exported package
+	 */
+    @Override
+    public final Package exportPackage(final Package vroPackage, final File vroPackageDescriptor, final boolean dryrun) {
+<span class="nc" id="L318">        throw new UnsupportedOperationException(&quot;Not supported operation in vRO&quot;);</span>
+    }
+
+	/**
+	 * Deletes a package.
+	 * @param pkg the package to delete
+	 * @param withContent whether to delete the package with its content
+	 * @param dryrun whether it should be dry run
+	 * @return the deleted package
+	 */
+	@Override
+    protected final Package deletePackage(final Package pkg, final boolean withContent, final boolean dryrun) {
+<span class="nc" id="L330">        return restClient.deletePackage(pkg, withContent, dryrun);</span>
+    }
+
+	/**
+	 * Gets package conent.
+	 * @param pkg the package which content to get
+	 * @return the content of the package
+	 */
+	@Override
+    protected final PackageContent getPackageContent(final Package pkg) {
+<span class="nc" id="L340">        return restClient.getPackageContent(pkg);</span>
+    }
+
+	/**
+	 * Deletes conent.
+	 * @param content the conent to delete
+	 * @param dryrun whether it should be dry run
+	 */
+	@Override
+    protected final void deleteContent(final Content content, final boolean dryrun) {
+<span class="nc" id="L350">        restClient.deleteContent(content, dryrun);</span>
+<span class="nc" id="L351">    }</span>
+
+	/**
+	 * Creates backup file directory.
+	 * @param pkg the package to back up
+	 * @param currentDateTimeString the current date-time in human friendly format
+	 * @return the directory for backup
+	 */
+	private String createBackupFileDirectory(final Package pkg, final String currentDateTimeString) {
+<span class="fc" id="L360">		Path pkgFullPath = Paths.get(pkg.getFilesystemPath());</span>
+<span class="fc" id="L361">		logger.debug(&quot;pkgFullPath: &quot; + pkgFullPath.toString());</span>
+
+<span class="fc" id="L363">		Path parent = pkgFullPath.getParent();</span>
+<span class="fc" id="L364">		logger.debug(&quot;parent: &quot; + parent.toString());</span>
+
+<span class="fc" id="L366">		String platformSeparator = File.separator;</span>
+<span class="fc" id="L367">		String newParentPath = parent.toString() + platformSeparator + &quot;backup_&quot; + currentDateTimeString + platformSeparator;</span>
+<span class="fc" id="L368">		logger.debug(&quot;newParentPath: &quot; + newParentPath);</span>
+
+<span class="fc" id="L370">		File newParentPackage = new File(newParentPath);</span>
+<span class="fc" id="L371">		boolean backupDirectoryCreated = newParentPackage.mkdir();</span>
+<span class="fc" id="L372">		logger.debug(&quot;backupDirectoryCreated: &quot; + backupDirectoryCreated);</span>
+
+<span class="fc" id="L374">		return newParentPath;</span>
+	}
+
+	/**
+	 * Creates the path of the backup file.
+	 * @param pkg the package to back up
+	 * @param currentDateTimeString the current date-time in human friendly format
+	 * @param backupDirectoryPath the directory for backup
+	 * @return the path of the file to be backed up
+	 */
+	private String createBackupFilePath(final Package pkg, final String currentDateTimeString, final String backupDirectoryPath) {
+<span class="nc" id="L385">		Path pkgFullPath = Paths.get(pkg.getFilesystemPath());</span>
+<span class="nc" id="L386">		logger.debug(&quot;pkgFullPath: &quot; + pkgFullPath.toString());</span>
+
+<span class="nc" id="L388">		Path fileName = pkgFullPath.getFileName();</span>
+<span class="nc" id="L389">        logger.debug(&quot;fileName: &quot; + fileName.toString());</span>
+
+<span class="nc" id="L391">		String newFileName = fileName.toString() + &quot;.backup_&quot; + currentDateTimeString;</span>
+<span class="nc" id="L392">		logger.debug(&quot;newFileName: &quot; + newFileName);</span>
+
+<span class="nc" id="L394">		String newFullPath = backupDirectoryPath + newFileName;</span>
+<span class="nc" id="L395">        logger.debug(&quot;newFullPath: &quot; + newFullPath);</span>
+
+<span class="nc" id="L397">		return newFullPath;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

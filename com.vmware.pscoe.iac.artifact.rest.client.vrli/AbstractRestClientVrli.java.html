@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbstractRestClientVrli.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest.client.vrli</a> &gt; <span class="el_source">AbstractRestClientVrli.java</span></div><h1>AbstractRestClientVrli.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.rest.client.vrli;
+
+/*-
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.google.gson.*;
+import com.jayway.jsonpath.JsonPath;
+import com.vmware.pscoe.iac.artifact.configuration.Configuration;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationException;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVrli;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVrops;
+import com.vmware.pscoe.iac.artifact.rest.RestClient;
+import com.vmware.pscoe.iac.artifact.rest.RestClientVrops;
+import org.slf4j.Logger;
+import org.springframework.http.*;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+import java.net.URI;
+import java.util.Properties;
+
+public abstract class AbstractRestClientVrli extends RestClient {
+	protected String apiPrefix;
+	protected RestTemplate restTemplate;
+	protected ConfigurationVrli configuration;
+	protected String vrliVersion;
+	protected RestClientVrops vropsRestClient;
+	protected Logger logger;
+	protected static final String CONTENT_PACKS_API = &quot;/content/contentpack&quot;;
+	protected static final String CONTENT_PACKS_LIST_API = &quot;/content/contentpack/list&quot;;
+	protected static final String ALERTS_API = &quot;/alerts&quot;;
+	private static final String OVERWRITE_MODE = &quot;OVERWRITE&quot;;
+
+<span class="nc" id="L47">	protected AbstractRestClientVrli (String apiPrefix, ConfigurationVrli configuration, RestTemplate restTemplate) {</span>
+<span class="nc" id="L48">		this.apiPrefix = apiPrefix;</span>
+<span class="nc" id="L49">		this.restTemplate = restTemplate;</span>
+<span class="nc" id="L50">		this.configuration = configuration;</span>
+<span class="nc" id="L51">		this.vropsRestClient = getVropsRestClient();</span>
+<span class="nc" id="L52">	}</span>
+
+	@Override
+	public String getVersion() {
+<span class="nc bnc" id="L56" title="All 4 branches missed.">		if (this.vrliVersion != null &amp;&amp; !this.vrliVersion.isEmpty()) {</span>
+<span class="nc" id="L57">			return this.vrliVersion;</span>
+		}
+
+<span class="nc" id="L60">		URI url = getURI(getURIBuilder().setPath(this.apiPrefix + &quot;/version&quot;));</span>
+<span class="nc" id="L61">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L62">		this.vrliVersion = JsonPath.parse(response.getBody()).read(&quot;$.version&quot;);</span>
+
+<span class="nc" id="L64">		return this.vrliVersion;</span>
+	}
+
+	@Override
+	protected Configuration getConfiguration() {
+<span class="nc" id="L69">		return this.configuration;</span>
+	}
+
+	public String getContentPack(String contentPackNamespace) {
+<span class="nc" id="L73">		String uriPattern = this.apiPrefix + CONTENT_PACKS_API + &quot;/%s&quot;;</span>
+<span class="nc" id="L74">		String contentPackUriString = String.format(uriPattern, contentPackNamespace);</span>
+<span class="nc" id="L75">		URI url = getURI(getURIBuilder().setPath(contentPackUriString));</span>
+<span class="nc" id="L76">		ResponseEntity&lt;String&gt; response = new ResponseEntity&lt;&gt;(HttpStatus.OK);</span>
+		try {
+<span class="nc" id="L78">			response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L79">		} catch (HttpClientErrorException e) {</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">			if (HttpStatus.NOT_FOUND.equals(e.getStatusCode())) {</span>
+<span class="nc" id="L81">				throw new RuntimeException(String.format(&quot;Content pack '%s' does not exist: %s&quot;, contentPackNamespace, e.getMessage()));</span>
+			}
+<span class="nc" id="L83">			throw new RuntimeException(String.format(&quot;Error fetching content pack data for content pack '%s': %s&quot;, contentPackNamespace, e.getMessage()));</span>
+<span class="nc" id="L84">		}</span>
+
+		// reformat the output JSON to be readable
+		JsonObject jsonObject;
+		try {
+<span class="nc" id="L89">			jsonObject = JsonParser.parseString(response.getBody()).getAsJsonObject();</span>
+<span class="nc" id="L90">		} catch (JsonSyntaxException e) {</span>
+<span class="nc" id="L91">			throw new RuntimeException(String.format(&quot;Error verifying data of content pack '%s': %s&quot;, contentPackNamespace, e.getMessage()));</span>
+<span class="nc" id="L92">		} catch (JsonIOException e) {</span>
+<span class="nc" id="L93">			throw new RuntimeException(String.format(&quot;Error reading and verifying data of content pack '%s': %s&quot;, contentPackNamespace, e.getMessage()));</span>
+<span class="nc" id="L94">		}</span>
+<span class="nc" id="L95">		Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().setLenient().serializeNulls().create();</span>
+
+<span class="nc" id="L97">		return gson.toJson(jsonObject);</span>
+	}
+
+	public void importContentPack(String contentPackName, String contentPackJson) {
+<span class="nc bnc" id="L101" title="All 2 branches missed.">		Boolean overwrite = configuration.getPackageImportOverwriteMode().equals(Boolean.TRUE.toString())</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">				|| configuration.getPackageImportOverwriteMode().contains(OVERWRITE_MODE);</span>
+<span class="nc" id="L103">		URI url = getURI(getURIBuilder().setPath(this.apiPrefix + CONTENT_PACKS_API).addParameter(&quot;overwrite&quot;, overwrite.toString()));</span>
+
+<span class="nc" id="L105">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L106">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L107">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(contentPackJson, headers);</span>
+		try {
+<span class="nc" id="L109">			restTemplate.exchange(url, HttpMethod.POST, entity, String.class);</span>
+<span class="nc" id="L110">		} catch (HttpClientErrorException e) {</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">			if (HttpStatus.CONFLICT.equals(e.getStatusCode())) {</span>
+<span class="nc" id="L112">				logger.warn(&quot;The content pack '{}' already exists on the target system, please uninstall it before importing again.&quot;, contentPackName);</span>
+<span class="nc" id="L113">				return;</span>
+			}
+<span class="nc bnc" id="L115" title="All 2 branches missed.">			if (HttpStatus.BAD_REQUEST.equals(e.getStatusCode())) {</span>
+<span class="nc" id="L116">				throw new RuntimeException(String.format(&quot;Data validation error of the content pack '%s' to VRLI: %s&quot;, contentPackName, e.getMessage()));</span>
+			}
+<span class="nc" id="L118">			throw new RuntimeException(String.format(&quot;Error importing content pack '%s' to VRLI: %s&quot;, contentPackName, e.getMessage()));</span>
+<span class="nc" id="L119">		} catch (RestClientException e) {</span>
+<span class="nc" id="L120">			throw new RuntimeException(String.format(&quot;REST client error during import of content pack '%s' to VRLI: %s&quot;, contentPackName, e.getMessage()));</span>
+<span class="nc" id="L121">		}</span>
+<span class="nc" id="L122">	}</span>
+
+	protected RestClientVrops getVropsRestClient() {
+<span class="nc bnc" id="L125" title="All 2 branches missed.">		if (this.vropsRestClient != null) {</span>
+<span class="nc" id="L126">			return this.vropsRestClient;</span>
+		}
+
+		ConfigurationVrops vropsConfiguration;
+<span class="nc" id="L130">		Properties vropsConfigProperties = new Properties();</span>
+<span class="nc" id="L131">		vropsConfigProperties.put(Configuration.HOST, configuration.getIntegrationVropsAuthHost());</span>
+<span class="nc" id="L132">		vropsConfigProperties.put(Configuration.PORT, configuration.getIntegrationVropsAuthPort());</span>
+<span class="nc" id="L133">		vropsConfigProperties.put(Configuration.USERNAME, configuration.getIntegrationVropsAuthUser());</span>
+<span class="nc" id="L134">		vropsConfigProperties.put(Configuration.PASSWORD, configuration.getIntegrationVropsAuthPassword());</span>
+<span class="nc" id="L135">		vropsConfigProperties.put(ConfigurationVrli.INTEGRATION_VROPS_AUTH_SOURCE, configuration.getIntegrationVropsAuthSource());</span>
+<span class="nc" id="L136">		vropsConfigProperties.put(ConfigurationVrops.VROPS_DASHBOARD_USER, &quot;admin&quot;);</span>
+<span class="nc" id="L137">		vropsConfigProperties.put(ConfigurationVrops.VROPS_REST_USER, configuration.getIntegrationVropsAuthUser());</span>
+<span class="nc" id="L138">		vropsConfigProperties.put(ConfigurationVrops.VROPS_REST_PASSWORD, configuration.getIntegrationVropsAuthPassword());</span>
+<span class="nc" id="L139">		vropsConfigProperties.put(ConfigurationVrops.VROPS_REST_AUTH_SOURCE, configuration.getIntegrationVropsAuthSource());</span>
+<span class="nc" id="L140">		vropsConfigProperties.put(ConfigurationVrops.SSH_PORT, &quot;22&quot;);</span>
+
+		try {
+<span class="nc" id="L143">			vropsConfiguration = ConfigurationVrops.fromProperties(vropsConfigProperties);</span>
+<span class="nc" id="L144">		} catch (ConfigurationException e) {</span>
+<span class="nc" id="L145">			throw new RuntimeException(</span>
+<span class="nc" id="L146">				String.format(&quot;Unable to update vCOPs integration for alert, vROPs integration configuration failed with message: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L147">		}</span>
+
+<span class="nc" id="L149">		return new RestClientVrops(vropsConfiguration, restTemplate);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

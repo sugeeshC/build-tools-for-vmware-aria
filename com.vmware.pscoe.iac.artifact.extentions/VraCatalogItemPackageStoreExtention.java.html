@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraCatalogItemPackageStoreExtention.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.extentions</a> &gt; <span class="el_source">VraCatalogItemPackageStoreExtention.java</span></div><h1>VraCatalogItemPackageStoreExtention.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.extentions;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.jayway.jsonpath.JsonPath;
+import com.vmware.pscoe.iac.artifact.PackageManager;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.vra.VraPackageDescriptor;
+import com.vmware.pscoe.iac.artifact.rest.RestClientVra;
+import com.vmware.pscoe.iac.artifact.rest.helpers.JsonHelper;
+
+import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class VraCatalogItemPackageStoreExtention implements PackageStoreExtention&lt;VraPackageDescriptor&gt; {
+
+<span class="nc" id="L41">    private final Logger logger = LoggerFactory.getLogger(VraCatalogItemPackageStoreExtention.class);</span>
+    private final RestClientVra restClient;
+
+<span class="nc" id="L44">    public VraCatalogItemPackageStoreExtention(RestClientVra restClient) {</span>
+<span class="nc" id="L45">        this.restClient = restClient;</span>
+<span class="nc" id="L46">    }</span>
+
+    @Override
+    public Package exportPackage(Package serverPackage, VraPackageDescriptor vraPackageDescriptor, boolean dryrun) {
+<span class="nc" id="L50">        logger.debug(&quot;vRA Catalog Item export extention is enabled.&quot;);</span>
+<span class="nc" id="L51">        List&lt;File&gt; catalogItemFiles = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L53" title="All 2 branches missed.">        if (vraPackageDescriptor == null) {</span>
+<span class="nc" id="L54">            logger.debug(&quot;vRA Catalog Item package export requires vRA package descriptor.&quot;);</span>
+<span class="nc" id="L55">            return serverPackage;</span>
+        }
+
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        for (Map&lt;String, String&gt; contentObj : restClient.getPackageContents(serverPackage.getId())) {</span>
+<span class="nc" id="L59">            String contentTypeId = contentObj.get(&quot;contentTypeId&quot;);</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">            if (&quot;composite-blueprint&quot;.equals(contentTypeId)) {</span>
+<span class="nc" id="L61">                loadCatalogItem(catalogItemFiles, serverPackage, contentObj, dryrun);</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">            } else if (&quot;xaas-blueprint&quot;.equals(contentTypeId)) {</span>
+<span class="nc" id="L63">                loadCatalogItem(catalogItemFiles, serverPackage, contentObj, dryrun);</span>
+            }
+<span class="nc" id="L65">        }</span>
+
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        if (!catalogItemFiles.isEmpty()) {</span>
+            try {
+<span class="nc" id="L69">                new PackageManager(serverPackage).addToExistingZip(catalogItemFiles);</span>
+<span class="nc" id="L70">            } catch (IOException e) {</span>
+<span class="nc" id="L71">                throw new RuntimeException(&quot;Error adding files to zip&quot;, e);</span>
+<span class="nc" id="L72">            }</span>
+        }
+
+<span class="nc" id="L75">        return serverPackage;</span>
+    }
+
+    @Override
+    public Package importPackage(Package pkg, boolean dryrun) {
+<span class="nc" id="L80">        logger.debug(&quot;vRA Catalog Item import extention is enabled.&quot;);</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">        if (dryrun) {</span>
+<span class="nc" id="L82">            logger.debug(&quot;vRA does not support Catalog Item validation through the REST API.&quot;);</span>
+<span class="nc" id="L83">            return pkg;</span>
+        }
+
+        File tmp;
+        try {
+<span class="nc" id="L88">            tmp = Files.createTempDirectory(&quot;iac-catalog-items&quot;).toFile();</span>
+<span class="nc" id="L89">            new PackageManager(pkg).unpack(tmp);</span>
+<span class="nc" id="L90">        } catch (IOException e) {</span>
+<span class="nc" id="L91">            logger.error(&quot;Unable to extract package '{}' in temporary directory.&quot;, pkg.getFQName());</span>
+<span class="nc" id="L92">            throw new RuntimeException(&quot;Unable to extract pacakge.&quot;, e);</span>
+<span class="nc" id="L93">        }</span>
+
+<span class="nc" id="L95">        File catalogItemsFolder = Paths.get(tmp.getPath(), &quot;catalog-item&quot;).toFile();</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">        if (catalogItemsFolder.exists()) {</span>
+<span class="nc" id="L97">            FileUtils.listFiles(catalogItemsFolder, new String[] { &quot;json&quot; }, false).stream()</span>
+<span class="nc" id="L98">                    .forEach(catalogItem -&gt; storeCatalogItemOnServer(catalogItem));</span>
+        }
+<span class="nc" id="L100">        return pkg;</span>
+    }
+
+    @SuppressWarnings(&quot;unchecked&quot;)
+    private void loadCatalogItem(List&lt;File&gt; catalogItems, Package serverPackage, Map&lt;String, String&gt; contentObj,
+            boolean dryrun) {
+<span class="nc" id="L106">        String name = contentObj.get(&quot;name&quot;);</span>
+<span class="nc" id="L107">        Map&lt;String, Object&gt; serverCatalogItem = restClient.getCatalogItemByName(name);</span>
+
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        if (serverCatalogItem == null) {</span>
+<span class="nc" id="L110">            logger.debug(&quot;Catalog Item '{}' does not exist.&quot;, name);</span>
+<span class="nc" id="L111">            return;</span>
+        }
+
+<span class="nc" id="L114">        Map&lt;String, Object&gt; catalogItem = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L115">        catalogItem.put(&quot;name&quot;, serverCatalogItem.get(&quot;name&quot;));</span>
+<span class="nc" id="L116">        catalogItem.put(&quot;iconId&quot;, serverCatalogItem.get(&quot;iconId&quot;));</span>
+<span class="nc" id="L117">        catalogItem.put(&quot;quota&quot;, serverCatalogItem.get(&quot;quota&quot;));</span>
+<span class="nc" id="L118">        catalogItem.put(&quot;status&quot;, serverCatalogItem.get(&quot;status&quot;));</span>
+<span class="nc" id="L119">        catalogItem.put(&quot;statusName&quot;, serverCatalogItem.get(&quot;statusName&quot;));</span>
+
+<span class="nc" id="L121">        Map&lt;String, Object&gt; catalogItemService = (Map&lt;String, Object&gt;) serverCatalogItem.get(&quot;serviceRef&quot;);</span>
+<span class="nc bnc" id="L122" title="All 2 branches missed.">        if (catalogItemService != null) {</span>
+<span class="nc" id="L123">            catalogItem.put(&quot;service&quot;, catalogItemService.get(&quot;label&quot;));</span>
+        }
+
+<span class="nc" id="L126">        String catalogItemJson = JsonHelper.toSortedJson(catalogItem);</span>
+
+<span class="nc bnc" id="L128" title="All 2 branches missed.">        if (dryrun) {</span>
+<span class="nc" id="L129">            logger.info(catalogItemJson);</span>
+<span class="nc" id="L130">            return;</span>
+        }
+
+<span class="nc" id="L133">        catalogItems.add(storeCatalogItemOnFileSystem(serverPackage, name, catalogItemJson));</span>
+<span class="nc" id="L134">    }</span>
+
+    private File storeCatalogItemOnFileSystem(Package serverPackage, String name, String catalogItemJson) {
+<span class="nc" id="L137">        File store = new File(serverPackage.getFilesystemPath()).getParentFile();</span>
+<span class="nc" id="L138">        File catalogItemFile = Paths.get(store.getPath(), &quot;catalog-item&quot;, name + &quot;.json&quot;).toFile();</span>
+<span class="nc" id="L139">        catalogItemFile.getParentFile().mkdirs();</span>
+
+        try {
+<span class="nc" id="L142">            Files.write(Paths.get(catalogItemFile.getPath()), catalogItemJson.getBytes(), StandardOpenOption.CREATE);</span>
+<span class="nc" id="L143">        } catch (IOException e) {</span>
+<span class="nc" id="L144">            logger.error(&quot;Unable to store Catalog Item '{}' at '{}'&quot;, name, catalogItemFile.getPath());</span>
+<span class="nc" id="L145">            throw new RuntimeException(&quot;Unable to store catalog item.&quot;, e);</span>
+<span class="nc" id="L146">        }</span>
+<span class="nc" id="L147">        return catalogItemFile;</span>
+    }
+
+    private void storeCatalogItemOnServer(File catalogItemFile) {
+        String catalogItemJson;
+        try {
+<span class="nc" id="L153">            catalogItemJson = FileUtils.readFileToString(catalogItemFile, &quot;UTF-8&quot;);</span>
+<span class="nc" id="L154">        } catch (IOException e) {</span>
+<span class="nc" id="L155">            throw new RuntimeException(&quot;Error reading from file: &quot; + catalogItemFile.getPath(), e);</span>
+<span class="nc" id="L156">        }</span>
+
+<span class="nc" id="L158">        Map&lt;String, Object&gt; catalogItem = JsonPath.parse(catalogItemJson).read(&quot;$&quot;);</span>
+<span class="nc" id="L159">        String catalogItemName = (String) catalogItem.get(&quot;name&quot;);</span>
+
+<span class="nc" id="L161">        Map&lt;String, Object&gt; serverCatalogItem = restClient.getCatalogItemByName(catalogItemName);</span>
+<span class="nc" id="L162">        serverCatalogItem.put(&quot;iconId&quot;, catalogItem.get(&quot;iconId&quot;));</span>
+<span class="nc" id="L163">        serverCatalogItem.put(&quot;quota&quot;, catalogItem.get(&quot;quota&quot;));</span>
+<span class="nc" id="L164">        serverCatalogItem.put(&quot;status&quot;, catalogItem.get(&quot;status&quot;));</span>
+<span class="nc" id="L165">        serverCatalogItem.put(&quot;statusName&quot;, catalogItem.get(&quot;statusName&quot;));</span>
+
+<span class="nc" id="L167">        String serviceName = (String) catalogItem.get(&quot;service&quot;);</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">        if (serviceName != null) {</span>
+<span class="nc" id="L169">            Map&lt;String, Object&gt; serverCatalogService = restClient.getCatalogServiceByName(serviceName);</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">            if (serverCatalogService == null) {</span>
+<span class="nc" id="L171">                throw new RuntimeException(&quot;Unable to find Catalog Service by name: &quot; + serviceName + &quot;. Please pre-create it first in vRA Catalog.&quot;);</span>
+            }
+<span class="nc" id="L173">            Map&lt;String, Object&gt; serviceRef = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L174">            serviceRef.put(&quot;id&quot;, serverCatalogService.get(&quot;id&quot;));</span>
+<span class="nc" id="L175">            serviceRef.put(&quot;label&quot;, serverCatalogService.get(&quot;name&quot;));</span>
+<span class="nc" id="L176">            serverCatalogItem.put(&quot;serviceRef&quot;, serviceRef);</span>
+<span class="nc" id="L177">        } else {</span>
+<span class="nc" id="L178">            serverCatalogItem.put(&quot;serviceRef&quot;, null);</span>
+        }
+
+<span class="nc" id="L181">        restClient.setCatalogItem(serverCatalogItem);</span>
+<span class="nc" id="L182">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

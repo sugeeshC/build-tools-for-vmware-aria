@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbxAction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.abx</a> &gt; <span class="el_source">AbxAction.java</span></div><h1>AbxAction.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model.abx;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Base64;
+
+<span class="fc" id="L23">public class AbxAction {</span>
+
+    public String name;
+    public String description;              // optional
+    public String version;                  // optional
+    public Platform platform;               // optional
+    public AbxDefinition abx;
+    public String id;                       // optional
+
+    public String getName() {
+<span class="nc bnc" id="L33" title="All 4 branches missed.">        return (this.platform != null &amp;&amp; this.platform.action != null) ? this.platform.action : this.name;</span>
+    }
+
+    // The bundle is not part of the ABX package.json, however it is
+    // useful to be stored as file reference for enhanced usage.
+
+    public File bundle;
+
+    public void setBundle(File bundle) {
+<span class="nc" id="L42">        this.bundle = bundle;</span>
+<span class="nc" id="L43">    }</span>
+
+    public String getBundleAsB64() throws IOException {
+<span class="nc" id="L46">        byte[] content = Files.readAllBytes(bundle.toPath());</span>
+<span class="nc" id="L47">        return Base64.getEncoder().encodeToString(content);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

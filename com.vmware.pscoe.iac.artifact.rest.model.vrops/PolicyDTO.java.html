@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PolicyDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest.model.vrops</a> &gt; <span class="el_source">PolicyDTO.java</span></div><h1>PolicyDTO.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.rest.model.vrops;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+/**
+ * PolicyDTO.
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
+<span class="nc" id="L33">public class PolicyDTO {</span>
+
+	/**
+	 * policies.
+	 */
+	@JsonProperty(&quot;policy-summaries&quot;)
+	private List&lt;Policy&gt; policies;
+
+	/**
+	 * policySummaries.
+	 */
+	@JsonProperty(&quot;policySummaries&quot;)
+	private List&lt;Policy&gt; policySummaries;
+
+	/**
+	 * additionalProperties.
+	 */
+<span class="nc" id="L50">	@JsonIgnore</span>
+	private Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+	/**
+	 * getPolicies().
+	 * 
+	 * @return list of policies.
+	 */
+	@JsonProperty(&quot;policy-summaries&quot;)
+	public List&lt;Policy&gt; getPolicies() {
+<span class="nc" id="L60">		return this.policies;</span>
+	}
+
+	/**
+	 * setPolicySummaries().
+	 * 
+	 * @param policySummaries policies to be set.
+	 */
+	@JsonProperty(&quot;policySummaries&quot;)
+	public void setPolicySummaries(List&lt;Policy&gt; policySummaries) {
+<span class="nc" id="L70">		this.policySummaries = policySummaries;</span>
+<span class="nc" id="L71">	}</span>
+
+	/**
+	 * policySummaries().
+	 * 
+	 * @return list of policySummaries.
+	 */
+	@JsonProperty(&quot;policySummaries&quot;)
+	public List&lt;Policy&gt; getPolicySummaries() {
+<span class="nc" id="L80">		return this.policySummaries;</span>
+	}
+
+	/**
+	 * setPolicies().
+	 * 
+	 * @param policies policies to be set.
+	 */
+	@JsonProperty(&quot;policy-summaries&quot;)
+	public void setPolicies(List&lt;Policy&gt; policies) {
+<span class="nc" id="L90">		this.policies = policies;</span>
+<span class="nc" id="L91">	}</span>
+
+	/**
+	 * getAdditionalProperties().
+	 * 
+	 * @return map of additional properties.
+	 */
+	@JsonAnyGetter
+	public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L100">		return this.additionalProperties;</span>
+	}
+
+	/**
+	 * setAdditionalProperties().
+	 * 
+	 * @param propName name of the property.
+	 * @param value    value of the property.
+	 */
+	@JsonAnySetter
+	public void setAdditionalProperties(String propName, Object value) {
+<span class="nc" id="L111">		this.additionalProperties.put(propName, value);</span>
+<span class="nc" id="L112">	}</span>
+
+	/**
+	 * Policy.
+	 */
+	@JsonPropertyOrder({ &quot;id&quot;, &quot;name&quot;, &quot;defaultPolicy&quot;, &quot;priority&quot; })
+	@JsonIgnoreProperties(ignoreUnknown = true)
+<span class="fc" id="L119">	public static class Policy {</span>
+
+		/**
+		 * id.
+		 */
+		@JsonProperty(&quot;id&quot;)
+		private String id;
+
+		/**
+		 * name.
+		 */
+		@JsonProperty(&quot;name&quot;)
+		private String name;
+
+		/**
+		 * zipFile.
+		 */
+		@JsonIgnore
+		private byte[] zipFile;
+
+		/**
+		 * defaultPolicy.
+		 */
+		@JsonProperty(&quot;defaultPolicy&quot;)
+		private boolean defaultPolicy;
+
+		/**
+		 * priority.
+		 */
+		@JsonProperty(&quot;priority&quot;)
+		private Long priority;
+
+		/**
+		 * additionalProperties.
+		 */
+<span class="fc" id="L154">		@JsonIgnore</span>
+		private Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+		/**
+		 * getId().
+		 * 
+		 * @return string with id.
+		 */
+		@JsonProperty(&quot;id&quot;)
+		public String getId() {
+<span class="nc" id="L164">			return id;</span>
+		}
+
+		/**
+		 * setId().
+		 * 
+		 * @param id id to be set.
+		 */
+		@JsonProperty(&quot;id&quot;)
+		public void setId(String id) {
+<span class="fc" id="L174">			this.id = id;</span>
+<span class="fc" id="L175">		}</span>
+
+		/**
+		 * getName().
+		 * 
+		 * @return string with name.
+		 */
+		@JsonProperty(&quot;name&quot;)
+		public String getName() {
+<span class="fc" id="L184">			return name;</span>
+		}
+
+		/**
+		 * setName().
+		 * 
+		 * @param name name of the policy.
+		 */
+		@JsonProperty(&quot;name&quot;)
+		public void setName(String name) {
+<span class="fc" id="L194">			this.name = name;</span>
+<span class="fc" id="L195">		}</span>
+
+		/**
+		 * setZipFile().
+		 * 
+		 * @param file byte array of the file.
+		 */
+		@JsonIgnore
+		public void setZipFile(byte[] file) {
+<span class="fc" id="L204">			this.zipFile = file;</span>
+<span class="fc" id="L205">		}</span>
+
+		/**
+		 * getZipFile().
+		 * 
+		 * @return byte array of the file.
+		 */
+		@JsonIgnore
+		public byte[] getZipFile() {
+<span class="nc" id="L214">			return this.zipFile;</span>
+		}
+
+		/**
+		 * getDefaultPolicy().
+		 * 
+		 * @return whether it is default policy.
+		 */
+		@JsonProperty(&quot;defaultPolicy&quot;)
+		public boolean getDefaultPolicy() {
+<span class="nc" id="L224">			return defaultPolicy;</span>
+		}
+
+		/**
+		 * setDefaultPolicy().
+		 * 
+		 * @param defaultPolicy default policy flag.
+		 */
+		@JsonProperty(&quot;defaultPolicy&quot;)
+		public void setDefaultPolicy(boolean defaultPolicy) {
+<span class="nc" id="L234">			this.defaultPolicy = defaultPolicy;</span>
+<span class="nc" id="L235">		}</span>
+
+		/**
+		 * getPriority().
+		 *
+		 * @return policy priority (if applicable).
+		 */
+		@JsonProperty(&quot;priority&quot;)
+		public Long getPriority() {
+<span class="nc" id="L244">			return priority;</span>
+		}
+
+		/**
+		 * setPriority().
+		 *
+		 * @param priority set policy priority.
+		 */
+		@JsonProperty(&quot;priority&quot;)
+		public void setPriority(Long priority) {
+<span class="fc" id="L254">			this.priority = priority;</span>
+<span class="fc" id="L255">		}</span>
+
+		/**
+		 * getAdditionalProperties().
+		 * 
+		 * @return map with additional properties.
+		 */
+		@JsonAnyGetter
+		public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L264">			return this.additionalProperties;</span>
+		}
+
+		/**
+		 * setAdditionalProperties().
+		 * 
+		 * @param propName name of the property.
+		 * @param value    value of the property.
+		 */
+		@JsonAnySetter
+		public void setAdditionalProperties(String propName, Object value) {
+<span class="nc" id="L275">			this.additionalProperties.put(propName, value);</span>
+<span class="nc" id="L276">		}</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraPackageDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest.model</a> &gt; <span class="el_source">VraPackageDTO.java</span></div><h1>VraPackageDTO.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.rest.model;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.util.List;
+
+public class VraPackageDTO {
+
+    // &quot;{\&quot;name\&quot; : \&quot;Demo3\&quot;, \&quot;description\&quot; : \&quot;Demo1 Description\&quot;, \&quot;contents\&quot; : [\&quot;5c46fe1f-20a6-471a-bd92-6d9458baad00\&quot;] }&quot;
+
+    private final String name;
+    private final String description;
+    private final List&lt;String&gt; contents;
+
+<span class="nc" id="L28">    public VraPackageDTO(String name, List&lt;String&gt; contents) {</span>
+<span class="nc" id="L29">        this.name = name;</span>
+<span class="nc" id="L30">        this.description = &quot;Managed by IaaC for vRealize&quot;;</span>
+<span class="nc" id="L31">        this.contents = contents;</span>
+<span class="nc" id="L32">    }</span>
+
+    public String getName() {
+<span class="nc" id="L35">        return name;</span>
+    }
+
+    public String getDescription() {
+<span class="nc" id="L39">        return description;</span>
+    }
+
+    public List&lt;String&gt; getContents() {
+<span class="nc" id="L43">        return contents;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

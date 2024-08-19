@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VrliPackageDescriptor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.vrli</a> &gt; <span class="el_source">VrliPackageDescriptor.java</span></div><h1>VrliPackageDescriptor.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model.vrli;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.util.List;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.vmware.pscoe.iac.artifact.model.PackageDescriptor;
+
+<span class="nc" id="L26">public class VrliPackageDescriptor extends PackageDescriptor {</span>
+    private List&lt;String&gt; alerts;
+    private List&lt;String&gt; contentPacks;
+
+    public List&lt;String&gt; getAlerts() {
+<span class="nc" id="L31">        return alerts;</span>
+    }
+
+    public void setAlerts(List&lt;String&gt; alerts) {
+<span class="nc" id="L35">        this.alerts = alerts;</span>
+<span class="nc" id="L36">    }</span>
+
+    public List&lt;String&gt; getContentPacks() {
+<span class="nc" id="L39">        return contentPacks;</span>
+    }
+
+    public void setContentPacks(List&lt;String&gt; contentPacks) {
+<span class="nc" id="L43">        this.contentPacks = contentPacks;</span>
+<span class="nc" id="L44">    }</span>
+
+    public List&lt;String&gt; getMembersForType(VrliPackageMemberType type) {
+<span class="nc bnc" id="L47" title="All 2 branches missed.">        if (VrliPackageMemberType.ALERTS.equals(type)) {</span>
+<span class="nc" id="L48">    		return getAlerts();</span>
+<span class="nc bnc" id="L49" title="All 2 branches missed.">        } else if (VrliPackageMemberType.CONTENT_PACKS.equals(type)) {</span>
+<span class="nc" id="L50">            return getContentPacks();</span>
+        } else {
+<span class="nc" id="L52">            throw new RuntimeException(String.format(&quot;ContentType '%s' is not supported!&quot;, type));</span>
+        }
+    }
+
+    public static VrliPackageDescriptor getInstance(File filesystemPath) {
+<span class="nc" id="L57">        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());</span>
+<span class="nc" id="L58">        mapper.setPropertyNamingStrategy(PropertyNamingStrategy.KEBAB_CASE);</span>
+        try {
+<span class="nc" id="L60">            return mapper.readValue(filesystemPath, VrliPackageDescriptor.class);</span>
+<span class="nc" id="L61">        } catch (Exception e) {</span>
+<span class="nc" id="L62">            throw new RuntimeException(&quot;Unable to load VRLI Package Descriptor [&quot; + filesystemPath.getAbsolutePath() + &quot;]&quot;, e);</span>
+        }
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CsPackageDescriptor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.cs</a> &gt; <span class="el_source">CsPackageDescriptor.java</span></div><h1>CsPackageDescriptor.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model.cs;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.vmware.pscoe.iac.artifact.model.PackageDescriptor;
+import com.vmware.pscoe.iac.artifact.model.PackageContent.Content;
+
+<span class="nc" id="L34">public class CsPackageDescriptor extends PackageDescriptor {</span>
+<span class="fc" id="L35">    private static final Logger logger = LoggerFactory.getLogger(CsPackageDescriptor.class);</span>
+
+    private List&lt;String&gt; pipeline;
+    private List&lt;String&gt; variable;
+    private List&lt;String&gt; customIntegration;
+    private List&lt;String&gt; endpoint;
+    private List&lt;String&gt; gitWebhook;
+    private List&lt;String&gt; dockerWebhook;
+    private List&lt;String&gt; gerritTrigger;
+    private List&lt;String&gt; gerritListener;
+
+    public List&lt;String&gt; getPipeline() {
+<span class="nc" id="L47">        return pipeline;</span>
+    }
+
+    public void setPipeline(List&lt;String&gt; pipeline) {
+<span class="nc" id="L51">        this.pipeline = pipeline;</span>
+<span class="nc" id="L52">    }</span>
+
+    public List&lt;String&gt; getVariable() {
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        return variable == null ? variable = new ArrayList&lt;&gt;() : variable;</span>
+    }
+
+    public void setVariable(List&lt;String&gt; variable) {
+<span class="nc" id="L59">        this.variable = variable;</span>
+<span class="nc" id="L60">    }</span>
+
+    public List&lt;String&gt; getCustomIntegration() {
+<span class="nc" id="L63">        return customIntegration;</span>
+    }
+
+    public void setCustomIntegration(List&lt;String&gt; customIntegration) {
+<span class="nc" id="L67">        this.customIntegration = customIntegration;</span>
+<span class="nc" id="L68">    }</span>
+
+    public List&lt;String&gt; getEndpoint() {
+<span class="nc" id="L71">        return endpoint;</span>
+    }
+
+    public void setEndpoint(List&lt;String&gt; endpoint) {
+<span class="nc" id="L75">        this.endpoint = endpoint;</span>
+<span class="nc" id="L76">    }</span>
+
+    public List&lt;String&gt; getGitWebhook() {
+<span class="nc" id="L79">        return gitWebhook;</span>
+    }
+
+    public void setGitWebhook(List&lt;String&gt; gitWebhook) {
+<span class="nc" id="L83">        this.gitWebhook = gitWebhook;</span>
+<span class="nc" id="L84">    }</span>
+
+    public List&lt;String&gt; getDockerWebhook() {
+<span class="nc" id="L87">        return dockerWebhook;</span>
+    }
+
+    public void setDockerWebhook(List&lt;String&gt; dockerWebhook) {
+<span class="nc" id="L91">        this.dockerWebhook = dockerWebhook;</span>
+<span class="nc" id="L92">    }</span>
+
+    public List&lt;String&gt; getGerritTrigger() {
+<span class="nc" id="L95">        return gerritTrigger;</span>
+    }
+
+    public void setGerritTrigger(List&lt;String&gt; gerritTrigger) {
+<span class="nc" id="L99">        this.gerritTrigger = gerritTrigger;</span>
+<span class="nc" id="L100">    }</span>
+
+    public List&lt;String&gt; getGerritListener() {
+<span class="nc" id="L103">        return gerritListener;</span>
+    }
+
+    public void setGerritListener(List&lt;String&gt; gerritListener) {
+<span class="nc" id="L107">        this.gerritListener = gerritListener;</span>
+<span class="nc" id="L108">    }</span>
+
+    public List&lt;String&gt; getMembersForType(CsPackageMemberType type) {
+<span class="nc bnc" id="L111" title="All 9 branches missed.">        switch (type) {</span>
+            case PIPELINE:
+<span class="nc" id="L113">                return getPipeline();</span>
+            case VARIABLE:
+<span class="nc" id="L115">                return getVariable();</span>
+            case CUSTOM_INTEGRATION:
+<span class="nc" id="L117">                return getCustomIntegration();</span>
+            case ENDPOINT:
+<span class="nc" id="L119">                return getEndpoint();</span>
+            case GIT_WEBHOOK:
+<span class="nc" id="L121">                return getGitWebhook();</span>
+            case DOCKER_WEBHOOK:
+<span class="nc" id="L123">                return getDockerWebhook();</span>
+            case GERRIT_TRIGGER:
+<span class="nc" id="L125">                return getGerritTrigger();</span>
+            case GERRIT_LISTENER:
+<span class="nc" id="L127">                return getGerritListener();</span>
+            default:
+<span class="nc" id="L129">                throw new RuntimeException(&quot;ContentType is not supported!&quot;);</span>
+        }
+    }
+
+    public boolean hasNativeContent() {
+<span class="nc" id="L134">        return Arrays.stream(CsPackageMemberType.values()).filter(type -&gt; type.isNativeContent()).anyMatch(type -&gt; {</span>
+<span class="nc" id="L135">            List&lt;String&gt; memberNames = this.getMembersForType(type);</span>
+<span class="nc bnc" id="L136" title="All 4 branches missed.">            return memberNames != null &amp;&amp; !memberNames.isEmpty();</span>
+        });
+    }
+
+    public static CsPackageDescriptor getInstance(File filesystemPath) {
+<span class="nc" id="L141">        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());</span>
+<span class="nc" id="L142">        mapper.setPropertyNamingStrategy(PropertyNamingStrategy.KEBAB_CASE);</span>
+        try {
+<span class="nc" id="L144">            CsPackageDescriptor pkgDescriptor = mapper.readValue(filesystemPath, CsPackageDescriptor.class);</span>
+<span class="nc" id="L145">            logger.debug(ReflectionToStringBuilder.toString(pkgDescriptor, ToStringStyle.MULTI_LINE_STYLE));</span>
+<span class="nc" id="L146">            return pkgDescriptor;</span>
+<span class="nc" id="L147">        } catch (Exception e) {</span>
+<span class="nc" id="L148">            throw new RuntimeException(&quot;Unable to load CS Package Descriptor[&quot; + filesystemPath.getAbsolutePath() + &quot;]&quot;,</span>
+                    e);
+        }
+    }
+
+    public static CsPackageDescriptor getInstance(CsPackageContent content) {
+<span class="nc" id="L154">        HashMap&lt;CsPackageContent.ContentType, List&lt;String&gt;&gt; map = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">        for (CsPackageContent.ContentType type : CsPackageContent.ContentType.values()) {</span>
+<span class="nc" id="L156">            map.put(type, new ArrayList&lt;&gt;());</span>
+        }
+
+<span class="nc bnc" id="L159" title="All 2 branches missed.">        for (Content c : content.getContent()) {</span>
+<span class="nc" id="L160">            map.get(c.getType()).add(c.getName());</span>
+<span class="nc" id="L161">        }</span>
+
+<span class="nc" id="L163">        CsPackageDescriptor pd = new CsPackageDescriptor();</span>
+<span class="nc" id="L164">        pd.pipeline = map.get(CsPackageContent.ContentType.PIPELINE);</span>
+<span class="nc" id="L165">        logger.debug(ReflectionToStringBuilder.toString(pd, ToStringStyle.MULTI_LINE_STYLE));</span>
+<span class="nc" id="L166">        return pd;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

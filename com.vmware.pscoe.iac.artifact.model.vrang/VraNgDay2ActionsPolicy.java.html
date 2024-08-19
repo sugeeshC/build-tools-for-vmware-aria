@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgDay2ActionsPolicy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.vrang</a> &gt; <span class="el_source">VraNgDay2ActionsPolicy.java</span></div><h1>VraNgDay2ActionsPolicy.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model.vrang;
+
+import com.google.gson.JsonObject;
+
+/*-
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 - 2024 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ *
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.
+ *
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+public final class VraNgDay2ActionsPolicy {
+
+	/**
+	 * Id of the Day 2 Actions Policy.
+	 */
+	private String id;
+	/**
+	 * Name of the Day 2 Actions Policy.
+	 */
+	private String name;
+	/**
+	 * TypeId of the Day 2 Actions Policy.
+	 */
+	private String typeId;
+	/**
+	 * ProjectId of the Day 2 Actions Policy.
+	 */
+	private String projectId;
+	/**
+	 * OrgId of the Day 2 Actions Policy.
+	 */
+	private String orgId;
+	/**
+	 * EnforcementType of the Day 2 Actions Policy.
+	 */
+	private String enforcementType;
+	/**
+	 * Description of the Day 2 Actions Policy.
+	 */
+	private String description;
+	/**
+	 * Scope criteria of the Day 2 Actions Policy.
+	 */
+	private JsonObject scopeCriteria;
+
+	/**
+	 * Criteria of the Day 2 Actions Policy.
+	 */
+	private JsonObject criteria;
+	/**
+	 * Definition of the Day 2 Actions Policy.
+	 */
+	private JsonObject definition;
+
+	/**
+	 * Constructor with all member values.
+	 *
+	 * @param idIn              id of the policy.
+	 * @param nameIn            name of the policy.
+	 * @param typeIdIn          type of the policy.
+	 * @param projectIdIn       projectId of the policy.
+	 * @param orgIdIn           organizationId of the policy.
+	 * @param enforcementTypeIn enforcement type of the policy.
+	 * @param descriptionIn     description of the policy.
+	 * @param definitionIn      actual policy definition - different structure for every policy type.
+	 * @param criteriaIn        scope criteria of the policy.
+	 * @param scopeCriteriaIn        scope criteria of the policy.
+	 */
+	public VraNgDay2ActionsPolicy(final String idIn, final String nameIn, final String typeIdIn,
+								  final String projectIdIn, final String orgIdIn,
+								  final String enforcementTypeIn, final String descriptionIn,
+<span class="fc" id="L80">								  final JsonObject definitionIn, final JsonObject scopeCriteriaIn, final JsonObject criteriaIn) {</span>
+<span class="fc" id="L81">		this.id = idIn;</span>
+<span class="fc" id="L82">		this.name = nameIn;</span>
+<span class="fc" id="L83">		this.typeId = typeIdIn;</span>
+<span class="fc" id="L84">		this.projectId = projectIdIn;</span>
+<span class="fc" id="L85">		this.orgId = orgIdIn;</span>
+<span class="fc" id="L86">		this.enforcementType = enforcementTypeIn;</span>
+<span class="fc" id="L87">		this.description = descriptionIn;</span>
+<span class="fc" id="L88">		this.definition = definitionIn;</span>
+<span class="fc" id="L89">		this.scopeCriteria = scopeCriteriaIn;</span>
+<span class="fc" id="L90">		this.criteria = criteriaIn;</span>
+<span class="fc" id="L91">	}</span>
+
+	/**
+	 * Get policy id.
+	 *
+	 * @return policy id.
+	 */
+	public String getId() {
+<span class="fc" id="L99">		return id;</span>
+	}
+
+	/**
+	 * Set policy id.
+	 *
+	 * @param id - the policy id.
+	 */
+	public void setId(String id) {
+<span class="nc" id="L108">		this.id = id;</span>
+<span class="nc" id="L109">	}</span>
+
+	/**
+	 * Get the policy name.
+	 *
+	 * @return policy name.
+	 */
+
+	public String getName() {
+<span class="fc" id="L118">		return name;</span>
+	}
+
+	/**
+	 * Set the policy name.
+	 *
+	 * @param name policy name.
+	 */
+	public void setName(String name) {
+<span class="fc" id="L127">		this.name = name;</span>
+<span class="fc" id="L128">	}</span>
+
+	/**
+	 * Get the typeId of the policy.
+	 *
+	 * @return typeId - typeId of the policy.
+	 */
+	public String getTypeId() {
+<span class="nc" id="L136">		return typeId;</span>
+	}
+
+	/**
+	 * Set the typeId of the policy.
+	 *
+	 * @param typeId - typeId of the policy.
+	 */
+	public void setTypeId(String typeId) {
+<span class="nc" id="L145">		this.typeId = typeId;</span>
+<span class="nc" id="L146">	}</span>
+
+	/**
+	 * Get the projectId of the policy. May be missing and return null.
+	 *
+	 * @return project id.
+	 */
+	public String getProjectId() {
+<span class="fc" id="L154">		return projectId;</span>
+	}
+
+	/**
+	 * Set the projectId of the policy. May be null.
+	 *
+	 * @param projectId the project id of the policy.
+	 */
+	public void setProjectId(String projectId) {
+<span class="fc" id="L163">		this.projectId = projectId;</span>
+<span class="fc" id="L164">	}</span>
+
+	/**
+	 * Get the organization id.
+	 *
+	 * @return the organization id of the policy.
+	 */
+	public String getOrgId() {
+<span class="fc" id="L172">		return orgId;</span>
+	}
+
+	/**
+	 * Set the organization id of the policy.
+	 *
+	 * @param orgId the organization id of the policy.
+	 */
+	public void setOrgId(String orgId) {
+<span class="fc" id="L181">		this.orgId = orgId;</span>
+<span class="fc" id="L182">	}</span>
+
+	/**
+	 * Get the enforcement type of the policy.
+	 *
+	 * @return the enforcement type of the policy.
+	 */
+	public String getEnforcementType() {
+<span class="nc" id="L190">		return enforcementType;</span>
+	}
+
+	/**
+	 * Set the enforcement type of the policy.
+	 *
+	 * @param enforcementType the enforcement type of the policy.
+	 */
+	public void setEnforcementType(String enforcementType) {
+<span class="nc" id="L199">		this.enforcementType = enforcementType;</span>
+<span class="nc" id="L200">	}</span>
+
+	/**
+	 * Get the description of the policy.
+	 *
+	 * @return the description of the policy.
+	 */
+	public String getDescription() {
+<span class="nc" id="L208">		return description;</span>
+	}
+
+	/**
+	 * Set the description of the policy.
+	 *
+	 * @param description the description of the policy.
+	 */
+	public void setDescription(String description) {
+<span class="nc" id="L217">		this.description = description;</span>
+<span class="nc" id="L218">	}</span>
+
+	/**
+	 * Get the scopeCriteria of the policy.
+	 *
+	 * @return policy scopeCriteria as JsonObject.
+	 */
+	public JsonObject getScopeCriteria() {
+<span class="nc" id="L226">		return scopeCriteria;</span>
+	}
+
+	/**
+	 * Set the scopeCriteria of the policy.
+	 *
+	 * @param scopeCriteria the criteria of the policy.
+	 */
+	public void setScopeCriteria(JsonObject scopeCriteria) {
+<span class="nc" id="L235">		this.scopeCriteria = scopeCriteria;</span>
+<span class="nc" id="L236">	}</span>
+
+	/**
+	 * Get the definition of the policy.
+	 *
+	 * @return the definition of the policy as JsonObject.
+	 */
+	public JsonObject getDefinition() {
+<span class="nc" id="L244">		return definition;</span>
+	}
+
+	/**
+	 * Set the definition of the policy.
+	 *
+	 * @param definition the definition of the policy as JsonObject.
+	 */
+	public void setDefinition(JsonObject definition) {
+<span class="nc" id="L253">		this.definition = definition;</span>
+<span class="nc" id="L254">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

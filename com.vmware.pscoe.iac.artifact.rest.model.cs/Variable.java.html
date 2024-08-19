@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Variable.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest.model.cs</a> &gt; <span class="el_source">Variable.java</span></div><h1>Variable.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.rest.model.cs;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+
+<span class="fc" id="L19">public class Variable {</span>
+
+    String project;
+    String name;
+    String type;
+    String description;
+    String value;
+    // String version;
+    // String kind;
+
+
+
+    public String getProject() {
+<span class="fc" id="L32">        return project;</span>
+    }
+
+    public void setProject(String project) {
+<span class="fc" id="L36">        this.project = project;</span>
+<span class="fc" id="L37">    }</span>
+
+
+
+    public String getName() {
+<span class="fc" id="L42">        return name;</span>
+    }
+
+    public void setName(String name) {
+<span class="fc" id="L46">        this.name = name;</span>
+<span class="fc" id="L47">    }</span>
+
+    public String getDescription() {
+<span class="fc" id="L50">        return description;</span>
+    }
+
+    public void setDescription(String description) {
+<span class="fc" id="L54">        this.description = description;</span>
+<span class="fc" id="L55">    }</span>
+
+
+    public String getType() {
+<span class="fc" id="L59">        return type;</span>
+    }
+
+    public void setType(String type) {
+<span class="fc" id="L63">        this.type = type;</span>
+<span class="fc" id="L64">    }</span>
+
+    public String getValue() {
+<span class="fc" id="L67">        return value;</span>
+    }
+
+    public void setValue(String value) {
+<span class="fc" id="L71">        this.value = value;</span>
+<span class="fc" id="L72">    }</span>
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L76">        int hash = 7;</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        hash = 31 * hash + (name == null ? 0 : name.hashCode());</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">        hash = 31 * hash + (project == null ? 0 : project.hashCode());</span>
+<span class="nc" id="L79">        return hash;</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L84" title="All 2 branches missed.">        if (this == o)</span>
+<span class="nc" id="L85">            return true;</span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">        if (o == null)</span>
+<span class="nc" id="L87">            return false;</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">        if (this.getClass() != o.getClass())</span>
+<span class="nc" id="L89">            return false;</span>
+<span class="nc" id="L90">        Variable var = (Variable) o;</span>
+
+<span class="nc bnc" id="L92" title="All 2 branches missed.">        return (name.equals(var.name)</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">                &amp;&amp; project.equals(var.project));</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L98">        return String.format(&quot;Variable: name=%s, project=%s, type=%s&quot;, name, project, type);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

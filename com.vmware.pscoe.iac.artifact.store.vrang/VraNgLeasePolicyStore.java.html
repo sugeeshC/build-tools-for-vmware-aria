@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgLeasePolicyStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.vrang</a> &gt; <span class="el_source">VraNgLeasePolicyStore.java</span></div><h1>VraNgLeasePolicyStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.vrang;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.vmware.pscoe.iac.artifact.utils.VraNgOrganizationUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.stream.JsonReader;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgLeasePolicy;
+import com.vmware.pscoe.iac.artifact.store.filters.CustomFolderFileFilter;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+<span class="fc" id="L40">public final class VraNgLeasePolicyStore extends AbstractVraNgStore {</span>
+	/**
+	 * Suffix used for all of the resources saved by this store.
+	 */
+	private static final String CUSTOM_RESOURCE_SUFFIX = &quot;.json&quot;;
+	/**
+	 * Sub folder path for Lease policy.
+	 */
+	private static final String LEASE_POLICY = &quot;lease&quot;;
+	/**
+	 * Logger.
+	 */
+<span class="fc" id="L52">	private final Logger logger = LoggerFactory.getLogger(VraNgLeasePolicy.class);</span>
+
+	/**
+	 * Imports content.
+	 * @param sourceDirectory the directory.
+	 */
+	@Override
+	public void importContent(final File sourceDirectory) {
+<span class="fc" id="L60">		logger.info(&quot;Importing files from the '{}' directory&quot;,</span>
+				com.vmware.pscoe.iac.artifact.store.vrang.VraNgDirs.DIR_POLICIES);
+		// verify directory exists
+<span class="fc" id="L63">		File leasePolicyFolder = Paths</span>
+<span class="fc" id="L64">				.get(sourceDirectory.getPath(),</span>
+						com.vmware.pscoe.iac.artifact.store.vrang.VraNgDirs.DIR_POLICIES,
+						LEASE_POLICY)
+<span class="fc" id="L67">				.toFile();</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">		if (!leasePolicyFolder.exists()) {</span>
+<span class="fc" id="L69">			logger.info(&quot;Lease policy directory not found.&quot;);</span>
+<span class="fc" id="L70">			return;</span>
+		}
+
+<span class="fc" id="L73">		List&lt;String&gt; policies = this.getItemListFromDescriptor();</span>
+
+<span class="fc" id="L75">		File[] leasePolicyFiles = this.filterBasedOnConfiguration(leasePolicyFolder,</span>
+				new CustomFolderFileFilter(policies));
+
+<span class="pc bpc" id="L78" title="2 of 4 branches missed.">		if (leasePolicyFiles != null &amp;&amp; leasePolicyFiles.length == 0) {</span>
+<span class="nc" id="L79">			logger.info(&quot;Could not find any Lease Policies.&quot;);</span>
+<span class="nc" id="L80">			return;</span>
+		}
+
+<span class="fc" id="L83">		logger.info(&quot;Found Lease Policies. Importing...&quot;);</span>
+<span class="fc bfc" id="L84" title="All 2 branches covered.">		for (File policyFile : leasePolicyFiles) {</span>
+			//exclude hidden files e.g. .DS_Store
+			//exclude files that do not end with a '.json' extension as defined in CUSTOM_RESOURCE_SUFFIX
+<span class="fc" id="L87">			String filename = policyFile.getName();</span>
+<span class="pc bpc" id="L88" title="2 of 4 branches missed.">			if (!filename.startsWith(&quot;.&quot;) &amp;&amp; filename.endsWith(CUSTOM_RESOURCE_SUFFIX)) {</span>
+<span class="fc" id="L89">				this.handleLeasePolicyImport(policyFile);</span>
+			} else {
+<span class="nc" id="L91">				logger.warn(&quot;Skipped unexpected file '{}'&quot;, filename);</span>
+			}
+		}
+<span class="fc" id="L94">	}</span>
+
+	private void handleLeasePolicyImport(final File leasePolicyFile) {
+<span class="fc" id="L97">		VraNgLeasePolicy policy = jsonFileToVraNgLeasePolicy(leasePolicyFile);</span>
+<span class="fc" id="L98">		logger.info(&quot;Attempting to import Lease policy '{}'&quot;, policy.getName());</span>
+
+<span class="fc" id="L100">		String organizationId = VraNgOrganizationUtil.getOrganization(this.restClient, this.config).getId();</span>
+
+		//if the policy has a project property, replace it with current project id.
+		//if the policy does not have a project property - replacing it will change the policy,
+		// so do not replace a null or blank value.
+<span class="pc bpc" id="L105" title="2 of 6 branches missed.">		if (policy.getProjectId() != null &amp;&amp; !(policy.getProjectId().isBlank()) &amp;&amp; !policy.getOrgId().equals(organizationId)) {</span>
+<span class="fc" id="L106">			logger.debug(&quot;Replacing policy projectId with projectId from configuration.&quot;);</span>
+<span class="fc" id="L107">			policy.setProjectId(this.restClient.getProjectId());</span>
+		}
+<span class="fc" id="L109">		policy.setOrgId(organizationId);</span>
+<span class="fc" id="L110">		this.restClient.createLeasePolicy(policy);</span>
+<span class="fc" id="L111">	}</span>
+
+	/**
+	 * Get List from descriptor.
+	 * 
+	 * @return null or list of Lease policies.
+	 */
+	@Override
+	protected List&lt;String&gt; getItemListFromDescriptor() {
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">		if (this.vraNgPackageDescriptor.getPolicy() == null) {</span>
+<span class="nc" id="L121">			return null;</span>
+		} else {
+<span class="fc" id="L123">			return this.vraNgPackageDescriptor.getPolicy().getLease();</span>
+		}
+	}
+
+	/**
+	 * Converts a json catalog item file to VraNgLeasePolicy.
+	 *
+	 * @param jsonFile to read from
+	 *
+	 * @return VraNgLeasePolicy instance
+	 */
+	private VraNgLeasePolicy jsonFileToVraNgLeasePolicy(final File jsonFile) {
+<span class="fc" id="L135">		logger.debug(&quot;Converting Lease policy file to VraNgLeasePolicy. Name: '{}'&quot;,</span>
+<span class="fc" id="L136">				jsonFile.getName());</span>
+
+<span class="fc" id="L138">		try (JsonReader reader = new JsonReader(new FileReader(jsonFile.getPath()))) {</span>
+<span class="fc" id="L139">			return new Gson().fromJson(reader, VraNgLeasePolicy.class);</span>
+<span class="nc" id="L140">		} catch (IOException e) {</span>
+<span class="nc" id="L141">			throw new RuntimeException(String.format(&quot;Error reading from file: %s&quot;, jsonFile.getPath()), e);</span>
+		}
+	}
+
+	/**
+	 * Exports all the content for the given project.
+	 */
+	@Override
+	protected void exportStoreContent() {
+<span class="fc" id="L150">		this.logger.debug(&quot;{}-&gt;exportStoreContent()&quot;, this.getClass());</span>
+<span class="fc" id="L151">		List&lt;VraNgLeasePolicy&gt; policies = this.restClient.getLeasePolicies();</span>
+<span class="fc" id="L152">		Path policyFolderPath = getPolicyFolderPath();</span>
+<span class="fc" id="L153">		Map&lt;String, VraNgLeasePolicy&gt; currentPoliciesOnFileSystem = getCurrentPoliciesOnFileSystem(policyFolderPath);</span>
+
+<span class="fc" id="L155">		policies.forEach(</span>
+				policy -&gt; {
+<span class="fc" id="L157">					storeLeasePolicyOnFilesystem(policyFolderPath, policy, currentPoliciesOnFileSystem);</span>
+<span class="fc" id="L158">				});</span>
+<span class="fc" id="L159">	}</span>
+
+	/**
+	 * Exports all the content for the given project based on the names in content.yaml.
+	 * 
+	 * @param itemNames Item names for export
+	 */
+	@Override
+	protected void exportStoreContent(final List&lt;String&gt; itemNames) {
+<span class="fc" id="L168">		this.logger.debug(&quot;{}-&gt;exportStoreContent({})&quot;, this.getClass(), itemNames.toString());</span>
+<span class="fc" id="L169">		List&lt;VraNgLeasePolicy&gt; policies = this.restClient.getLeasePolicies();</span>
+<span class="fc" id="L170">		Path policyFolderPath = getPolicyFolderPath();</span>
+<span class="fc" id="L171">		Map&lt;String, VraNgLeasePolicy&gt; currentPoliciesOnFileSystem = getCurrentPoliciesOnFileSystem(policyFolderPath);</span>
+<span class="fc" id="L172">		policies.forEach(</span>
+				policy -&gt; {
+<span class="pc bpc" id="L174" title="1 of 2 branches missed.">					if (itemNames.contains(policy.getName())) {</span>
+<span class="fc" id="L175">						storeLeasePolicyOnFilesystem(policyFolderPath, policy, currentPoliciesOnFileSystem);</span>
+					}
+<span class="fc" id="L177">				});</span>
+<span class="fc" id="L178">	}</span>
+
+	/**
+	 * Store Lease policy in JSON file.
+	 *
+	 * @param policyFolderPath   the subfolder where the policy will be stored.
+	 * @param policy the policy object to store
+	 * @param currentPoliciesOnFileSystem  a map of file names and policies, already present in the folder, used to avoid duplicate file names.
+	 */
+	private void storeLeasePolicyOnFilesystem(final Path policyFolderPath,
+											  final VraNgLeasePolicy policy,
+											  Map&lt;String, VraNgLeasePolicy&gt; currentPoliciesOnFileSystem) {
+<span class="fc" id="L190">		File policyFile = getPolicyFile(policyFolderPath, policy, currentPoliciesOnFileSystem);</span>
+<span class="fc" id="L191">		logger.info(&quot;Storing lease  policy '{}', to file '{}&quot;, policy.getName(), policyFile.getPath());</span>
+
+		try {
+<span class="fc" id="L194">			Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="fc" id="L195">			JsonObject policyJsonObject = gson.fromJson(new Gson().toJson(policy), JsonObject.class);</span>
+			// write Lease file
+<span class="fc" id="L197">			logger.info(&quot;Created Lease file {}&quot;,</span>
+<span class="fc" id="L198">					Files.write(Paths.get(policyFile.getPath()),</span>
+<span class="fc" id="L199">							gson.toJson(policyJsonObject).getBytes(), StandardOpenOption.CREATE));</span>
+			//after write, put currently policy on the map for the next iteration
+<span class="fc" id="L201">			String fileName = policyFile.getName().replace(CUSTOM_RESOURCE_SUFFIX, &quot;&quot;);</span>
+<span class="fc" id="L202">			currentPoliciesOnFileSystem.put(fileName, policy);</span>
+<span class="nc" id="L203">		} catch (IOException e) {</span>
+<span class="nc" id="L204">			logger.error(&quot;Unable to create Lease {}&quot;, policyFile.getAbsolutePath());</span>
+<span class="nc" id="L205">			throw new RuntimeException(</span>
+<span class="nc" id="L206">					String.format(</span>
+<span class="nc" id="L207">							&quot;Unable to store Lease to file %s.&quot;, policyFile.getAbsolutePath()),</span>
+					e);
+<span class="fc" id="L209">		}</span>
+
+<span class="fc" id="L211">	}</span>
+	/**
+	 * @param policyFolderPath the correct subfolder path for the policy type.
+	 * @param policy the policy that is exported.
+	 * @param currentPoliciesOnFileSystem  all the other policies currently in the folder.
+	 * @return the file where to store the policy.
+	 */
+
+	private File getPolicyFile(Path policyFolderPath, VraNgLeasePolicy policy, Map&lt;String, VraNgLeasePolicy&gt; currentPoliciesOnFileSystem) {
+<span class="fc" id="L220">		String filename = policy.getName();</span>
+<span class="fc" id="L221">		String policyName = policy.getName();</span>
+<span class="pc bpc" id="L222" title="3 of 6 branches missed.">		if (filename.contains(&quot;..&quot;) || filename.contains(&quot;/&quot;) || filename.contains(&quot;\\&quot;)) {</span>
+<span class="nc" id="L223">			throw new IllegalArgumentException(&quot;Invalid filename &quot; + filename);</span>
+		}
+		//see if filename already exists in map.
+<span class="fc" id="L226">		int index = 1;</span>
+<span class="fc" id="L227">		boolean match = false;</span>
+<span class="fc bfc" id="L228" title="All 2 branches covered.">		while (!match) {</span>
+			//logger.debug(&quot;File name {}, index {} , name with Index {};&quot;, filename, index, filenameWithIndex);
+
+<span class="fc bfc" id="L231" title="All 2 branches covered.">			if (currentPoliciesOnFileSystem.containsKey(filename)) {</span>
+				//check if policy is our policy from previous run or a different one.
+<span class="fc bfc" id="L233" title="All 2 branches covered.">				if (policy.getId().equals(currentPoliciesOnFileSystem.get(filename).getId())) {</span>
+<span class="fc" id="L234">					match = true;</span>
+				} else {
+<span class="fc" id="L236">					filename = policyName + &quot;_&quot; + index;</span>
+<span class="fc" id="L237">					index++;</span>
+
+				}
+			} else {
+<span class="fc" id="L241">				match = true;</span>
+			}
+		}
+
+<span class="fc" id="L245">		logger.debug(&quot;Final Filename is {}, for policy with name {}&quot;, filename, policy.getName());</span>
+
+<span class="fc" id="L247">		File policyFile = Paths.get(</span>
+<span class="fc" id="L248">			String.valueOf(policyFolderPath),</span>
+<span class="fc" id="L249">			filename + CUSTOM_RESOURCE_SUFFIX).toFile();</span>
+<span class="fc" id="L250">		return policyFile;</span>
+	}
+
+	/**
+	 * Read the filesystem where policies will be stored, make a map of pre existing files there, to avoid duplication and/or unintentional overwriting.
+	 * @param policyFolderPath get actual path where policies should be stored.
+	 * @return a map of filenames and policies, found in the path.
+	 */
+	private Map&lt;String, VraNgLeasePolicy&gt; getCurrentPoliciesOnFileSystem(Path policyFolderPath) {
+
+		//First make sure path exists and is a folder.
+<span class="pc bpc" id="L261" title="1 of 2 branches missed.">		if (!policyFolderPath.toFile().isDirectory()</span>
+<span class="nc bnc" id="L262" title="All 2 branches missed.">			&amp;&amp; !policyFolderPath.toFile().mkdirs()) {</span>
+<span class="nc" id="L263">			logger.warn(&quot;Could not create folder: {}&quot;, policyFolderPath.toFile().getAbsolutePath());</span>
+		}
+
+<span class="fc" id="L266">		File[] policyFiles = policyFolderPath.toFile().listFiles();</span>
+<span class="fc" id="L267">		Map&lt;String, VraNgLeasePolicy&gt; currentPoliciesOnFileSystem = new HashMap&lt;&gt;();</span>
+
+<span class="fc bfc" id="L269" title="All 2 branches covered.">		for (File policyFile : policyFiles) {</span>
+<span class="fc" id="L270">			String fileNameWithExt = policyFile.getName();</span>
+			//exclude hidden files e.g. .DS_Store
+<span class="pc bpc" id="L272" title="1 of 2 branches missed.">			if (!fileNameWithExt.startsWith(&quot;.&quot;)) {</span>
+<span class="fc" id="L273">				String fileName = fileNameWithExt.replace(CUSTOM_RESOURCE_SUFFIX, &quot;&quot;);</span>
+<span class="fc" id="L274">				currentPoliciesOnFileSystem.put(fileName, this.jsonFileToVraNgLeasePolicy(policyFile));</span>
+			}
+		}
+<span class="fc" id="L277">		return currentPoliciesOnFileSystem;</span>
+	}
+
+	/**
+	 * Calculate lease policies sub-folder absolute filesystem path.
+	 * @return the lease policies sub-folder absolute filesystem path.
+	 */
+	private Path getPolicyFolderPath() {
+<span class="fc" id="L285">		File store = new File(vraNgPackage.getFilesystemPath());</span>
+
+<span class="fc" id="L287">		Path policyFolderPath = Paths.get(</span>
+<span class="fc" id="L288">			store.getPath(),</span>
+			VraNgDirs.DIR_POLICIES,
+			LEASE_POLICY);
+<span class="fc bfc" id="L291" title="All 2 branches covered.">		if (!policyFolderPath.toFile().isDirectory()</span>
+<span class="pc bpc" id="L292" title="1 of 2 branches missed.">			&amp;&amp; !policyFolderPath.toFile().mkdirs()) {</span>
+<span class="nc" id="L293">			logger.warn(&quot;Could not create folder: {}&quot;, policyFolderPath.getFileName());</span>
+		}
+<span class="fc" id="L295">		return policyFolderPath;</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

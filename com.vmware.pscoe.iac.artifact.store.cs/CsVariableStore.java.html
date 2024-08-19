@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CsVariableStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.cs</a> &gt; <span class="el_source">CsVariableStore.java</span></div><h1>CsVariableStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.cs;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import com.vmware.pscoe.iac.artifact.model.cs.CsPackageMemberType;
+import com.vmware.pscoe.iac.artifact.rest.model.cs.Variable;
+
+
+<span class="fc" id="L35">public class CsVariableStore extends AbstractCsStore {</span>
+	private static final String DIR_VAR = &quot;variables&quot;;
+<span class="fc" id="L37">	private final Logger logger = LoggerFactory.getLogger(CsPipelineStore.class);</span>
+
+	/**
+	* Exporting the contents of variables
+	*/
+	public void exportContent() {
+<span class="fc" id="L43">		List&lt;String&gt; variableNames = this.descriptor.getMembersForType(CsPackageMemberType.VARIABLE);</span>
+<span class="pc bpc" id="L44" title="1 of 2 branches missed.">		if (variableNames != null) {</span>
+<span class="fc" id="L45">			this.exportVariables(variableNames);</span>
+		} else {
+<span class="nc" id="L47">			logger.info(&quot;No variables found in content.yaml or exported objects&quot;);</span>
+		}
+<span class="fc" id="L49">	}</span>
+
+	/**
+	 * Importing content into vRA target environment
+	 * @param sourceDirectory sourceDirectory
+	 */
+	public void importContent(File sourceDirectory) {
+<span class="fc" id="L56">		File varFolder = Paths.get(sourceDirectory.getPath(), DIR_VAR).toFile();</span>
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">		if (!varFolder.exists()) {</span>
+<span class="nc" id="L58">			return;</span>
+		}
+<span class="fc" id="L60">		Collection&lt;File&gt; varFiles = FileUtils.listFiles(varFolder, new String[] {&quot;yaml&quot;}, false);</span>
+<span class="pc bpc" id="L61" title="2 of 4 branches missed.">		if (varFiles == null || varFiles.isEmpty()) {</span>
+<span class="nc" id="L62">			return;</span>
+		}
+<span class="fc" id="L64">		importVariables(varFiles);</span>
+<span class="fc" id="L65">	}</span>
+
+
+	private void exportVariables(List&lt;String&gt; variableNames) {
+<span class="fc" id="L69">		List&lt;Variable&gt; varList = this.restClient.getProjectVariables()</span>
+<span class="fc" id="L70">				.stream()</span>
+<span class="fc" id="L71">				.filter(var -&gt; variableNames.contains(var.getName()))</span>
+<span class="pc" id="L72">				.peek(var -&gt; var.setProject(null))</span>
+<span class="pc" id="L73">				.peek(var -&gt; logger.info(&quot;Exporting variable: {}&quot;, var.getName()))</span>
+<span class="fc" id="L74">				.sorted(Comparator.comparing(Variable::getName))</span>
+<span class="fc" id="L75">				.collect(Collectors.toList());</span>
+<span class="fc" id="L76">		CsStoreHelper.storeToYamlFile(csPackage.getFilesystemPath(), DIR_VAR, &quot;variables&quot;, varList);</span>
+
+<span class="fc" id="L78">	}</span>
+
+
+
+	private void importVariables(Collection&lt;File&gt; varFiles) {
+
+<span class="fc" id="L84">		List&lt;Variable&gt; existingVariables = this.restClient.getProjectVariables();</span>
+		// Gson gson = new GsonBuilder().setLenient().serializeNulls().create();
+<span class="fc" id="L86">		varFiles.stream()</span>
+<span class="fc" id="L87">				.map(this::readSingleFile)</span>
+				// .map(varFile -&gt; gson.fromJson(readFile(varFile), Variable.class))
+<span class="fc" id="L89">				.forEach(vars -&gt; {</span>
+<span class="fc" id="L90">					vars.forEach(var -&gt; {</span>
+<span class="fc" id="L91">						var.setProject(restClient.getProjectName());</span>
+<span class="fc" id="L92">						Optional&lt;Variable&gt; optional = existingVariables</span>
+<span class="fc" id="L93">								.stream()</span>
+<span class="fc" id="L94">								.filter(ex -&gt; ex.getName().equals(var.getName()))</span>
+<span class="fc" id="L95">								.findFirst();</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">						if (!optional.isPresent()) {</span>
+<span class="fc" id="L97">							logger.info(String.format(&quot;Create variable '%s'&quot;, var.getName()));</span>
+<span class="fc" id="L98">							restClient.createVariable(var);</span>
+<span class="fc" id="L99">							return;</span>
+						}
+<span class="fc" id="L101">						Variable existingVar = optional.get();</span>
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">						if (existingVar.getType().equals(var.getType())</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">								&amp;&amp; existingVar.getDescription().equals(var.getDescription())) {</span>
+<span class="fc" id="L104">							logger.info(String.format(&quot;No updates for variable '%s'&quot;, existingVar.getName()));</span>
+<span class="fc" id="L105">							return;</span>
+						}
+<span class="pc bpc" id="L107" title="1 of 2 branches missed.">						if (!existingVar.getType().equals(&quot;REGULAR&quot;)) {</span>
+<span class="nc" id="L108">							logger.warn(String.format(&quot;Change of SECRET/RESTRICTED variable '%s'. Secret value is lost.&quot;, existingVar</span>
+<span class="nc" id="L109">									.getName()));</span>
+						}
+
+<span class="fc" id="L112">						var.setValue(existingVar.getValue());</span>
+<span class="fc" id="L113">						logger.info(String.format(&quot;Update variable '%s'&quot;, var.getName()));</span>
+<span class="fc" id="L114">						restClient.updateVariable(var);</span>
+
+
+<span class="fc" id="L117">					});</span>
+<span class="fc" id="L118">				});</span>
+<span class="fc" id="L119">	}</span>
+
+	private List&lt;Variable&gt; readSingleFile(File varFile) {
+<span class="fc" id="L122">		YAMLMapper yamlMapper = new YAMLMapper();</span>
+		try {
+<span class="fc" id="L124">			return Arrays.asList(yamlMapper.readValue(varFile, Variable[].class));</span>
+<span class="nc" id="L125">		} catch (IOException e) {</span>
+<span class="nc" id="L126">			throw new RuntimeException(&quot;Error reading variables file.&quot;, e);</span>
+		}
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

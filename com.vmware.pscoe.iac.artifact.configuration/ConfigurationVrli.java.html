@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfigurationVrli.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.configuration</a> &gt; <span class="el_source">ConfigurationVrli.java</span></div><h1>ConfigurationVrli.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.configuration;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.util.Properties;
+
+import org.springframework.util.StringUtils;
+
+import com.vmware.pscoe.iac.artifact.model.PackageType;
+
+public class ConfigurationVrli extends Configuration {
+    // Important - when modify properties refer to comments in @Configuration
+	public static final String PROVIDER = &quot;provider&quot;;
+    public static final String INTEGRATION_VROPS_HOST = &quot;vropsHost&quot;;
+    public static final String INTEGRATION_VROPS_PORT = &quot;vropsPort&quot;;
+    public static final String INTEGRATION_VROPS_USER = &quot;vropsUser&quot;;
+    public static final String INTEGRATION_VROPS_PASS = &quot;vropsPassword&quot;;
+    public static final String INTEGRATION_VROPS_AUTH_SOURCE = &quot;vropsAuthSource&quot;;
+
+    /**
+     * VRLI Package Import content conflict resolution mode
+     */
+	public static final String PACKAGE_IMPORT_OVERWRITE_MODE = &quot;packageImportOverwriteMode&quot;;
+
+    protected ConfigurationVrli(Properties props) {
+<span class="nc" id="L39">        super(PackageType.VRLI, props);</span>
+<span class="nc" id="L40">    }</span>
+
+    public String getPackageImportOverwriteMode() {
+<span class="nc" id="L43">        return this.properties.getProperty(PACKAGE_IMPORT_OVERWRITE_MODE, &quot;SKIP,OVERWRITE&quot;);</span>
+    }
+    
+    public String getProvider() {
+<span class="nc" id="L47">        return this.properties.getProperty(PROVIDER);</span>
+    }
+
+    public String getIntegrationVropsAuthSource() {
+<span class="nc" id="L51">        return this.properties.getProperty(INTEGRATION_VROPS_AUTH_SOURCE);</span>
+    }
+
+    public String getIntegrationVropsAuthHost() {
+<span class="nc" id="L55">        return this.properties.getProperty(INTEGRATION_VROPS_HOST);</span>
+    }
+
+    public String getIntegrationVropsAuthPort() {
+<span class="nc" id="L59">        return this.properties.getProperty(INTEGRATION_VROPS_PORT);</span>
+    }
+
+    public String getIntegrationVropsAuthUser() {
+<span class="nc" id="L63">        return this.properties.getProperty(INTEGRATION_VROPS_USER);</span>
+    }
+
+    public String getIntegrationVropsAuthPassword() {
+<span class="nc" id="L67">        return this.properties.getProperty(INTEGRATION_VROPS_PASS);</span>
+    }
+
+    @Override
+	public void validate(boolean domainOptional) throws ConfigurationException {
+<span class="nc" id="L72">        StringBuilder message = new StringBuilder();</span>
+
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        if (StringUtils.isEmpty(getHost())) {</span>
+<span class="nc" id="L75">			message.append(&quot;Hostname &quot;);</span>
+        }
+
+<span class="nc bnc" id="L78" title="All 2 branches missed.">        if (StringUtils.isEmpty(getPort())) {</span>
+<span class="nc" id="L79">			message.append(&quot;Port &quot;);</span>
+		}
+
+<span class="nc bnc" id="L82" title="All 2 branches missed.">		if (StringUtils.isEmpty(getProvider())) {</span>
+<span class="nc" id="L83">			message.append(&quot;Provider &quot;);</span>
+        }
+
+<span class="nc bnc" id="L86" title="All 2 branches missed.">		if (message.length() != 0) {</span>
+<span class="nc" id="L87">			throw new ConfigurationException(&quot;Configuration validation failed: Empty &quot; + message);</span>
+		}
+<span class="nc" id="L89">	}</span>
+
+    public static ConfigurationVrli fromProperties(Properties props) throws ConfigurationException {
+<span class="nc" id="L92">    	ConfigurationVrli config = new ConfigurationVrli(props);</span>
+
+<span class="nc" id="L94">    	config.validate(false);</span>
+
+<span class="nc" id="L96">    	return config;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

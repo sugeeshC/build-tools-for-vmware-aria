@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgLeasePolicy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.vrang</a> &gt; <span class="el_source">VraNgLeasePolicy.java</span></div><h1>VraNgLeasePolicy.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.google.gson.JsonObject;
+
+/**
+
+*/
+public class VraNgLeasePolicy {
+
+    /**
+     * Unique identifier for the policy.
+     */
+	private String id;
+
+    /**
+     * Name of the policy.
+     */
+	private String name;
+
+    /**
+     * Unique identifier for the policy type.
+     */
+	private String typeId;
+
+    /**
+     * Unique identifier for the project.
+     */
+	private String projectId;
+
+    /**
+     * Unique identifier for the organization.
+     */
+	private String orgId;
+
+    /**
+     * Enforcement type for the policy.
+     */
+	private String enforcementType;
+
+    /**
+     * Description of the policy.
+     */
+	private String description;
+
+    /**
+     * Definition of the policy.
+     */
+	private JsonObject definition;
+	/**
+	 * Criteria of the policy.
+	 */
+	private JsonObject criteria;
+	/**
+	 * Scope criteria of the policy.
+	 */
+	private JsonObject scopeCriteria;
+
+
+	/**
+	* Constructs a new instance of the VraNgLeasePolicy with the given parameters.
+	*
+	* @param idIn The unique identifier for the lease policy.
+	* @param nameIn The name of the lease policy
+	* @param typeIdIn The unique for the lease policy.
+	* @param projectIdIn The unique for the project associated with the lease policy
+	* @param orgIdIn The unique identifier for the organization associated with the lease policy.
+	* @param enforcementTypeIn The type of enforcement for the lease policy.
+	* @param descriptionIn A description of the lease policy.
+	* @param definitionIn The definition of the lease policy.
+	* @param criteriaIn  the criteria of the lease policy.
+	 * @param scopeCriteriaIn    the scope criteria of the lease policy
+	*/
+	public VraNgLeasePolicy(final String idIn, final String nameIn, final String typeIdIn,
+			final String projectIdIn, final String orgIdIn,
+			final String enforcementTypeIn, final String descriptionIn,
+<span class="fc" id="L91">			final JsonObject definitionIn, final JsonObject criteriaIn, final JsonObject scopeCriteriaIn) {</span>
+<span class="fc" id="L92">		this.id = idIn;</span>
+<span class="fc" id="L93">		this.name = nameIn;</span>
+<span class="fc" id="L94">		this.typeId = typeIdIn;</span>
+<span class="fc" id="L95">		this.projectId = projectIdIn;</span>
+<span class="fc" id="L96">		this.orgId = orgIdIn;</span>
+<span class="fc" id="L97">		this.enforcementType = enforcementTypeIn;</span>
+<span class="fc" id="L98">		this.description = descriptionIn;</span>
+<span class="fc" id="L99">		this.definition = definitionIn;</span>
+<span class="fc" id="L100">		this.criteria = criteriaIn;</span>
+<span class="fc" id="L101">		this.scopeCriteria = scopeCriteriaIn;</span>
+<span class="fc" id="L102">	}</span>
+
+	/**
+	* Returns the unique identifier for this lease policy.
+	*
+	* @return The unique identifier for this lease policy.
+	*/
+	public String getId() {
+<span class="fc" id="L110">		return id;</span>
+	}
+
+	/**
+	* Sets the unique identifier for this lease policy.
+	*
+	* @param idIn The new unique identifier for this lease policy.
+	*/
+	public void setId(final String idIn) {
+<span class="nc" id="L119">		this.id = idIn;</span>
+<span class="nc" id="L120">	}</span>
+
+	/**
+	* Returns the name of this lease policy.
+	*
+	* @return The name of this lease policy.
+	*/
+	public String getName() {
+<span class="fc" id="L128">		return name;</span>
+	}
+
+	/**
+	* Sets the name of this lease policy to the given value.
+	*
+	* @param nameIn The new name for this lease policy.
+	*/
+	public void setName(final String nameIn) {
+<span class="fc" id="L137">		this.name = nameIn;</span>
+<span class="fc" id="L138">	}</span>
+
+	/**
+	* Returns the project ID associated with this lease policy.
+	*
+	* @return The project ID as a string.
+	*/
+	public String getProjectId() {
+<span class="fc" id="L146">		return this.projectId;</span>
+	}
+
+	/**
+	 * Set the projectId of the lease policy.
+	 * 
+	 * @param projectIdIn - project id of the lease policy
+	 */
+	public void setProjectId(final String projectIdIn) {
+<span class="fc" id="L155">		this.projectId = projectIdIn;</span>
+<span class="fc" id="L156">	}</span>
+
+	/**
+	 * Get the id of the lease policy org.
+	 * 
+	 * @return lease policy org id
+	 */
+	public String getOrgId() {
+<span class="fc" id="L164">		return this.orgId;</span>
+	}
+
+	/**
+	 * Set the orgId of the lease policy.
+	 * 
+	 * @param orgIdIn - Org id of the lease policy
+	 */
+	public void setOrgId(final String orgIdIn) {
+<span class="fc" id="L173">		this.orgId = orgIdIn;</span>
+<span class="fc" id="L174">	}</span>
+
+	/**
+	 * Get the typeId of the lease policy.
+	 * 
+	 * @return lease policy typeId
+	 */
+	public String getTypeId() {
+<span class="nc" id="L182">		return typeId;</span>
+	}
+
+	/**
+	 * Set the typeId of the lease policy.
+	 * 
+	 * @param typeIdIn - typeId of the lease policy
+	 */
+	public void setTypeId(final String typeIdIn) {
+<span class="nc" id="L191">		this.typeId = typeIdIn;</span>
+<span class="nc" id="L192">	}</span>
+
+	/**
+	 * Get the enforcementType of the lease policy.
+	 * 
+	 * @return lease policy enforcementType
+	 */
+	public String getEnforcementType() {
+<span class="nc" id="L200">		return enforcementType;</span>
+	}
+
+	/**
+	 * Set the enforcementType of the lease policy.
+	 * 
+	 * @param enforcementTypeIn - enforcementType of the lease policy
+	 */
+	public void setEnforcementType(final String enforcementTypeIn) {
+<span class="nc" id="L209">		this.enforcementType = enforcementTypeIn;</span>
+<span class="nc" id="L210">	}</span>
+
+	/**
+	 * Get the description of the lease policy.
+	 * 
+	 * @return lease policy description
+	 */
+	public String getDescription() {
+<span class="nc" id="L218">		return description;</span>
+	}
+
+	/**
+	 * Set the description of the lease policy.
+	 * 
+	 * @param descriptionIn - description of the lease policy
+	 */
+	public void setDescription(final String descriptionIn) {
+<span class="nc" id="L227">		this.description = descriptionIn;</span>
+<span class="nc" id="L228">	}</span>
+
+	/**
+	 * Get the definition of the lease policy.
+	 * 
+	 * @return lease policy definition
+	 */
+	public JsonObject getDefinition() {
+<span class="nc" id="L236">		return definition;</span>
+	}
+
+	/**
+	 * Set the definition of the lease policy.
+	 * 
+	 * @param definitionIn - definition of the lease policy
+	 */
+	public void setDefinition(final JsonObject definitionIn) {
+<span class="nc" id="L245">		this.definition = definitionIn;</span>
+<span class="nc" id="L246">	}</span>
+
+	/**
+	 * Get the criteria of the lease policy.
+	 *
+	 * @return lease policy criteria
+	 */
+	public JsonObject getCriteria() {
+<span class="nc" id="L254">		return criteria;</span>
+	}
+
+	/**
+	 * Set the criteria of the lease policy.
+	 *
+	 * @param criteriaIn - criteria of the lease policy
+	 */
+	public void setCriteria(final JsonObject criteriaIn) {
+<span class="nc" id="L263">		this.criteria = criteriaIn;</span>
+<span class="nc" id="L264">	}</span>
+
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

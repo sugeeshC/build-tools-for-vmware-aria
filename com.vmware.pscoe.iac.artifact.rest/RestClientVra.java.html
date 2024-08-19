@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RestClientVra.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest</a> &gt; <span class="el_source">RestClientVra.java</span></div><h1>RestClientVra.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.rest;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVra;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.PackageContent.Content;
+import com.vmware.pscoe.iac.artifact.model.PackageFactory;
+import com.vmware.pscoe.iac.artifact.model.PackageType;
+import com.vmware.pscoe.iac.artifact.model.vra.VraPackageContent;
+import com.vmware.pscoe.iac.artifact.model.vra.VraPackageDescriptor;
+import com.vmware.pscoe.iac.artifact.model.vra.VraPackageMemberType;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.client.RestTemplate;
+
+public class RestClientVra extends RestClientVraPrimitive {
+
+<span class="nc" id="L42">	private static final PackageType packageType = PackageType.VRA;</span>
+
+<span class="nc" id="L44">	private final Logger logger = LoggerFactory.getLogger(RestClientVro.class);</span>
+
+	protected RestClientVra(ConfigurationVra configuration, RestTemplate restTemplate) {
+<span class="nc" id="L47">		super(configuration, restTemplate);</span>
+<span class="nc" id="L48">	}</span>
+
+	public List&lt;Package&gt; getPackages() {
+		try {
+<span class="nc" id="L52">			return this.getPackagesPrimitive().stream().map(packageObject -&gt; {</span>
+<span class="nc" id="L53">				File pkgFile = new File(packageObject.get(&quot;name&quot;) + &quot;.&quot; + packageType.getPackageExtention());</span>
+<span class="nc" id="L54">				Package pkg = PackageFactory.getInstance(packageType, packageObject.get(&quot;id&quot;), pkgFile);</span>
+<span class="nc" id="L55">				logger.debug(&quot;Found &quot; + pkg + &quot; on server&quot;);</span>
+<span class="nc" id="L56">				return pkg;</span>
+<span class="nc" id="L57">			}).collect(Collectors.toList());</span>
+<span class="nc" id="L58">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L59">			throw new RuntimeException(e);</span>
+		}
+	}
+
+	private Package findPackage(Package vraPackage) {
+<span class="nc" id="L64">		List&lt;Package&gt; srvPackages = findAllPacakges(Arrays.asList(vraPackage));</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">		if (!srvPackages.isEmpty()) {</span>
+<span class="nc" id="L66">			return PackageFactory.getInstance(packageType, srvPackages.get(0).getId(),</span>
+<span class="nc" id="L67">					new File(vraPackage.getFilesystemPath()));</span>
+		}
+<span class="nc" id="L69">		return null;</span>
+	}
+
+	private List&lt;Package&gt; findAllPacakges(List&lt;Package&gt; filesystemPackage) {
+<span class="nc" id="L73">		return getPackages().stream().filter(srvPackage -&gt; filesystemPackage.contains(srvPackage))</span>
+<span class="nc" id="L74">				.collect(Collectors.toList());</span>
+	}
+
+	public Package exportPackage(Package filesystemPackage, boolean dryRun) {
+<span class="nc" id="L78">		Package serverVraPackage = findPackage(filesystemPackage);</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">		if (serverVraPackage == null) {</span>
+<span class="nc" id="L80">			throw new RuntimeException(String.format(&quot;Package %s not found on server.&quot;, filesystemPackage));</span>
+		}
+
+		try {
+<span class="nc" id="L84">			this.exportPackagePrimitive(serverVraPackage, dryRun);</span>
+<span class="nc" id="L85">			return serverVraPackage;</span>
+<span class="nc" id="L86">		} catch (NumberFormatException | URISyntaxException e) {</span>
+<span class="nc" id="L87">			throw new RuntimeException(e);</span>
+		}
+	}
+
+	public void setBlueprintCustomForm(String bpId, String jsonBody) {
+		try {
+<span class="nc" id="L93">			setBlueprintCustomFormPrimitive(bpId, jsonBody);</span>
+<span class="nc" id="L94">		} catch (Exception e) {</span>
+<span class="nc" id="L95">			throw new RuntimeException(String.format(&quot;Could not update Custom Form for Blueprint with ID '%s'.&quot;, bpId),</span>
+					e);
+<span class="nc" id="L97">		}</span>
+<span class="nc" id="L98">	}</span>
+
+	public void activateBlueprintCustomForm(String bpId) {
+		try {
+<span class="nc" id="L102">			activateBlueprintCustomFormPrimitive(bpId);</span>
+<span class="nc" id="L103">		} catch (Exception e) {</span>
+<span class="nc" id="L104">			throw new RuntimeException(</span>
+<span class="nc" id="L105">					String.format(&quot;Could not activate Custom Form for Blueprint with ID '%s'.&quot;, bpId), e);</span>
+<span class="nc" id="L106">		}</span>
+<span class="nc" id="L107">	}</span>
+
+	public Package importPackage(Package filesystemVroPackage, boolean dryRun) {
+<span class="nc" id="L110">	    VraPackageDescriptor descriptor = null;</span>
+	    try {
+<span class="nc" id="L112">		    VraPackageContent content = this.importPackagePrimitive(filesystemVroPackage, dryRun);</span>
+<span class="nc" id="L113">		    descriptor = VraPackageDescriptor.getInstance(content);</span>
+		    // Required for package clean up procedures
+		    // vRA does not create package when importing it
+<span class="nc" id="L116">		    return this.createPackage(filesystemVroPackage, descriptor);</span>
+<span class="nc" id="L117">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L118">			throw new RuntimeException(e);</span>
+		}
+	}
+
+	public List&lt;Package&gt; importAllPackages(List&lt;Package&gt; vraPackages, boolean dryRun) {
+<span class="nc" id="L123">		return vraPackages.stream().map(vraPackage -&gt; this.importPackage(vraPackage, dryRun))</span>
+<span class="nc" id="L124">				.collect(Collectors.toList());</span>
+	}
+
+	public List&lt;Package&gt; exportAllPackage(List&lt;Package&gt; vraPackages, boolean dryRun) {
+<span class="nc" id="L128">		return vraPackages.stream().map(pkg -&gt; exportPackage(pkg, dryRun)).collect(Collectors.toList());</span>
+	}
+
+	public Package createPackage(Package vraPackage, VraPackageDescriptor vraPackageDescriptor)
+			throws URISyntaxException {
+<span class="nc" id="L133">		Package serverVraPackage = findPackage(vraPackage);</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">		if (serverVraPackage != null) {</span>
+<span class="nc" id="L135">			logger.debug(String.format(&quot;Package | %s found on server. Will recreate it.&quot;, serverVraPackage));</span>
+<span class="nc" id="L136">			deletePackagePrimitive(serverVraPackage);</span>
+		}
+
+<span class="nc" id="L139">		List&lt;String&gt; vraPackageContentIds = new ArrayList&lt;&gt;();</span>
+
+		// Get IDs corresponding to the vraPackageDescriptor content
+<span class="nc bnc" id="L142" title="All 2 branches missed.">		for (VraPackageMemberType type : VraPackageMemberType.values()) {</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">			if (!type.isNativeContent()) {</span>
+<span class="nc" id="L144">				continue;</span>
+			}
+
+<span class="nc" id="L147">			List&lt;String&gt; memberNames = vraPackageDescriptor.getMembersForType(type);</span>
+<span class="nc bnc" id="L148" title="All 4 branches missed.">			if (memberNames == null || memberNames.isEmpty()) {</span>
+<span class="nc" id="L149">				continue;</span>
+			}
+
+			// [contentObject{propertyName:propertyValue}, ...]
+<span class="nc" id="L153">			List&lt;Map&lt;String, String&gt;&gt; content = this.getContentPrimitive(type.toString(), null);</span>
+
+			// {contentObjectType-contentObjectName : contentObjectId, ...}
+<span class="nc" id="L156">			Map&lt;String, String&gt; contentMap = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">			for (Map&lt;String, String&gt; contentObj : content) {</span>
+<span class="nc" id="L158">				String typeName = type + contentObj.get(&quot;name&quot;);</span>
+<span class="nc" id="L159">				String id = contentObj.get(&quot;id&quot;);</span>
+<span class="nc" id="L160">				contentMap.put(typeName, id);</span>
+<span class="nc" id="L161">			}</span>
+
+<span class="nc bnc" id="L163" title="All 2 branches missed.">			for (String memberName : memberNames) {</span>
+<span class="nc" id="L164">				String id = contentMap.get(type + memberName);</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">				if (id == null) {</span>
+<span class="nc" id="L166">					logger.warn(&quot;Content with Type[&quot; + type + &quot;], Name[&quot; + memberName + &quot;] &quot;</span>
+					+ &quot;and supplied credentials cannot be found on the sever. Note that name is case sensitive.&quot;);
+<span class="nc" id="L168">					continue;</span>
+				}
+<span class="nc" id="L170">				vraPackageContentIds.add(id);</span>
+<span class="nc" id="L171">			}</span>
+		}
+
+<span class="nc" id="L174">		this.createPackagePrimitive(vraPackage, vraPackageContentIds);</span>
+<span class="nc" id="L175">		return vraPackage;</span>
+	}
+	
+	public Package deletePackage(Package pkg, boolean withContent, boolean dryrun){
+<span class="nc bnc" id="L179" title="All 2 branches missed.">	    if(withContent) {</span>
+<span class="nc" id="L180">	        VraPackageContent pkgContents = super.getPackageContentPrimitive(pkg);</span>
+<span class="nc" id="L181">	        pkgContents.getContent().stream().forEach(c -&gt; super.deleteContentPrimitive(c, dryrun));</span>
+	    }
+<span class="nc bnc" id="L183" title="All 2 branches missed.">	    if(!dryrun) {</span>
+<span class="nc" id="L184">	        super.deletePackagePrimitive(pkg);</span>
+	    }
+<span class="nc" id="L186">        return pkg;</span>
+    }
+	
+	public void deleteContentPrimitive(Content content, boolean dryrun) {
+<span class="nc" id="L190">	    super.deleteContentPrimitive(content, dryrun);</span>
+<span class="nc" id="L191">	}</span>
+  
+    public VraPackageContent getPackageContentPrimitive(Package pkg) {
+<span class="nc" id="L194">        return super.getPackageContentPrimitive(pkg);</span>
+	}
+	
+	public String getBlueprintCustomForm(String bpId) {
+<span class="nc" id="L198">        return super.getBlueprintCustomFormPrimitive(bpId);</span>
+    }
+    
+    public List&lt;Map&lt;String, String&gt;&gt; getPackageContents(String pkgId) {
+<span class="nc" id="L202">        return super.getPackageContentsPrimitive(pkgId);</span>
+	}
+	
+	public List&lt;Map&lt;String, Object&gt;&gt; getWorkflowSubscriptions() {
+<span class="nc" id="L206">        return super.getWorkflowSubscriptionsPrimitive();</span>
+	}
+	
+	public void importSubscription(String subscriptionName, String jsonBody) {
+		try {
+<span class="nc" id="L211">			importSubscriptionPrimitive(subscriptionName, jsonBody);</span>
+<span class="nc" id="L212">		} catch (Exception e) {</span>
+<span class="nc" id="L213">			throw new RuntimeException(String.format(&quot;Could not create or update Workflow Subscription with name '%s'.&quot;, subscriptionName),</span>
+					e);
+<span class="nc" id="L215">		}</span>
+<span class="nc" id="L216">	}</span>
+
+	public List&lt;Map&lt;String, Object&gt;&gt; getGlobalPropertyDefinitions() {
+<span class="nc" id="L219">		return super.getGlobalPropertyDefinitionsPrimitive();</span>
+	}
+
+	public void importGlobalPropertyDefinition(String propertyDefinitionName, String jsonBody) {
+		try {
+<span class="nc" id="L224">			importGlobalPropertyDefinitionPrimitive(propertyDefinitionName, jsonBody);</span>
+<span class="nc" id="L225">		} catch (Exception e) {</span>
+<span class="nc" id="L226">			throw new RuntimeException(String.format(&quot;Could not create or update Global Property Definition with name '%s'.&quot;, propertyDefinitionName), e);</span>
+<span class="nc" id="L227">		}</span>
+<span class="nc" id="L228">	}</span>
+
+	public List&lt;Map&lt;String, Object&gt;&gt; getGlobalPropertyGroups() {
+<span class="nc" id="L231">        return super.getGlobalPropertyGroupsPrimitive();</span>
+	}
+
+	public void importGlobalPropertyGroup(String propertyGroupName, String jsonBody) {
+		try {
+<span class="nc" id="L236">			importGlobalPropertyGroupPrimitive(propertyGroupName, jsonBody);</span>
+<span class="nc" id="L237">		} catch (Exception e) {</span>
+<span class="nc" id="L238">			throw new RuntimeException(String.format(&quot;Could not create or update Global Property Group with name '%s'.&quot;, propertyGroupName), e);</span>
+<span class="nc" id="L239">		}</span>
+<span class="nc" id="L240">	}</span>
+
+    public Map&lt;String, Object&gt; getCatalogItemByName(String catalogItemName) {
+<span class="nc" id="L243">        return getCatalogItemByNamePrimitive(catalogItemName);</span>
+	}
+	
+	public void setCatalogItem(Map&lt;String, Object&gt; catalogItem) {
+		try {
+<span class="nc" id="L248">			setCatalogItemPrimitive(catalogItem);</span>
+<span class="nc" id="L249">		} catch (Exception e) {</span>
+<span class="nc" id="L250">			throw new RuntimeException(String.format(&quot;Could not create or update Catalog Item with name '%s'.&quot;, catalogItem.get(&quot;name&quot;)), e);</span>
+<span class="nc" id="L251">		}</span>
+<span class="nc" id="L252">	}</span>
+
+	public Map&lt;String, Object&gt; getCatalogServiceByName(String serviceName) {
+<span class="nc" id="L255">        return getCatalogServiceByNamePrimitive(serviceName);</span>
+	}
+
+	public Map&lt;String, Object&gt; getIcon(String iconId) {
+<span class="nc" id="L259">        return getIconPrimitive(iconId);</span>
+	}
+	
+	public void setIcon(Map&lt;String, Object&gt; icon) {
+		try {
+<span class="nc" id="L264">			setIconPrimitive(icon);</span>
+<span class="nc" id="L265">		} catch (Exception e) {</span>
+<span class="nc" id="L266">			throw new RuntimeException(String.format(&quot;Could not create or update Icon with ID '%s'.&quot;, icon.get(&quot;id&quot;)), e);</span>
+<span class="nc" id="L267">		}</span>
+<span class="nc" id="L268">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CsPipelineStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.cs</a> &gt; <span class="el_source">CsPipelineStore.java</span></div><h1>CsPipelineStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.cs;
+
+/*-
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 - 2024 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.Yaml;
+
+<span class="fc" id="L40">public final class CsPipelineStore extends AbstractCsStore {</span>
+	/**
+	 * The pipelines root folder.
+	 */
+	private static final String DIR_PIPELINES = &quot;pipelines&quot;;
+
+	/**
+	 * logger.
+	 */
+<span class="fc" id="L49">	private final Logger logger = LoggerFactory.getLogger(CsPipelineStore.class);</span>
+
+	/**
+	 * projectPipelines.
+	 */
+	private List&lt;JsonObject&gt; projectPipelines;
+
+	List&lt;JsonObject&gt; getProjectPipelines() {
+<span class="fc bfc" id="L57" title="All 2 branches covered.">		if (projectPipelines == null) {</span>
+<span class="fc" id="L58">			this.projectPipelines = this.restClient.getProjectPipelines();</span>
+		}
+<span class="fc" id="L60">		return this.projectPipelines;</span>
+
+	}
+
+	/**
+	 * Exporting the contents of all blueprints listed in the content.yaml file,
+	 * available for the configured project.
+	 */
+	public void exportContent() {
+<span class="fc" id="L69">		List&lt;String&gt; pipelineNames = this.descriptor.getPipeline();</span>
+<span class="pc bpc" id="L70" title="1 of 2 branches missed.">		if (pipelineNames == null) {</span>
+<span class="nc" id="L71">			logger.info(&quot;No pipelines found in content.yaml&quot;);</span>
+<span class="nc" id="L72">			return;</span>
+		}
+<span class="fc" id="L74">		this.getProjectPipelines()</span>
+<span class="fc" id="L75">				.stream()</span>
+<span class="fc" id="L76">				.filter(el -&gt; pipelineNames.contains(el.get(&quot;name&quot;).getAsString()))</span>
+<span class="fc" id="L77">				.forEach(this::exportPipeline);</span>
+
+<span class="fc" id="L79">	}</span>
+
+	/**
+	 * Importing content into vRA target environment.
+	 * 
+	 * @param sourceDirectory sourceDirectory
+	 */
+	public void importContent(File sourceDirectory) {
+<span class="fc" id="L87">		File pipelinesFolder = Paths.get(sourceDirectory.getPath(), DIR_PIPELINES).toFile();</span>
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">		if (!pipelinesFolder.exists()) {</span>
+<span class="nc" id="L89">			return;</span>
+		}
+
+<span class="fc" id="L92">		Collection&lt;File&gt; pipelineFiles = FileUtils.listFiles(pipelinesFolder, new String[] { &quot;yaml&quot; }, false);</span>
+<span class="pc bpc" id="L93" title="2 of 4 branches missed.">		if (pipelineFiles == null || pipelineFiles.isEmpty()) {</span>
+<span class="nc" id="L94">			return;</span>
+		}
+
+		// Map to store dependencies extracted from YAML files
+<span class="fc" id="L98">		Map&lt;String, Set&lt;String&gt;&gt; dependencies = new HashMap&lt;&gt;();</span>
+
+		// Parse YAML files and extract dependencies
+<span class="fc bfc" id="L101" title="All 2 branches covered.">		for (File file : pipelineFiles) {</span>
+<span class="fc" id="L102">			Set&lt;String&gt; deps = extractPipeRollbackDependencies(file);</span>
+<span class="fc" id="L103">			dependencies.put(file.getName(), deps);</span>
+<span class="fc" id="L104">		}</span>
+
+		// Perform topological sort
+<span class="fc" id="L107">		List&lt;String&gt; orderedFiles = topologicalSort(dependencies);</span>
+
+		// Import pipelines in the ordered sequence
+<span class="fc bfc" id="L110" title="All 2 branches covered.">		for (String fileName : orderedFiles) {</span>
+<span class="fc" id="L111">			File file = new File(pipelinesFolder, fileName);</span>
+<span class="fc" id="L112">			importPipeline(file);</span>
+<span class="fc" id="L113">		}</span>
+<span class="fc" id="L114">	}</span>
+
+	private Set&lt;String&gt; extractPipeRollbackDependencies(File yamlFile) {
+<span class="fc" id="L117">		Set&lt;String&gt; dependencies = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L118">		try (InputStream inputStream = new FileInputStream(yamlFile)) {</span>
+<span class="fc" id="L119">			Yaml yaml = new Yaml();</span>
+<span class="fc" id="L120">			Map&lt;String, Object&gt; data = yaml.load(inputStream);</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">			if (data.containsKey(&quot;rollbacks&quot;)) {</span>
+<span class="fc" id="L122">				Object rollbacksObj = data.get(&quot;rollbacks&quot;);</span>
+<span class="pc bpc" id="L123" title="1 of 2 branches missed.">				if (rollbacksObj instanceof List) {</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">					for (Object rollback : (List&lt;?&gt;) rollbacksObj) {</span>
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">						if (rollback instanceof Map) {</span>
+<span class="fc" id="L126">							Object nameObj = ((Map&lt;?, ?&gt;) rollback).get(&quot;name&quot;);</span>
+<span class="pc bpc" id="L127" title="1 of 2 branches missed.">							if (nameObj instanceof String) {</span>
+<span class="fc" id="L128">								String dependencyFileName = (String) nameObj;</span>
+<span class="fc" id="L129">								dependencies.add(dependencyFileName + &quot;.yaml&quot;);</span>
+							}
+						}
+<span class="fc" id="L132">					}</span>
+				}
+			}
+<span class="nc" id="L135">		} catch (IOException e) {</span>
+<span class="nc" id="L136">			logger.error(e.getMessage(), e);</span>
+<span class="fc" id="L137">		}</span>
+<span class="fc" id="L138">		return dependencies;</span>
+	}
+
+	// Topological sort algorithm
+	private List&lt;String&gt; topologicalSort(Map&lt;String, Set&lt;String&gt;&gt; dependencies) {
+<span class="fc" id="L143">		Map&lt;String, Integer&gt; vertexMap = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L144">		List&lt;String&gt; fileList = new ArrayList&lt;&gt;(dependencies.keySet());</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">		for (int i = 0; i &lt; fileList.size(); i++) {</span>
+<span class="fc" id="L146">			vertexMap.put(fileList.get(i), i);</span>
+		}
+
+<span class="fc" id="L149">		List&lt;List&lt;Integer&gt;&gt; graph = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">		for (int i = 0; i &lt; fileList.size(); i++) {</span>
+<span class="fc" id="L151">			graph.add(new ArrayList&lt;&gt;());</span>
+		}
+<span class="fc bfc" id="L153" title="All 2 branches covered.">		for (Map.Entry&lt;String, Set&lt;String&gt;&gt; entry : dependencies.entrySet()) {</span>
+<span class="fc" id="L154">			int from = vertexMap.get(entry.getKey());</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">			for (String dep : entry.getValue()) {</span>
+<span class="fc" id="L156">				int to = vertexMap.get(dep);</span>
+<span class="fc" id="L157">				graph.get(from).add(to);</span>
+<span class="fc" id="L158">			}</span>
+<span class="fc" id="L159">		}</span>
+
+<span class="fc" id="L161">		List&lt;String&gt; orderedFiles = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L162">		boolean[] visited = new boolean[fileList.size()];</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">		for (int i = 0; i &lt; fileList.size(); i++) {</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">			if (!visited[i]) {</span>
+<span class="fc" id="L165">				topologicalSortUtil(graph, i, visited, orderedFiles, fileList);</span>
+			}
+		}
+<span class="fc" id="L168">		return orderedFiles;</span>
+	}
+
+	private void topologicalSortUtil(List&lt;List&lt;Integer&gt;&gt; graph, int v, boolean[] visited, List&lt;String&gt; orderedFiles,
+			List&lt;String&gt; fileList) {
+<span class="fc" id="L173">		visited[v] = true;</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">		for (int i : graph.get(v)) {</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">			if (!visited[i]) {</span>
+<span class="fc" id="L176">				topologicalSortUtil(graph, i, visited, orderedFiles, fileList);</span>
+			}
+<span class="fc" id="L178">		}</span>
+<span class="fc" id="L179">		orderedFiles.add(fileList.get(v));</span>
+<span class="fc" id="L180">	}</span>
+
+	private void exportPipeline(JsonObject obj) {
+<span class="fc" id="L183">		String pipelineName = obj.get(&quot;name&quot;).getAsString();</span>
+<span class="fc" id="L184">		logger.info(&quot;Exporting pipeline : {}&quot;, pipelineName);</span>
+<span class="fc" id="L185">		CsStoreHelper.sanitizeDefaultProperties(obj);</span>
+<span class="fc" id="L186">		String jsonString = obj.toString();</span>
+<span class="fc" id="L187">		CsStoreHelper.storeToYamlFile(csPackage.getFilesystemPath(), DIR_PIPELINES, pipelineName, jsonString);</span>
+<span class="fc" id="L188">		CsStoreHelper.addVarsToExtractionContext(jsonString, descriptor);</span>
+<span class="fc" id="L189">	}</span>
+
+	private void importPipeline(File pipelineFile) {
+<span class="fc" id="L192">		String jsonString = CsStoreHelper.loadFromYamlFile(pipelineFile);</span>
+<span class="fc" id="L193">		JsonElement el = JsonParser.parseString(jsonString);</span>
+<span class="fc" id="L194">		JsonObject obj = el.getAsJsonObject();</span>
+<span class="fc" id="L195">		String name = obj.get(&quot;name&quot;).getAsString();</span>
+<span class="fc" id="L196">		String state = obj.get(&quot;state&quot;).getAsString();</span>
+<span class="fc" id="L197">		obj.addProperty(&quot;project&quot;, restClient.getProjectName());</span>
+<span class="fc" id="L198">		Optional&lt;JsonObject&gt; optional = CsStoreHelper.findObjectByName(getProjectPipelines(), name);</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">		if (optional.isPresent()) {</span>
+<span class="fc" id="L200">			obj.addProperty(&quot;id&quot;, optional.get().get(&quot;id&quot;).getAsString());</span>
+<span class="fc" id="L201">			restClient.updatePipeline(name, obj);</span>
+		} else {
+<span class="fc" id="L203">			restClient.createPipeline(obj);</span>
+
+		}
+		// On creation the enabled and release statuses are never updated.
+		// To change to released you should go first through enabled.
+<span class="fc" id="L208">		JsonObject statusContent = new JsonObject();</span>
+<span class="fc bfc" id="L209" title="All 2 branches covered.">		if (&quot;RELEASED&quot;.equals(state)) {</span>
+<span class="fc" id="L210">			statusContent.addProperty(&quot;state&quot;, &quot;ENABLED&quot;);</span>
+<span class="fc" id="L211">			restClient.patchPipeline(name, statusContent);</span>
+		}
+<span class="fc" id="L213">		statusContent.addProperty(&quot;state&quot;, state);</span>
+<span class="fc" id="L214">		restClient.patchPipeline(name, statusContent);</span>
+<span class="fc" id="L215">	}</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

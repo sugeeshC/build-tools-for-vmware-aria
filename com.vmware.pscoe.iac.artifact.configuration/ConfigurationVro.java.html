@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfigurationVro.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.configuration</a> &gt; <span class="el_source">ConfigurationVro.java</span></div><h1>ConfigurationVro.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.configuration;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.util.Properties;
+import java.util.logging.Logger;
+
+import org.apache.http.HttpHost;
+import org.springframework.util.StringUtils;
+
+import com.vmware.pscoe.iac.artifact.model.PackageType;
+
+public class ConfigurationVro extends ConfigurationWithRefreshToken implements ConfigurationNg {
+
+    // Important - when modify properties refer to comments in @Configuration
+    public static final String TENANT = &quot;tenant&quot;;
+    public static final String EMBEDDED = &quot;embedded&quot;;
+    public static final String AUTH = &quot;auth&quot;;
+    public static final String AUTH_HOST = &quot;authHost&quot;;
+    public static final String AUTH_PORT = &quot;authPort&quot;;
+    public static final String PROXY = &quot;proxy&quot;;
+    public static final String DEFAULT_TAG_IMPORT_MODE = &quot;ImportAndOverwriteExistingValue&quot;;
+
+    /**
+     * These all are vRO API Package import options
+     */
+    public static final String PACKAGE_IMPORT_CONFIGURATION_ATTRIBUTE_VALUES = &quot;packageImportConfigurationAttributeValues&quot;;
+    public static final String PACKAGE_IMPORT_CONFIGURATION_SECURE_ATTRIBUTE_VALUES = &quot;packageImportConfigSecureStringAttributeValues&quot;;
+    public static final String PACKAGE_IMPORT_TAGS_IMPORT_MODE = &quot;packageImportTagsImportMode&quot;;
+
+    /**
+     * These all are vRO API Package export options
+     */
+    public static final String PACKAGE_EXPORT_VERSION_HISTORY = &quot;packageExportVersionHistory&quot;;
+    public static final String PACKAGE_EXPORT_CONFIGURATION_ATTRIBUTE_VALUES = &quot;packageExportConfigurationAttributeValues&quot;;
+    public static final String PACKAGE_EXPORT_CONFIG_SECURE_STRING_ATTRIBUTE_VALUES = &quot;packageExportConfigSecureStringAttributeValues&quot;;
+    public static final String PACKAGE_EXPORT_GLOBAL_TAGS= &quot;packageExportGlobalTags&quot;;
+
+    public static final String PACKAGE_EXPORT_AS_ZIP = &quot;packgeExportAsZip&quot;;
+
+<span class="pc" id="L54">	private final Logger logger = Logger.getAnonymousLogger();</span>
+
+    protected ConfigurationVro(Properties props) {
+<span class="fc" id="L57">        super(PackageType.VRO, props);</span>
+<span class="fc" id="L58">    }</span>
+
+    protected ConfigurationVro(PackageType type, Properties props) {
+<span class="nc" id="L61">        super(type, props);</span>
+<span class="nc" id="L62">    }</span>
+
+    public boolean isPackageImportConfigurationAttributeValues() {
+<span class="nc" id="L65">        return Boolean.parseBoolean(this.properties.getProperty(PACKAGE_IMPORT_CONFIGURATION_ATTRIBUTE_VALUES));</span>
+    }
+
+    public String getPackageTagsImportMode() {
+<span class="nc" id="L69">        return this.properties.getProperty(PACKAGE_IMPORT_TAGS_IMPORT_MODE, DEFAULT_TAG_IMPORT_MODE);</span>
+    }
+
+    public boolean isPackageImportConfigSecureStringAttributeValues() {
+<span class="nc" id="L73">        return Boolean.parseBoolean(this.properties.getProperty(PACKAGE_IMPORT_CONFIGURATION_SECURE_ATTRIBUTE_VALUES));</span>
+    }
+
+    public boolean isPackageExportVersionHistory() {
+<span class="nc" id="L77">        return Boolean.parseBoolean(this.properties.getProperty(PACKAGE_EXPORT_VERSION_HISTORY));</span>
+    }
+
+    public boolean isPackageExportConfigurationAttributeValues() {
+<span class="nc" id="L81">        return Boolean.parseBoolean(this.properties.getProperty(PACKAGE_EXPORT_CONFIGURATION_ATTRIBUTE_VALUES));</span>
+    }
+
+    public boolean isPackageExportConfigSecureStringAttributeValues() {
+<span class="nc" id="L85">        return Boolean.parseBoolean(this.properties.getProperty(PACKAGE_EXPORT_CONFIG_SECURE_STRING_ATTRIBUTE_VALUES));</span>
+    }
+
+    public boolean isPackageExportGlobalTags() {
+<span class="nc" id="L89">        return Boolean.parseBoolean(this.properties.getProperty(PACKAGE_EXPORT_GLOBAL_TAGS));</span>
+    }
+
+    public boolean isPackgeExportAsZip() {
+<span class="nc" id="L93">        return Boolean.parseBoolean(this.properties.getProperty(PACKAGE_EXPORT_AS_ZIP));</span>
+    }
+
+    public String getTenant() {
+<span class="nc" id="L97">        return this.properties.getProperty(TENANT);</span>
+    }
+
+    @Override
+    public String getUsername() {
+<span class="fc bfc" id="L102" title="All 2 branches covered.">        return this.getAuth() == AuthProvider.VRA ? super.getUsername() : this.properties.getProperty(USERNAME);</span>
+    }
+
+    public AuthProvider getAuth() {
+<span class="fc" id="L106">        final String authValue = this.properties.getProperty(AUTH);</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">        return StringUtils.isEmpty(authValue) ? AuthProvider.BASIC : AuthProvider.valueOf(authValue.toUpperCase());</span>
+    }
+
+    public boolean isEmbeddedVro8() {
+<span class="nc" id="L111">        final String embeddedValue = this.properties.getProperty(EMBEDDED);</span>
+        try{
+<span class="nc bnc" id="L113" title="All 2 branches missed.">            return StringUtils.isEmpty(embeddedValue) ? false : Boolean.parseBoolean(embeddedValue);</span>
+<span class="nc" id="L114">        }catch(Exception e){</span>
+<span class="nc" id="L115">            throw new RuntimeException(&quot;Embedded Value is not a boolean.&quot;);</span>
+        }
+    }
+
+    public String getAuthHost() {
+<span class="fc" id="L120">        final String authHost = this.properties.getProperty(AUTH_HOST);</span>
+<span class="pc bpc" id="L121" title="1 of 2 branches missed.">        return StringUtils.isEmpty(authHost) ? this.getHost() : authHost;</span>
+    }
+
+    public int getAuthPort() {
+<span class="fc" id="L125">    	final String authPort = this.properties.getProperty(AUTH_PORT);</span>
+    	try{
+<span class="pc bpc" id="L127" title="1 of 2 branches missed.">            return StringUtils.isEmpty(authPort) ? this.getPort() : Integer.parseInt(authPort);</span>
+<span class="nc" id="L128">        }catch(NumberFormatException e){</span>
+<span class="nc" id="L129">        	throw new RuntimeException(&quot;Port is not a number&quot;);</span>
+        }
+    }
+
+    public HttpHost getProxy() {
+<span class="nc" id="L134">        String proxy = this.properties.getProperty(PROXY);</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">        if (StringUtils.isEmpty(proxy)) {</span>
+<span class="nc" id="L136">            return null;</span>
+        }
+
+<span class="nc" id="L139">        return HttpHost.create(proxy);</span>
+    }
+
+	@Override
+	public String getRefreshToken() {
+<span class="fc" id="L144">		String token = this.properties.getProperty(REFRESH_TOKEN);</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">		return StringUtils.isEmpty(token) ? null : token;</span>
+	}
+
+	@Override
+	public void validate(boolean domainOptional) throws ConfigurationException{
+<span class="fc" id="L150">		logger.info(&quot;Checking if exists refresh token&quot;);</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">		boolean useRefreshTokenForAuth = !StringUtils.isEmpty(this.getRefreshToken());</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">		if(useRefreshTokenForAuth)</span>
+<span class="fc" id="L153">			logger.info(String.format(&quot;Refresh token in config for vro is: %s&quot;, this.getRefreshToken()));</span>
+		else
+<span class="fc" id="L155">			logger.info(&quot;Refresh token not detected using BASIC Authentication&quot;);</span>
+<span class="fc" id="L156">		super.validate(domainOptional, useRefreshTokenForAuth);</span>
+<span class="fc" id="L157">	}</span>
+
+	public static ConfigurationVro fromProperties(Properties props) throws ConfigurationException {
+<span class="nc" id="L160">        ConfigurationVro config = new ConfigurationVro(props);</span>
+ 
+<span class="nc bnc" id="L162" title="All 2 branches missed.">        boolean hasVroTenant = !StringUtils.isEmpty(config.getTenant());</span>
+<span class="nc bnc" id="L163" title="All 4 branches missed.">        if (hasVroTenant &amp;&amp; config.getAuth() != AuthProvider.VRA) {</span>
+<span class="nc" id="L164">            throw new ConfigurationException(&quot;vRO configuration validation error! Multi-tenancy requires 'vra' authentication!&quot;);</span>
+        }
+
+<span class="nc bnc" id="L167" title="All 2 branches missed.">    	config.validate(!hasVroTenant);</span>
+<span class="nc" id="L168">    	return config;</span>
+    }
+
+<span class="fc" id="L171">    public enum AuthProvider {</span>
+<span class="fc" id="L172">        BASIC, VRA, VC</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

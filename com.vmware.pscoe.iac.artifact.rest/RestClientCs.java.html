@@ -1,0 +1,483 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RestClientCs.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest</a> &gt; <span class="el_source">RestClientCs.java</span></div><h1>RestClientCs.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.rest;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.net.URI;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.jayway.jsonpath.JsonPath;
+import com.vmware.pscoe.iac.artifact.configuration.Configuration;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationCs;
+import com.vmware.pscoe.iac.artifact.rest.model.cs.CustomIntegrationVersion;
+import com.vmware.pscoe.iac.artifact.rest.model.cs.Endpoint;
+import com.vmware.pscoe.iac.artifact.rest.model.cs.Variable;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
+
+public class RestClientCs extends RestClient {
+<span class="nc" id="L50">    private final Logger logger = LoggerFactory.getLogger(RestClientCs.class);</span>
+
+    private static final String BASE = &quot;/codestream/api&quot;;
+    private static final String API_VERSION = BASE + &quot;/about&quot;;
+    private static final String VARIABLES_PATH = BASE + &quot;/variables&quot;;
+    private static final String VARIABLE_PROJECT_NAME_PATH = BASE + &quot;/variables/{0}/{1}&quot;;
+    private static final String CUSTOM_INTEGRATION_PATH = BASE + &quot;/custom-integrations&quot;;
+    private static final String CUSTOM_INTEGRATION_VERSION_PATH = BASE + &quot;/custom-integrations/{0}/versions&quot;;
+    private static final String ENDPOINTS_PATH = BASE + &quot;/endpoints&quot;;
+    private static final String ENDPOINT_UPDATE_PATH = BASE + &quot;/endpoints/{0}/{1}&quot;;
+    private static final String PIPELINE_PATH = BASE + &quot;/pipelines&quot;;
+    private static final String PIPELINE_UPDATE_PATH = BASE + &quot;/pipelines/{0}/{1}&quot;;
+    private static final String CLOUD_PROXY_PATH = BASE + &quot;/cloud-proxy&quot;;
+    private static final String GET_PROJECT_INFO = &quot;/iaas/api/projects&quot;;
+
+    private static final String GIT_PATH = BASE + &quot;/git-webhooks&quot;;
+    private static final String GIT_PROJECT_NAME_PATH = GIT_PATH + &quot;/{0}/{1}&quot;;
+    private static final String DOCKER_PATH = BASE + &quot;/registry-webhooks&quot;;
+    private static final String DOCKER_PROJECT_NAME_PATH = DOCKER_PATH + &quot;/{0}/{1}&quot;;
+    private static final String GERRIT_LISTENER_PATH = BASE + &quot;/gerrit-listeners&quot;;
+    private static final String GERRIT_LISTENER_PROJECT_NAME_PATH = GERRIT_LISTENER_PATH + &quot;/{0}/{1}&quot;;
+    private static final String GERRIT_TRIGGER_PATH = BASE + &quot;/gerrit-triggers&quot;;
+    private static final String GERRIT_TRIGGER_PROJECT_NAME_PATH = GERRIT_TRIGGER_PATH + &quot;/{0}/{1}&quot;;
+
+<span class="fc" id="L74">    private static final Integer PAGE_SIZE = 100;</span>
+    private ConfigurationCs configuration;
+    private RestTemplate restTemplate;
+    private String apiVersion;
+    private String projectName;
+    private String projectId;
+    private String cloudProxyId;
+
+<span class="nc" id="L82">    protected RestClientCs(ConfigurationCs configuration, RestTemplate restTemplate) {</span>
+<span class="nc" id="L83">        this.configuration = configuration;</span>
+<span class="nc" id="L84">        this.restTemplate = restTemplate;</span>
+<span class="nc" id="L85">        initProjectNameAndId();</span>
+<span class="nc" id="L86">        initCloudProxyId();</span>
+<span class="nc" id="L87">    }</span>
+
+    private void initProjectNameAndId() {
+<span class="nc bnc" id="L90" title="All 2 branches missed.">        String constraint = StringUtils.isNotEmpty(configuration.getProjectName())</span>
+<span class="nc" id="L91">                ? String.format(&quot;name eq '%s'&quot;, configuration.getProjectName())</span>
+<span class="nc" id="L92">                : String.format(&quot;id eq '%s'&quot;, configuration.getProjectId());</span>
+
+<span class="nc" id="L94">        URI url = getURI(getURIBuilder()</span>
+<span class="nc" id="L95">                .setPath(GET_PROJECT_INFO)</span>
+<span class="nc" id="L96">                .setParameter(&quot;$filter&quot;, constraint));</span>
+<span class="nc" id="L97">        ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L98">        JsonElement jsonObj = JsonParser.parseString(response.getBody());</span>
+<span class="nc" id="L99">        JsonArray projectJsonArray = jsonObj.getAsJsonObject().get(&quot;content&quot;).getAsJsonArray();</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">        if (projectJsonArray.size() != 1) {</span>
+<span class="nc" id="L101">            throw new RuntimeException(&quot;Project not found with given configuration!&quot;);</span>
+        }
+<span class="nc" id="L103">        this.projectName = projectJsonArray.get(0).getAsJsonObject().get(&quot;name&quot;).getAsString();</span>
+<span class="nc" id="L104">        this.projectId = projectJsonArray.get(0).getAsJsonObject().get(&quot;id&quot;).getAsString();</span>
+
+<span class="nc" id="L106">    }</span>
+
+    public String getProjectName() {
+<span class="nc" id="L109">        return this.projectName;</span>
+    }
+
+    public String getProjectId() {
+<span class="nc" id="L113">        return projectId;</span>
+    }
+
+    public String getCloudProxyId() {
+<span class="nc" id="L117">        return cloudProxyId;</span>
+    }
+
+
+    public RestTemplate getRestTemplate() {
+<span class="nc" id="L122">        return restTemplate;</span>
+    }
+
+    @Override
+    protected Configuration getConfiguration() {
+<span class="nc" id="L127">        return configuration;</span>
+    }
+
+    @Override
+    public String getVersion() {
+<span class="nc bnc" id="L132" title="All 4 branches missed.">        if (this.apiVersion != null &amp;&amp; !this.apiVersion.isEmpty()) {</span>
+<span class="nc" id="L133">            return this.apiVersion;</span>
+        }
+<span class="nc" id="L135">        URI url = getURI(getURIBuilder().setPath(API_VERSION));</span>
+<span class="nc" id="L136">        ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L137">        this.apiVersion = JsonPath.parse(response.getBody()).read(&quot;$.supportedApis[0].apiVersion&quot;);</span>
+<span class="nc" id="L138">        logger.info(&quot;Detected API Version &quot; + this.apiVersion);</span>
+<span class="nc" id="L139">        return this.apiVersion;</span>
+    }
+
+
+    public Variable getProjectVariableByName(String variableName) {
+<span class="nc" id="L144">        Gson gson = new Gson();</span>
+<span class="nc" id="L145">        logger.info(&quot;Get variable  &quot; + variableName);</span>
+<span class="nc" id="L146">        String projectName = this.getProjectName();</span>
+<span class="nc" id="L147">        URI url = getURI(getURIBuilder()</span>
+<span class="nc" id="L148">                .setPath(MessageFormat.format(VARIABLE_PROJECT_NAME_PATH, projectName, variableName)));</span>
+<span class="nc" id="L149">        ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L150">        logger.debug(&quot;Body: &quot; + response.getBody());</span>
+<span class="nc" id="L151">        return gson.fromJson(response.getBody(), Variable.class);</span>
+    }
+
+    public List&lt;Variable&gt; getProjectVariables() {
+<span class="nc" id="L155">        logger.info(&quot;Get Variables&quot;);</span>
+<span class="nc" id="L156">        Map&lt;String, String&gt; params = new LinkedHashMap&lt;String, String&gt;();</span>
+<span class="nc" id="L157">        params.put(&quot;$filter&quot;, String.format(&quot;project eq '%s'&quot;, getProjectName()));</span>
+<span class="nc" id="L158">        List&lt;JsonObject&gt; result = getPagedResult(VARIABLES_PATH, params);</span>
+<span class="nc" id="L159">        Gson gson = gson();</span>
+<span class="nc" id="L160">        return result.stream()</span>
+<span class="nc" id="L161">                .map(obj -&gt; gson.fromJson(obj, Variable.class))</span>
+<span class="nc" id="L162">                .collect(Collectors.toList());</span>
+    }
+
+    public String updateVariable(Variable var) {
+<span class="nc" id="L166">        logger.info(&quot;Importing pipeline &quot; + var.getName());</span>
+<span class="nc" id="L167">        URI url = getURI(getURIBuilder().setPath(MessageFormat.format(VARIABLE_PROJECT_NAME_PATH, getProjectName(), var.getName())));</span>
+<span class="nc" id="L168">        HttpEntity&lt;String&gt; entity = getJsonEntity(var);</span>
+<span class="nc" id="L169">        ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.PUT, entity, String.class);</span>
+<span class="nc" id="L170">        logger.debug(&quot;Body: &quot; + response.getBody());</span>
+<span class="nc" id="L171">        return response.getBody();</span>
+    }
+
+    public String createVariable(Variable var) {
+<span class="nc" id="L175">        logger.info(&quot;Importing variable &quot; + var.getName());</span>
+<span class="nc" id="L176">        URI url = getURI(getURIBuilder().setPath(VARIABLES_PATH));</span>
+<span class="nc" id="L177">        HttpEntity&lt;String&gt; entity = getJsonEntity(var);</span>
+<span class="nc" id="L178">        ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);</span>
+<span class="nc" id="L179">        logger.debug(&quot;Body: &quot; + response.getBody());</span>
+<span class="nc" id="L180">        return response.getBody();</span>
+    }
+
+    public List&lt;Endpoint&gt; getProjectEndpoints() {
+<span class="nc" id="L184">        logger.info(&quot;Get Endpoints&quot;);</span>
+<span class="nc" id="L185">        Map&lt;String, String&gt; params = new LinkedHashMap&lt;String, String&gt;();</span>
+<span class="nc" id="L186">        params.put(&quot;$filter&quot;, String.format(&quot;project eq '%s'&quot;, getProjectName()));</span>
+<span class="nc" id="L187">        List&lt;JsonObject&gt; result = getPagedResult(ENDPOINTS_PATH, params);</span>
+<span class="nc" id="L188">        Gson gson = gson();</span>
+<span class="nc" id="L189">        return result.stream()</span>
+<span class="nc" id="L190">                .map(obj -&gt; gson.fromJson(obj, Endpoint.class))</span>
+<span class="nc" id="L191">                .collect(Collectors.toList());</span>
+    }
+
+    public String updateEndpoint(Endpoint var) {
+<span class="nc" id="L195">        logger.info(&quot;Update endpoint: {}  &quot;, var.getName());</span>
+<span class="nc" id="L196">        URI url = getURI(getURIBuilder().setPath(MessageFormat.format(ENDPOINT_UPDATE_PATH, getProjectName(), var.getName())));</span>
+<span class="nc" id="L197">        HttpEntity&lt;String&gt; entity = getJsonEntity(var);</span>
+<span class="nc" id="L198">        ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.PUT, entity, String.class);</span>
+<span class="nc" id="L199">        logger.debug(&quot;Body: &quot; + response.getBody());</span>
+<span class="nc" id="L200">        return response.getBody();</span>
+    }
+
+    public String createEndpoint(Endpoint var) {
+<span class="nc" id="L204">        logger.info(&quot;Create endpoint &quot; + var.getName());</span>
+<span class="nc" id="L205">        URI url = getURI(getURIBuilder().setPath(ENDPOINTS_PATH));</span>
+<span class="nc" id="L206">        HttpEntity&lt;String&gt; entity = getJsonEntity(var);</span>
+<span class="nc" id="L207">        ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);</span>
+<span class="nc" id="L208">        logger.debug(&quot;Body: &quot; + response.getBody());</span>
+<span class="nc" id="L209">        return response.getBody();</span>
+    }
+
+    public Optional&lt;CustomIntegrationVersion&gt; getCustomIntegrationByName(String ciName) {
+<span class="nc" id="L213">        logger.info(&quot;Get Custom Integration: &quot; + ciName);</span>
+<span class="nc" id="L214">        Map&lt;String, String&gt; params = new LinkedHashMap&lt;String, String&gt;();</span>
+<span class="nc" id="L215">        params.put(&quot;$filter&quot;, String.format(&quot;name eq '%s'&quot;, ciName));</span>
+<span class="nc" id="L216">        List&lt;JsonObject&gt; result = getPagedResult(CUSTOM_INTEGRATION_PATH, params);</span>
+<span class="nc" id="L217">        Gson gson = gson();</span>
+<span class="nc" id="L218">        return result.stream()</span>
+<span class="nc" id="L219">                .map(obj -&gt; gson.fromJson(obj, CustomIntegrationVersion.class))</span>
+<span class="nc" id="L220">                .findFirst();</span>
+    }
+
+    public List&lt;CustomIntegrationVersion&gt; getCustomIntegrations() {
+<span class="nc" id="L224">        logger.info(&quot;Get Custom Integrations&quot;);</span>
+<span class="nc" id="L225">        List&lt;JsonObject&gt; result = getPagedResult(CUSTOM_INTEGRATION_PATH);</span>
+<span class="nc" id="L226">        Gson gson = gson();</span>
+<span class="nc" id="L227">        return result.stream()</span>
+<span class="nc" id="L228">                .map(obj -&gt; gson.fromJson(obj, CustomIntegrationVersion.class))</span>
+<span class="nc" id="L229">                .collect(Collectors.toList());</span>
+    }
+
+    public List&lt;CustomIntegrationVersion&gt; getCustomIntegrationVersions(String id) {
+<span class="nc" id="L233">        logger.info(&quot;Get Custom Integration Versions for: &quot; + id);</span>
+<span class="nc" id="L234">        List&lt;JsonObject&gt; result = getPagedResult(MessageFormat.format(CUSTOM_INTEGRATION_VERSION_PATH, id));</span>
+<span class="nc" id="L235">        Gson gson = gson();</span>
+<span class="nc" id="L236">        return result.stream()</span>
+<span class="nc" id="L237">                .map(obj -&gt; gson.fromJson(obj, CustomIntegrationVersion.class))</span>
+<span class="nc" id="L238">                .collect(Collectors.toList());</span>
+    }
+
+    public void deleteCustomIntegration(String id) {
+<span class="nc" id="L242">        logger.info(&quot;Delete custom integration&quot; + id);</span>
+<span class="nc" id="L243">        URI url = getURI(getURIBuilder().setPath(CUSTOM_INTEGRATION_PATH + &quot;/&quot; + id));</span>
+<span class="nc" id="L244">        ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.DELETE, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L245">        logger.debug(&quot;Body: &quot; + response.getBody());</span>
+<span class="nc" id="L246">    }</span>
+
+    public CustomIntegrationVersion createCustomIntegration(CustomIntegrationVersion ci) {
+<span class="nc" id="L249">        logger.info(&quot;Create Custom Integration: &quot; + ci.getName());</span>
+<span class="nc" id="L250">        URI url = getURI(getURIBuilder().setPath(CUSTOM_INTEGRATION_PATH));</span>
+<span class="nc" id="L251">        HttpEntity&lt;String&gt; entity = getJsonEntity(ci);</span>
+<span class="nc" id="L252">        ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);</span>
+<span class="nc" id="L253">        logger.debug(&quot;Body: &quot; + response.getBody());</span>
+<span class="nc" id="L254">        Gson gson = new GsonBuilder().setLenient().serializeNulls().create();</span>
+<span class="nc" id="L255">        return gson.fromJson(response.getBody(), CustomIntegrationVersion.class);</span>
+    }
+
+
+    public CustomIntegrationVersion updateCustomIntegration(CustomIntegrationVersion ci) {
+<span class="nc" id="L260">        logger.info(&quot;Update Custom Integration: &quot; + ci.getName());</span>
+<span class="nc" id="L261">        URI url = getURI(getURIBuilder().setPath(CUSTOM_INTEGRATION_PATH + &quot;/&quot; + ci.getId()));</span>
+
+<span class="nc" id="L263">        HttpEntity&lt;String&gt; entity = getJsonEntity(ci);</span>
+<span class="nc" id="L264">        ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.PUT, entity, String.class);</span>
+<span class="nc" id="L265">        logger.debug(&quot;Body: &quot; + response.getBody());</span>
+<span class="nc" id="L266">        Gson gson = new GsonBuilder().setLenient().serializeNulls().create();</span>
+<span class="nc" id="L267">        return gson.fromJson(response.getBody(), CustomIntegrationVersion.class);</span>
+    }
+
+    public Object createCustomIntegrationVersion(String id, CustomIntegrationVersion version) {
+<span class="nc" id="L271">        logger.info(String.format(&quot;Create Custom Integration Version: %s : %s &quot;, version.getName(), version.getVersion()));</span>
+<span class="nc" id="L272">        URI url = getURI(getURIBuilder().setPath(MessageFormat.format(CUSTOM_INTEGRATION_VERSION_PATH, id)));</span>
+
+<span class="nc" id="L274">        HttpEntity&lt;String&gt; entity = getJsonEntity(version);</span>
+<span class="nc" id="L275">        ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);</span>
+<span class="nc" id="L276">        logger.debug(&quot;Body: &quot; + response.getBody());</span>
+<span class="nc" id="L277">        Gson gson = new GsonBuilder().setLenient().serializeNulls().create();</span>
+<span class="nc" id="L278">        return gson.fromJson(response.getBody(), CustomIntegrationVersion.class);</span>
+    }
+
+    public List&lt;JsonObject&gt; getProjectPipelines() {
+<span class="nc" id="L282">        logger.info(&quot;Get Pipelines&quot;);</span>
+<span class="nc" id="L283">        return getPagedResult(PIPELINE_PATH, getProjectFilterParam());</span>
+    }
+
+    public JsonObject getProjectPipelineByName(String name) {
+<span class="nc" id="L287">        logger.info(&quot;Get pipeline: &quot; + name);</span>
+<span class="nc" id="L288">        return requestForPath(getProjectNameUrl(PIPELINE_UPDATE_PATH, name), HttpMethod.GET, null);</span>
+    }
+
+    public JsonObject updatePipeline(String name, JsonObject var) {
+<span class="nc" id="L292">        logger.info(&quot;Update pipeline: {}&quot;, name);</span>
+<span class="nc" id="L293">        return requestForPath(getProjectNameUrl(PIPELINE_UPDATE_PATH, name), HttpMethod.PUT, var);</span>
+    }
+
+    public JsonObject patchPipeline(String name, JsonObject var) {
+<span class="nc" id="L297">        logger.info(&quot;PATCH pipeline: {}&quot;, name);</span>
+<span class="nc" id="L298">        return requestForPath(getProjectNameUrl(PIPELINE_UPDATE_PATH, name), HttpMethod.PATCH, var);</span>
+    }
+
+    public JsonObject createPipeline(JsonObject var) {
+<span class="nc" id="L302">        String name = var.get(&quot;name&quot;).getAsString();</span>
+<span class="nc" id="L303">        logger.info(&quot;Create pipeline: {}&quot;, name);</span>
+<span class="nc" id="L304">        return requestForPath(getURI(getURIBuilder().setPath(PIPELINE_PATH)), HttpMethod.POST, var);</span>
+    }
+
+
+    public List&lt;JsonObject&gt; getProjectGitWebhooks() {
+<span class="nc" id="L309">        logger.info(&quot;Get git Webhooks for project&quot;);</span>
+<span class="nc" id="L310">        return getPagedResult(GIT_PATH, getProjectFilterParam());</span>
+    }
+
+    public JsonObject getProjectGitWebhook(String name) {
+<span class="nc" id="L314">        logger.info(&quot;Get Git webhook: &quot; + name);</span>
+<span class="nc" id="L315">        return requestForPath(getProjectNameUrl(GIT_PROJECT_NAME_PATH, name), HttpMethod.GET, null);</span>
+    }
+
+    public JsonObject updateGitWebhook(String name, JsonObject var) {
+<span class="nc" id="L319">        logger.info(&quot;Update git Webhook: {}&quot;, name);</span>
+<span class="nc" id="L320">        return requestForPath(getProjectNameUrl(GIT_PROJECT_NAME_PATH, name), HttpMethod.PUT, var);</span>
+    }
+
+    public JsonObject createGitWebhook(JsonObject var) {
+<span class="nc" id="L324">        String name = var.get(&quot;name&quot;).getAsString();</span>
+<span class="nc" id="L325">        logger.info(&quot;Create Git Webhook: {}&quot;, name);</span>
+<span class="nc" id="L326">        return requestForPath(getURI(getURIBuilder().setPath(GIT_PATH)), HttpMethod.POST, var);</span>
+    }
+
+
+    public List&lt;JsonObject&gt; getProjectDockerWebhooks() {
+<span class="nc" id="L331">        logger.info(&quot;Get git Webhooks for project&quot;);</span>
+<span class="nc" id="L332">        return getPagedResult(DOCKER_PATH, getProjectFilterParam());</span>
+    }
+
+    public JsonObject getProjectDockerWebhook(String name) {
+<span class="nc" id="L336">        logger.info(&quot;Get Docker webhook: &quot; + name);</span>
+<span class="nc" id="L337">        return requestForPath(getProjectNameUrl(DOCKER_PROJECT_NAME_PATH, name), HttpMethod.GET, null);</span>
+    }
+
+    public JsonObject updateDockerWebhook(String name, JsonObject var) {
+<span class="nc" id="L341">        logger.info(&quot;Update Docker Webhook: {}&quot;, name);</span>
+<span class="nc" id="L342">        return requestForPath(getProjectNameUrl(DOCKER_PROJECT_NAME_PATH, name), HttpMethod.PUT, var);</span>
+    }
+
+    public JsonObject createDockerWebhook(JsonObject var) {
+<span class="nc" id="L346">        String name = var.get(&quot;name&quot;).getAsString();</span>
+<span class="nc" id="L347">        logger.info(&quot;Create Docker Webhook: {}&quot;, name);</span>
+<span class="nc" id="L348">        return requestForPath(getURI(getURIBuilder().setPath(DOCKER_PATH)), HttpMethod.POST, var);</span>
+    }
+
+
+    public List&lt;JsonObject&gt; getProjectGerritListeners() {
+<span class="nc" id="L353">        logger.info(&quot;Get Gerrit Listener for project&quot;);</span>
+<span class="nc" id="L354">        return getPagedResult(GERRIT_LISTENER_PATH, getProjectFilterParam());</span>
+    }
+
+    public JsonObject getProjectGerritListener(String name) {
+<span class="nc" id="L358">        logger.info(&quot;Get  Gerrit Listener: &quot; + name);</span>
+<span class="nc" id="L359">        return requestForPath(getProjectNameUrl(GERRIT_LISTENER_PROJECT_NAME_PATH, name), HttpMethod.GET, null);</span>
+    }
+
+    public JsonObject updateGerritListener(String name, JsonObject var) {
+<span class="nc" id="L363">        logger.info(&quot;Update  Gerrit Listener: {}&quot;, name);</span>
+<span class="nc" id="L364">        return requestForPath(getProjectNameUrl(GERRIT_LISTENER_PROJECT_NAME_PATH, name), HttpMethod.PUT, var);</span>
+    }
+
+    public JsonObject createGerritListener(JsonObject var) {
+<span class="nc" id="L368">        String name = var.get(&quot;name&quot;).getAsString();</span>
+<span class="nc" id="L369">        logger.info(&quot;Create  Gerrit Trigger: {}&quot;, name);</span>
+<span class="nc" id="L370">        return requestForPath(getURI(getURIBuilder().setPath(GERRIT_LISTENER_PATH)), HttpMethod.POST, var);</span>
+    }
+
+    public List&lt;JsonObject&gt; getProjectGerritTriggers() {
+<span class="nc" id="L374">        logger.info(&quot;Get Gerrit Triggers for project&quot;);</span>
+<span class="nc" id="L375">        return getPagedResult(GERRIT_TRIGGER_PATH, getProjectFilterParam());</span>
+    }
+
+    public JsonObject getProjectGerritTrigger(String name) {
+<span class="nc" id="L379">        logger.info(&quot;Get Gerrit Trigger: &quot; + name);</span>
+<span class="nc" id="L380">        return requestForPath(getProjectNameUrl(GERRIT_TRIGGER_PROJECT_NAME_PATH, name), HttpMethod.GET, null);</span>
+    }
+
+    public JsonObject updateGerritTrigger(String name, JsonObject var) {
+<span class="nc" id="L384">        logger.info(&quot;Update  Gerrit Trigger: {}&quot;, name);</span>
+<span class="nc" id="L385">        return requestForPath(getProjectNameUrl(GERRIT_TRIGGER_PROJECT_NAME_PATH, name), HttpMethod.PUT, var);</span>
+    }
+
+    public JsonObject createGerritTrigger(JsonObject var) {
+<span class="nc" id="L389">        String name = var.get(&quot;name&quot;).getAsString();</span>
+<span class="nc" id="L390">        logger.info(&quot;Create  Gerrit Trigger: {}&quot;, name);</span>
+<span class="nc" id="L391">        return requestForPath(getURI(getURIBuilder().setPath(GERRIT_TRIGGER_PATH)), HttpMethod.POST, var);</span>
+    }
+
+
+    private void initCloudProxyId() {
+<span class="nc bnc" id="L396" title="All 2 branches missed.">        if (StringUtils.isEmpty(configuration.getCloudProxyName())) {</span>
+<span class="nc" id="L397">            return;</span>
+        }
+
+<span class="nc" id="L400">        List&lt;JsonObject&gt; result = getPagedResult(CLOUD_PROXY_PATH);</span>
+<span class="nc" id="L401">        Optional&lt;JsonObject&gt; optional = result.stream()</span>
+<span class="nc" id="L402">                .peek(el -&gt; logger.info(el</span>
+<span class="nc" id="L403">                        .get(&quot;customProperties&quot;)</span>
+<span class="nc" id="L404">                        .getAsJsonObject()</span>
+<span class="nc" id="L405">                        .get(&quot;proxyName&quot;)</span>
+<span class="nc" id="L406">                        .getAsString()))</span>
+<span class="nc" id="L407">                .filter(el -&gt; el</span>
+<span class="nc" id="L408">                        .get(&quot;customProperties&quot;)</span>
+<span class="nc" id="L409">                        .getAsJsonObject()</span>
+<span class="nc" id="L410">                        .get(&quot;proxyName&quot;)</span>
+<span class="nc" id="L411">                        .getAsString()</span>
+<span class="nc" id="L412">                        .equals(configuration.getCloudProxyName()))</span>
+<span class="nc" id="L413">                .findFirst();</span>
+
+<span class="nc bnc" id="L415" title="All 2 branches missed.">        if (!optional.isPresent()) {</span>
+<span class="nc" id="L416">            throw new RuntimeException(&quot;No cloud proxy id found for name: &quot; + configuration.getCloudProxyName());</span>
+        }
+
+<span class="nc" id="L419">        this.cloudProxyId = optional.get().get(&quot;id&quot;).getAsString();</span>
+
+<span class="nc" id="L421">    }</span>
+
+    public List&lt;JsonObject&gt; getPagedResult(String variablePath) {
+<span class="nc" id="L424">        return getPagedResult(variablePath, new LinkedHashMap&lt;String, String&gt;());</span>
+    }
+
+    private List&lt;JsonObject&gt; getPagedResult(String variablePath, Map&lt;String, String&gt; parameters) {
+<span class="nc" id="L428">        List&lt;JsonObject&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L429">        int page = 0;</span>
+<span class="nc" id="L430">        boolean hasMorePages = true;</span>
+        do {
+<span class="nc" id="L432">            URIBuilder builder = getURIBuilder().setPath(variablePath)</span>
+<span class="nc" id="L433">                    .setParameter(&quot;$top&quot;, PAGE_SIZE.toString())</span>
+<span class="nc" id="L434">                    .setParameter(&quot;$skip&quot;, (PAGE_SIZE * page + &quot;&quot;));</span>
+<span class="nc" id="L435">            parameters.forEach((key, value) -&gt; builder.setParameter(key, value));</span>
+<span class="nc" id="L436">            URI url = getURI(builder);</span>
+<span class="nc" id="L437">            ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L438">            logger.debug(&quot;Body: &quot; + response.getBody());</span>
+<span class="nc" id="L439">            JsonObject root = JsonParser.parseString(response.getBody()).getAsJsonObject();</span>
+<span class="nc" id="L440">            root.get(&quot;documents&quot;).getAsJsonObject()</span>
+<span class="nc" id="L441">                    .entrySet()</span>
+<span class="nc" id="L442">                    .stream()</span>
+<span class="nc" id="L443">                    .map(entry -&gt; entry.getValue().getAsJsonObject())</span>
+<span class="nc" id="L444">                    .forEachOrdered(result::add);</span>
+
+<span class="nc" id="L446">            int requestCount = root.get(&quot;count&quot;).getAsInt();</span>
+<span class="nc" id="L447">            page++;</span>
+<span class="nc bnc" id="L448" title="All 2 branches missed.">            hasMorePages = requestCount == PAGE_SIZE;</span>
+<span class="nc bnc" id="L449" title="All 2 branches missed.">        } while (hasMorePages);</span>
+<span class="nc" id="L450">        return result;</span>
+    }
+
+    private Gson gson() {
+<span class="nc" id="L454">        return new GsonBuilder().setLenient().serializeNulls().create();</span>
+    }
+
+    private HttpEntity&lt;String&gt; getJsonEntity(Object body) {
+<span class="nc" id="L458">        Gson gson = new GsonBuilder().setLenient().serializeNulls().create();</span>
+<span class="nc" id="L459">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L460">        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L461">        return new HttpEntity&lt;String&gt;(gson.toJson(body), headers);</span>
+    }
+
+
+    private URI getProjectNameUrl(String path, String name) {
+<span class="nc" id="L466">        return getURI(getURIBuilder().setPath(MessageFormat.format(path, getProjectName(), name)));</span>
+    }
+
+    Map&lt;String, String&gt; getProjectFilterParam() {
+<span class="nc" id="L470">        Map&lt;String, String&gt; params = new LinkedHashMap&lt;String, String&gt;();</span>
+<span class="nc" id="L471">        params.put(&quot;$filter&quot;, String.format(&quot;project eq '%s'&quot;, getProjectName()));</span>
+<span class="nc" id="L472">        return params;</span>
+    }
+
+    private JsonObject requestForPath(URI url, HttpMethod method, JsonObject var) {
+<span class="nc bnc" id="L476" title="All 2 branches missed.">        HttpEntity&lt;String&gt; entity = var == null ? getDefaultHttpEntity() : getJsonEntity(var);</span>
+<span class="nc" id="L477">        ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, method, entity, String.class);</span>
+<span class="nc" id="L478">        logger.debug(&quot;Body: &quot; + response.getBody());</span>
+<span class="nc" id="L479">        return JsonParser.parseString(response.getBody()).getAsJsonObject();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

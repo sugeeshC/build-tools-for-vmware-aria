@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Version.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model</a> &gt; <span class="el_source">Version.java</span></div><h1>Version.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import org.apache.commons.lang3.StringUtils;
+
+public class Version implements Comparable&lt;Version&gt; {
+	private static final String SNAPSHOT_DELIMITER = &quot;-&quot;;
+	private static final String VERSION_DELIMITER = &quot;\\.&quot;;
+	private static final int MAJOR_VERSION_OFFSET = 0;
+	private static final int MINOR_VERSION_OFFSET = 1;
+
+	public final String version;
+
+<span class="fc" id="L28">	public Version(String version) {</span>
+<span class="fc" id="L29">		this.version = version;</span>
+<span class="fc" id="L30">	}</span>
+
+	public String getString() {
+<span class="fc" id="L33">		return this.version;</span>
+	}
+
+	public String getVersion() {
+<span class="nc" id="L37">		return this.version;</span>
+	}
+
+	public Integer getMajorVersion() {
+<span class="nc bnc" id="L41" title="All 2 branches missed.">		return this.version.equalsIgnoreCase(&quot;cloud&quot;)</span>
+<span class="nc" id="L42">			? new Integer(Integer.MAX_VALUE)</span>
+<span class="nc" id="L43">			: this.parseVersion(MAJOR_VERSION_OFFSET);</span>
+	}
+
+	public Integer getMinorVersion() {
+<span class="nc bnc" id="L47" title="All 2 branches missed.">		return this.version.equalsIgnoreCase(&quot;cloud&quot;)</span>
+<span class="nc" id="L48">			? new Integer(Integer.MAX_VALUE)</span>
+<span class="nc" id="L49">			: this.parseVersion(MINOR_VERSION_OFFSET);</span>
+	}
+
+	private Integer parseVersion(int offset) {
+<span class="nc bnc" id="L53" title="All 2 branches missed.">		String[] verData = StringUtils.isEmpty(this.version) ? new String[]{} : this.version.split(VERSION_DELIMITER);</span>
+<span class="nc bnc" id="L54" title="All 2 branches missed.">		String versionString = verData.length &gt; offset - 1 ? verData[offset] : &quot;&quot;;</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">		if (StringUtils.isEmpty(versionString)) {</span>
+<span class="nc" id="L56">			return null;</span>
+		}
+<span class="nc" id="L58">		Integer retVal = null;</span>
+		try {
+<span class="nc" id="L60">			retVal = Integer.valueOf(versionString);</span>
+<span class="nc" id="L61">		} catch (Exception e) {</span>
+<span class="nc" id="L62">			return null;</span>
+<span class="nc" id="L63">		}</span>
+
+<span class="nc" id="L65">		return retVal;</span>
+	}
+
+	@Override
+	public int compareTo(Version version) {
+<span class="pc bpc" id="L70" title="1 of 2 branches missed.">		if (version == null) {</span>
+<span class="nc" id="L71">			throw new NullPointerException(&quot;Object to be compared is Null.&quot;);</span>
+		}
+
+<span class="fc" id="L74">		String a = this.getString();</span>
+<span class="fc" id="L75">		String b = version.getString();</span>
+
+		// cloud &gt; anything
+<span class="pc bpc" id="L78" title="2 of 4 branches missed.">		if (!&quot;cloud&quot;.equalsIgnoreCase(a) &amp;&amp; &quot;cloud&quot;.equalsIgnoreCase(b)) {</span>
+<span class="nc" id="L79">			return -1;</span>
+<span class="pc bpc" id="L80" title="3 of 4 branches missed.">		} else if (&quot;cloud&quot;.equalsIgnoreCase(a) &amp;&amp; &quot;cloud&quot;.equalsIgnoreCase(b)) {</span>
+<span class="nc" id="L81">			return 0;</span>
+<span class="pc bpc" id="L82" title="3 of 4 branches missed.">		} else if (&quot;cloud&quot;.equalsIgnoreCase(a) &amp;&amp; !&quot;cloud&quot;.equalsIgnoreCase(b)) {</span>
+<span class="nc" id="L83">			return 1;</span>
+		}
+
+		// 1.0.0-SNAPSHOT
+<span class="fc" id="L87">		String[] aVersionNottation = a.split(SNAPSHOT_DELIMITER);</span>
+<span class="fc" id="L88">		String[] bVersionNottation = b.split(SNAPSHOT_DELIMITER);</span>
+
+		// 1.0.0
+<span class="fc" id="L91">		String[] aVersion = aVersionNottation[0].split(VERSION_DELIMITER);</span>
+<span class="fc" id="L92">		String[] bVersion = bVersionNottation[0].split(VERSION_DELIMITER);</span>
+
+<span class="fc" id="L94">		int compareTo = 0;</span>
+<span class="pc bpc" id="L95" title="1 of 4 branches missed.">		for (int i = 0; i &lt; aVersion.length &amp;&amp; i &lt; bVersion.length; i++) {</span>
+			// compare versions number by number, going from major to minor
+<span class="fc" id="L97">			compareTo = Integer.parseInt(aVersion[i], 10) - Integer.parseInt(bVersion[i], 10);</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">			if (compareTo != 0) {</span>
+<span class="fc" id="L99">				return compareTo;</span>
+			}
+		}
+		// version &lt; version.minor
+<span class="fc" id="L103">		compareTo = aVersion.length - bVersion.length;</span>
+<span class="pc bpc" id="L104" title="1 of 2 branches missed.">		if (compareTo != 0) {</span>
+<span class="nc" id="L105">			return compareTo;</span>
+		}
+
+		// version &gt; version-SNAPSHOT
+<span class="fc" id="L109">		return bVersionNottation.length - aVersionNottation.length;</span>
+	}
+
+	/**
+	 * Compares semantic versions. The method works even for versions that have Build Numbers at the end or don't follow
+	 * the syntax strictly, e.g. 8.8, 8.3.3.412333
+	 * @param versionA Version in format x.y.z
+	 * @param versionB Version in format x.y.z
+	 * @return 0 - versions match, -1 - version A is older than B, 1 - version A is newer than B
+	 */
+	public static int compareSemanticVersions(String versionA, String versionB) {
+<span class="nc" id="L120">		String[] versionASplit = versionA.split(&quot;\\.&quot;);</span>
+<span class="nc" id="L121">		String[] versionBSplit = versionB.split(&quot;\\.&quot;);</span>
+
+<span class="nc bnc" id="L123" title="All 2 branches missed.">		for (int i = 0; i &lt; Math.min(versionASplit.length, versionBSplit.length); i++) {</span>
+<span class="nc" id="L124">			int versionANumber = Integer.parseInt(versionASplit[i]);</span>
+<span class="nc" id="L125">			int versionBNumber = Integer.parseInt(versionBSplit[i]);</span>
+
+<span class="nc bnc" id="L127" title="All 2 branches missed.">			if (versionANumber &gt; versionBNumber) {</span>
+<span class="nc" id="L128">				return 1;</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">			} else if (versionANumber &lt; versionBNumber) {</span>
+<span class="nc" id="L130">				return -1;</span>
+			}
+		}
+<span class="nc bnc" id="L133" title="All 2 branches missed.">		if (versionASplit.length &gt; versionBSplit.length) return 1;</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">		if (versionASplit.length &lt; versionBSplit.length) return -1;</span>
+<span class="nc" id="L135">		return 0;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

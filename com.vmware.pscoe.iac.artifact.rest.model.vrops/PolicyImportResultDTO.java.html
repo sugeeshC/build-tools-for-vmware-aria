@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PolicyImportResultDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest.model.vrops</a> &gt; <span class="el_source">PolicyImportResultDTO.java</span></div><h1>PolicyImportResultDTO.java</h1><pre class="source lang-java linenums">
+package com.vmware.pscoe.iac.artifact.rest.model.vrops;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({ &quot;created-policies&quot;, &quot;updated-policies&quot;, &quot;skipped-policies&quot; })
+<span class="nc" id="L34">public class PolicyImportResultDTO implements Serializable {</span>
+    private static final long serialVersionUID = -8042756118741022913L;
+
+<span class="nc" id="L37">    @JsonProperty(&quot;created-policies&quot;)</span>
+    private List&lt;Policy&gt; createdPolicies = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L40">    @JsonProperty(&quot;updated-policies&quot;)</span>
+    private List&lt;Policy&gt; updatedPolicies = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L43">    @JsonProperty(&quot;skipped-policies&quot;)</span>
+    private List&lt;Policy&gt; skippedPolicies = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L46">    @JsonIgnore</span>
+    private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+    @JsonProperty(&quot;created-policies&quot;)
+    public List&lt;Policy&gt; getCreatedPolicies() {
+<span class="nc" id="L51">        return createdPolicies;</span>
+    }
+
+    @JsonProperty(&quot;created-policies&quot;)
+    public void setCreatedPolicies(List&lt;Policy&gt; createdPolicies) {
+<span class="nc" id="L56">        this.createdPolicies = createdPolicies;</span>
+<span class="nc" id="L57">    }</span>
+
+    @JsonProperty(&quot;updated-policies&quot;)
+    public List&lt;Policy&gt; getUpdatedPolicies() {
+<span class="nc" id="L61">        return updatedPolicies;</span>
+    }
+
+    @JsonProperty(&quot;updated-policies&quot;)
+    public void setUpdatedPolicies(List&lt;Policy&gt; updatedPolicies) {
+<span class="nc" id="L66">        this.updatedPolicies = updatedPolicies;</span>
+<span class="nc" id="L67">    }</span>
+
+    @JsonProperty(&quot;skipped-policies&quot;)
+    public List&lt;Policy&gt; getSkippedPolicies() {
+<span class="nc" id="L71">        return skippedPolicies;</span>
+    }
+
+    @JsonProperty(&quot;skipped-policies&quot;)
+    public void setSkippedPolicies(List&lt;Policy&gt; skippedPolicies) {
+<span class="nc" id="L76">        this.skippedPolicies = skippedPolicies;</span>
+<span class="nc" id="L77">    }</span>
+
+    @JsonAnyGetter
+    public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L81">        return this.additionalProperties;</span>
+    }
+
+    @JsonAnySetter
+    public void setAdditionalProperties(String name, Object value) {
+<span class="nc" id="L86">        this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L87">    }</span>
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;id&quot;, &quot;name&quot; })
+<span class="nc" id="L91">    public static class Policy implements Serializable {</span>
+        private static final long serialVersionUID = 6102066058193690851L;
+
+        @JsonProperty(&quot;id&quot;)
+        private String id;
+
+        @JsonProperty(&quot;name&quot;)
+        private String name;
+
+<span class="nc" id="L100">        @JsonIgnore</span>
+        private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;id&quot;)
+        public String getId() {
+<span class="nc" id="L105">            return id;</span>
+        }
+
+        @JsonProperty(&quot;id&quot;)
+        public void setId(String id) {
+<span class="nc" id="L110">            this.id = id;</span>
+<span class="nc" id="L111">        }</span>
+
+        @JsonProperty(&quot;name&quot;)
+        public String getName() {
+<span class="nc" id="L115">            return name;</span>
+        }
+
+        @JsonProperty(&quot;name&quot;)
+        public void setName(String name) {
+<span class="nc" id="L120">            this.name = name;</span>
+<span class="nc" id="L121">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L125">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperties(String name, Object value) {
+<span class="nc" id="L130">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L131">        }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

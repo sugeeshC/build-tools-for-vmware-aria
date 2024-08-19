@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AdapterKindDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest.model.vrops</a> &gt; <span class="el_source">AdapterKindDTO.java</span></div><h1>AdapterKindDTO.java</h1><pre class="source lang-java linenums">
+package com.vmware.pscoe.iac.artifact.rest.model.vrops;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({ &quot;adapter-kind&quot; })
+<span class="nc" id="L35">public class AdapterKindDTO implements Serializable {</span>
+    private static final long serialVersionUID = 1068047698436844558L;
+
+<span class="nc" id="L38">    @JsonProperty(&quot;adapter-kind&quot;)</span>
+    private List&lt;AdapterKind&gt; adapterKind = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L41">    @JsonIgnore</span>
+    private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+    @JsonProperty(&quot;adapter-kind&quot;)
+    public List&lt;AdapterKind&gt; getAdapterKind() {
+<span class="nc" id="L46">        return adapterKind;</span>
+    }
+
+    @JsonProperty(&quot;adapter-kind&quot;)
+    public void setAdapterKind(List&lt;AdapterKind&gt; adapterKind) {
+<span class="nc" id="L51">        this.adapterKind = adapterKind;</span>
+<span class="nc" id="L52">    }</span>
+
+    @JsonAnyGetter
+    public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L56">        return this.additionalProperties;</span>
+    }
+
+    @JsonAnySetter
+    public void setAdditionalProperties(String name, Object value) {
+<span class="nc" id="L61">        this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L62">    }</span>
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;key&quot;, &quot;name&quot;, &quot;description&quot;, &quot;adapterKindType&quot;, &quot;describeVersion&quot;, &quot;identifiers&quot;, &quot;resourceKinds&quot;, &quot;links&quot; })
+    @JsonIgnoreProperties({ &quot;links&quot; })
+<span class="nc" id="L67">    public static class AdapterKind implements Serializable {</span>
+        private static final long serialVersionUID = -6414593808503585818L;
+
+        @JsonProperty(&quot;key&quot;)
+        private String key;
+
+        @JsonProperty(&quot;name&quot;)
+        private String name;
+
+        @JsonProperty(&quot;description&quot;)
+        private String description;
+
+        @JsonProperty(&quot;adapterKindType&quot;)
+        private String adapterKindType;
+
+        @JsonProperty(&quot;describeVersion&quot;)
+        private Integer describeVersion;
+
+<span class="nc" id="L85">        @JsonProperty(&quot;identifiers&quot;)</span>
+        private List&lt;Object&gt; identifiers = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L88">        @JsonProperty(&quot;resourceKinds&quot;)</span>
+        private List&lt;String&gt; resourceKinds = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L91">        @JsonIgnore</span>
+        private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;key&quot;)
+        public String getKey() {
+<span class="nc" id="L96">            return key;</span>
+        }
+
+        @JsonProperty(&quot;key&quot;)
+        public void setKey(String key) {
+<span class="nc" id="L101">            this.key = key;</span>
+<span class="nc" id="L102">        }</span>
+
+        @JsonProperty(&quot;name&quot;)
+        public String getName() {
+<span class="nc" id="L106">            return name;</span>
+        }
+
+        @JsonProperty(&quot;name&quot;)
+        public void setName(String name) {
+<span class="nc" id="L111">            this.name = name;</span>
+<span class="nc" id="L112">        }</span>
+
+        @JsonProperty(&quot;description&quot;)
+        public String getDescription() {
+<span class="nc" id="L116">            return description;</span>
+        }
+
+        @JsonProperty(&quot;description&quot;)
+        public void setDescription(String description) {
+<span class="nc" id="L121">            this.description = description;</span>
+<span class="nc" id="L122">        }</span>
+
+        @JsonProperty(&quot;adapterKindType&quot;)
+        public String getAdapterKindType() {
+<span class="nc" id="L126">            return adapterKindType;</span>
+        }
+
+        @JsonProperty(&quot;adapterKindType&quot;)
+        public void setAdapterKindType(String adapterKindType) {
+<span class="nc" id="L131">            this.adapterKindType = adapterKindType;</span>
+<span class="nc" id="L132">        }</span>
+
+        @JsonProperty(&quot;describeVersion&quot;)
+        public Integer getDescribeVersion() {
+<span class="nc" id="L136">            return describeVersion;</span>
+        }
+
+        @JsonProperty(&quot;describeVersion&quot;)
+        public void setDescribeVersion(Integer describeVersion) {
+<span class="nc" id="L141">            this.describeVersion = describeVersion;</span>
+<span class="nc" id="L142">        }</span>
+
+        @JsonProperty(&quot;identifiers&quot;)
+        public List&lt;Object&gt; getIdentifiers() {
+<span class="nc" id="L146">            return identifiers;</span>
+        }
+
+        @JsonProperty(&quot;identifiers&quot;)
+        public void setIdentifiers(List&lt;Object&gt; identifiers) {
+<span class="nc" id="L151">            this.identifiers = identifiers;</span>
+<span class="nc" id="L152">        }</span>
+
+        @JsonProperty(&quot;resourceKinds&quot;)
+        public List&lt;String&gt; getResourceKinds() {
+<span class="nc" id="L156">            return resourceKinds;</span>
+        }
+
+        @JsonProperty(&quot;resourceKinds&quot;)
+        public void setResourceKinds(List&lt;String&gt; resourceKinds) {
+<span class="nc" id="L161">            this.resourceKinds = resourceKinds;</span>
+<span class="nc" id="L162">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L166">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperties(String name, Object value) {
+<span class="nc" id="L171">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L172">        }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

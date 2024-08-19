@@ -1,0 +1,474 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AlertDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest.model.vrli.v1</a> &gt; <span class="el_source">AlertDTO.java</span></div><h1>AlertDTO.java</h1><pre class="source lang-java linenums">
+package com.vmware.pscoe.iac.artifact.rest.model.vrli.v1;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({ &quot;id&quot;, &quot;enabled&quot;, &quot;emailEnabled&quot;, &quot;vcopsEnabled&quot;, &quot;alertType&quot;, &quot;name&quot;, &quot;hitCount&quot;, &quot;hitOperator&quot;, &quot;searchPeriod&quot;, &quot;searchInterval&quot;,
+        &quot;emails&quot;, &quot;info&quot;, &quot;recommendation&quot;, &quot;vcopsResourceName&quot;, &quot;vcopsResourceKindKey&quot;, &quot;vcopsCriticality&quot;, &quot;lastRanAt&quot;, &quot;lastRanAtString&quot;, &quot;nextRunAt&quot;,
+        &quot;nextRunAtString&quot;, &quot;runCount&quot;, &quot;lastRunTime&quot;, &quot;totalRunTime&quot;, &quot;lastHitTimestamp&quot;, &quot;lastHitTimestampString&quot;, &quot;ownerUuid&quot;, &quot;ownerName&quot;, &quot;webhookEnabled&quot;,
+        &quot;webhookURLs&quot;, &quot;autoClearAlertAfterTimeout&quot;, &quot;chartQuery&quot;, &quot;messageQuery&quot;, &quot;autoClearAlertsTimeoutMinutes&quot; })
+<span class="nc" id="L35">public class AlertDTO implements Serializable {</span>
+    private static final long serialVersionUID = 1913969984744233760L;
+
+    @JsonProperty(&quot;id&quot;)
+    private String id;
+
+    @JsonProperty(&quot;enabled&quot;)
+    private boolean enabled;
+
+    @JsonProperty(&quot;emailEnabled&quot;)
+    private boolean emailEnabled;
+
+    @JsonProperty(&quot;vcopsEnabled&quot;)
+    private boolean vcopsEnabled;
+
+    @JsonProperty(&quot;alertType&quot;)
+    private String alertType;
+
+    @JsonProperty(&quot;name&quot;)
+    private String name;
+
+    @JsonProperty(&quot;hitCount&quot;)
+    private double hitCount;
+
+    @JsonProperty(&quot;hitOperator&quot;)
+    private String hitOperator;
+
+    @JsonProperty(&quot;searchPeriod&quot;)
+    private long searchPeriod;
+
+    @JsonProperty(&quot;searchInterval&quot;)
+    private long searchInterval;
+
+    @JsonProperty(&quot;emails&quot;)
+    private String emails;
+
+    @JsonProperty(&quot;info&quot;)
+    private String info;
+
+    @JsonProperty(&quot;recommendation&quot;)
+    private String recommendation;
+
+    @JsonProperty(&quot;vcopsResourceName&quot;)
+    private String vcopsResourceName;
+
+    @JsonProperty(&quot;vcopsResourceKindKey&quot;)
+    private String vcopsResourceKindKey;
+
+    @JsonProperty(&quot;vcopsCriticality&quot;)
+    private String vcopsCriticality;
+
+    @JsonProperty(&quot;lastRanAt&quot;)
+    private long lastRanAt;
+
+    @JsonProperty(&quot;lastRanAtString&quot;)
+    private String lastRanAtString;
+
+    @JsonProperty(&quot;nextRunAt&quot;)
+    private long nextRunAt;
+
+    @JsonProperty(&quot;nextRunAtString&quot;)
+    private String nextRunAtString;
+
+    @JsonProperty(&quot;runCount&quot;)
+    private long runCount;
+
+    @JsonProperty(&quot;lastRunTime&quot;)
+    private long lastRunTime;
+
+    @JsonProperty(&quot;totalRunTime&quot;)
+    private long totalRunTime;
+
+    @JsonProperty(&quot;lastHitTimestamp&quot;)
+    private long lastHitTimestamp;
+
+    @JsonProperty(&quot;lastHitTimestampString&quot;)
+    private String lastHitTimestampString;
+
+    @JsonProperty(&quot;ownerUuid&quot;)
+    private String ownerUuid;
+
+    @JsonProperty(&quot;ownerName&quot;)
+    private String ownerName;
+
+    @JsonProperty(&quot;webhookEnabled&quot;)
+    private boolean webhookEnabled;
+
+    @JsonProperty(&quot;webhookURLs&quot;)
+    private String webhookURLs;
+
+    @JsonProperty(&quot;autoClearAlertAfterTimeout&quot;)
+    private boolean autoClearAlertAfterTimeout;
+
+    @JsonProperty(&quot;chartQuery&quot;)
+    private String chartQuery;
+
+    @JsonProperty(&quot;messageQuery&quot;)
+    private String messageQuery;
+
+    @JsonProperty(&quot;autoClearAlertsTimeoutMinutes&quot;)
+    private int autoClearAlertsTimeoutMinutes;
+
+<span class="nc" id="L137">    @JsonIgnore</span>
+    private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+    @JsonProperty(&quot;id&quot;)
+    public String getId() {
+<span class="nc" id="L142">        return id;</span>
+    }
+
+    @JsonProperty(&quot;id&quot;)
+    public void setId(String id) {
+<span class="nc" id="L147">        this.id = id;</span>
+<span class="nc" id="L148">    }</span>
+
+    @JsonProperty(&quot;enabled&quot;)
+    public boolean isEnabled() {
+<span class="nc" id="L152">        return enabled;</span>
+    }
+
+    @JsonProperty(&quot;enabled&quot;)
+    public void setEnabled(boolean enabled) {
+<span class="nc" id="L157">        this.enabled = enabled;</span>
+<span class="nc" id="L158">    }</span>
+
+    @JsonProperty(&quot;emailEnabled&quot;)
+    public boolean isEmailEnabled() {
+<span class="nc" id="L162">        return emailEnabled;</span>
+    }
+
+    @JsonProperty(&quot;emailEnabled&quot;)
+    public void setEmailEnabled(boolean emailEnabled) {
+<span class="nc" id="L167">        this.emailEnabled = emailEnabled;</span>
+<span class="nc" id="L168">    }</span>
+
+    @JsonProperty(&quot;vcopsEnabled&quot;)
+    public boolean isVcopsEnabled() {
+<span class="nc" id="L172">        return vcopsEnabled;</span>
+    }
+
+    @JsonProperty(&quot;vcopsEnabled&quot;)
+    public void setVcopsEnabled(boolean vcopsEnabled) {
+<span class="nc" id="L177">        this.vcopsEnabled = vcopsEnabled;</span>
+<span class="nc" id="L178">    }</span>
+
+    @JsonProperty(&quot;alertType&quot;)
+    public String getAlertType() {
+<span class="nc" id="L182">        return alertType;</span>
+    }
+
+    @JsonProperty(&quot;alertType&quot;)
+    public void setAlertType(String alertType) {
+<span class="nc" id="L187">        this.alertType = alertType;</span>
+<span class="nc" id="L188">    }</span>
+
+    @JsonProperty(&quot;name&quot;)
+    public String getName() {
+<span class="nc" id="L192">        return name;</span>
+    }
+
+    @JsonProperty(&quot;name&quot;)
+    public void setName(String name) {
+<span class="nc" id="L197">        this.name = name;</span>
+<span class="nc" id="L198">    }</span>
+
+    @JsonProperty(&quot;hitCount&quot;)
+    public double getHitCount() {
+<span class="nc" id="L202">        return hitCount;</span>
+    }
+
+    @JsonProperty(&quot;hitCount&quot;)
+    public void setHitCount(double hitCount) {
+<span class="nc" id="L207">        this.hitCount = hitCount;</span>
+<span class="nc" id="L208">    }</span>
+
+    @JsonProperty(&quot;hitOperator&quot;)
+    public String getHitOperator() {
+<span class="nc" id="L212">        return hitOperator;</span>
+    }
+
+    @JsonProperty(&quot;hitOperator&quot;)
+    public void setHitOperator(String hitOperator) {
+<span class="nc" id="L217">        this.hitOperator = hitOperator;</span>
+<span class="nc" id="L218">    }</span>
+
+    @JsonProperty(&quot;searchPeriod&quot;)
+    public long getSearchPeriod() {
+<span class="nc" id="L222">        return searchPeriod;</span>
+    }
+
+    @JsonProperty(&quot;searchPeriod&quot;)
+    public void setSearchPeriod(long searchPeriod) {
+<span class="nc" id="L227">        this.searchPeriod = searchPeriod;</span>
+<span class="nc" id="L228">    }</span>
+
+    @JsonProperty(&quot;searchInterval&quot;)
+    public long getSearchInterval() {
+<span class="nc" id="L232">        return searchInterval;</span>
+    }
+
+    @JsonProperty(&quot;searchInterval&quot;)
+    public void setSearchInterval(long searchInterval) {
+<span class="nc" id="L237">        this.searchInterval = searchInterval;</span>
+<span class="nc" id="L238">    }</span>
+
+    @JsonProperty(&quot;emails&quot;)
+    public String getEmails() {
+<span class="nc" id="L242">        return emails;</span>
+    }
+
+    @JsonProperty(&quot;emails&quot;)
+    public void setEmails(String emails) {
+<span class="nc" id="L247">        this.emails = emails;</span>
+<span class="nc" id="L248">    }</span>
+
+    @JsonProperty(&quot;info&quot;)
+    public String getInfo() {
+<span class="nc" id="L252">        return info;</span>
+    }
+
+    @JsonProperty(&quot;info&quot;)
+    public void setInfo(String info) {
+<span class="nc" id="L257">        this.info = info;</span>
+<span class="nc" id="L258">    }</span>
+
+    @JsonProperty(&quot;recommendation&quot;)
+    public String getRecommendation() {
+<span class="nc" id="L262">        return recommendation;</span>
+    }
+
+    @JsonProperty(&quot;recommendation&quot;)
+    public void setRecommendation(String recommendation) {
+<span class="nc" id="L267">        this.recommendation = recommendation;</span>
+<span class="nc" id="L268">    }</span>
+
+    @JsonProperty(&quot;vcopsResourceName&quot;)
+    public String getVcopsResourceName() {
+<span class="nc" id="L272">        return vcopsResourceName;</span>
+    }
+
+    @JsonProperty(&quot;vcopsResourceName&quot;)
+    public void setVcopsResourceName(String vcopsResourceName) {
+<span class="nc" id="L277">        this.vcopsResourceName = vcopsResourceName;</span>
+<span class="nc" id="L278">    }</span>
+
+    @JsonProperty(&quot;vcopsResourceKindKey&quot;)
+    public String getVcopsResourceKindKey() {
+<span class="nc" id="L282">        return vcopsResourceKindKey;</span>
+    }
+
+    @JsonProperty(&quot;vcopsResourceKindKey&quot;)
+    public void setVcopsResourceKindKey(String vcopsResourceKindKey) {
+<span class="nc" id="L287">        this.vcopsResourceKindKey = vcopsResourceKindKey;</span>
+<span class="nc" id="L288">    }</span>
+
+    @JsonProperty(&quot;vcopsCriticality&quot;)
+    public String getVcopsCriticality() {
+<span class="nc" id="L292">        return vcopsCriticality;</span>
+    }
+
+    @JsonProperty(&quot;vcopsCriticality&quot;)
+    public void setVcopsCriticality(String vcopsCriticality) {
+<span class="nc" id="L297">        this.vcopsCriticality = vcopsCriticality;</span>
+<span class="nc" id="L298">    }</span>
+
+    @JsonProperty(&quot;lastRanAt&quot;)
+    public long getLastRanAt() {
+<span class="nc" id="L302">        return lastRanAt;</span>
+    }
+
+    @JsonProperty(&quot;lastRanAt&quot;)
+    public void setLastRanAt(long lastRanAt) {
+<span class="nc" id="L307">        this.lastRanAt = lastRanAt;</span>
+<span class="nc" id="L308">    }</span>
+
+    @JsonProperty(&quot;lastRanAtString&quot;)
+    public String getLastRanAtString() {
+<span class="nc" id="L312">        return lastRanAtString;</span>
+    }
+
+    @JsonProperty(&quot;lastRanAtString&quot;)
+    public void setLastRanAtString(String lastRanAtString) {
+<span class="nc" id="L317">        this.lastRanAtString = lastRanAtString;</span>
+<span class="nc" id="L318">    }</span>
+
+    @JsonProperty(&quot;nextRunAt&quot;)
+    public long getNextRunAt() {
+<span class="nc" id="L322">        return nextRunAt;</span>
+    }
+
+    @JsonProperty(&quot;nextRunAt&quot;)
+    public void setNextRunAt(long nextRunAt) {
+<span class="nc" id="L327">        this.nextRunAt = nextRunAt;</span>
+<span class="nc" id="L328">    }</span>
+
+    @JsonProperty(&quot;nextRunAtString&quot;)
+    public String getNextRunAtString() {
+<span class="nc" id="L332">        return nextRunAtString;</span>
+    }
+
+    @JsonProperty(&quot;nextRunAtString&quot;)
+    public void setNextRunAtString(String nextRunAtString) {
+<span class="nc" id="L337">        this.nextRunAtString = nextRunAtString;</span>
+<span class="nc" id="L338">    }</span>
+
+    @JsonProperty(&quot;runCount&quot;)
+    public long getRunCount() {
+<span class="nc" id="L342">        return runCount;</span>
+    }
+
+    @JsonProperty(&quot;runCount&quot;)
+    public void setRunCount(long runCount) {
+<span class="nc" id="L347">        this.runCount = runCount;</span>
+<span class="nc" id="L348">    }</span>
+
+    @JsonProperty(&quot;lastRunTime&quot;)
+    public long getLastRunTime() {
+<span class="nc" id="L352">        return lastRunTime;</span>
+    }
+
+    @JsonProperty(&quot;lastRunTime&quot;)
+    public void setLastRunTime(long lastRunTime) {
+<span class="nc" id="L357">        this.lastRunTime = lastRunTime;</span>
+<span class="nc" id="L358">    }</span>
+
+    @JsonProperty(&quot;totalRunTime&quot;)
+    public long getTotalRunTime() {
+<span class="nc" id="L362">        return totalRunTime;</span>
+    }
+
+    @JsonProperty(&quot;totalRunTime&quot;)
+    public void setTotalRunTime(long totalRunTime) {
+<span class="nc" id="L367">        this.totalRunTime = totalRunTime;</span>
+<span class="nc" id="L368">    }</span>
+
+    @JsonProperty(&quot;lastHitTimestamp&quot;)
+    public long getLastHitTimestamp() {
+<span class="nc" id="L372">        return lastHitTimestamp;</span>
+    }
+
+    @JsonProperty(&quot;lastHitTimestamp&quot;)
+    public void setLastHitTimestamp(long lastHitTimestamp) {
+<span class="nc" id="L377">        this.lastHitTimestamp = lastHitTimestamp;</span>
+<span class="nc" id="L378">    }</span>
+
+    @JsonProperty(&quot;lastHitTimestampString&quot;)
+    public String getLastHitTimestampString() {
+<span class="nc" id="L382">        return lastHitTimestampString;</span>
+    }
+
+    @JsonProperty(&quot;lastHitTimestampString&quot;)
+    public void setLastHitTimestampString(String lastHitTimestampString) {
+<span class="nc" id="L387">        this.lastHitTimestampString = lastHitTimestampString;</span>
+<span class="nc" id="L388">    }</span>
+
+    @JsonProperty(&quot;ownerUuid&quot;)
+    public String getOwnerUuid() {
+<span class="nc" id="L392">        return ownerUuid;</span>
+    }
+
+    @JsonProperty(&quot;ownerUuid&quot;)
+    public void setOwnerUuid(String ownerUuid) {
+<span class="nc" id="L397">        this.ownerUuid = ownerUuid;</span>
+<span class="nc" id="L398">    }</span>
+
+    @JsonProperty(&quot;ownerName&quot;)
+    public String getOwnerName() {
+<span class="nc" id="L402">        return ownerName;</span>
+    }
+
+    @JsonProperty(&quot;ownerName&quot;)
+    public void setOwnerName(String ownerName) {
+<span class="nc" id="L407">        this.ownerName = ownerName;</span>
+<span class="nc" id="L408">    }</span>
+
+    @JsonProperty(&quot;webhookEnabled&quot;)
+    public boolean isWebhookEnabled() {
+<span class="nc" id="L412">        return webhookEnabled;</span>
+    }
+
+    @JsonProperty(&quot;webhookEnabled&quot;)
+    public void setWebhookEnabled(boolean webhookEnabled) {
+<span class="nc" id="L417">        this.webhookEnabled = webhookEnabled;</span>
+<span class="nc" id="L418">    }</span>
+
+    public String getWebhookURLs() {
+<span class="nc" id="L421">        return webhookURLs;</span>
+    }
+
+    public void setWebhookURLs(String webhookURLs) {
+<span class="nc" id="L425">        this.webhookURLs = webhookURLs;</span>
+<span class="nc" id="L426">    }</span>
+
+    @JsonProperty(&quot;autoClearAlertAfterTimeout&quot;)
+    public boolean isAutoClearAlertAfterTimeout() {
+<span class="nc" id="L430">        return autoClearAlertAfterTimeout;</span>
+    }
+
+    @JsonProperty(&quot;autoClearAlertAfterTimeout&quot;)
+    public void setAutoClearAlertAfterTimeout(boolean autoClearAlertAfterTimeout) {
+<span class="nc" id="L435">        this.autoClearAlertAfterTimeout = autoClearAlertAfterTimeout;</span>
+<span class="nc" id="L436">    }</span>
+
+    @JsonProperty(&quot;chartQuery&quot;)
+    public String getChartQuery() {
+<span class="nc" id="L440">        return chartQuery;</span>
+    }
+
+    @JsonProperty(&quot;chartQuery&quot;)
+    public void setChartQuery(String chartQuery) {
+<span class="nc" id="L445">        this.chartQuery = chartQuery;</span>
+<span class="nc" id="L446">    }</span>
+
+    public String getMessageQuery() {
+<span class="nc" id="L449">        return messageQuery;</span>
+    }
+
+    public void setMessageQuery(String messageQuery) {
+<span class="nc" id="L453">        this.messageQuery = messageQuery;</span>
+<span class="nc" id="L454">    }</span>
+
+    public int getAutoClearAlertsTimeoutMinutes() {
+<span class="nc" id="L457">        return autoClearAlertsTimeoutMinutes;</span>
+    }
+
+    public void setAutoClearAlertsTimeoutMinutes(int autoClearAlertsTimeoutMinutes) {
+<span class="nc" id="L461">        this.autoClearAlertsTimeoutMinutes = autoClearAlertsTimeoutMinutes;</span>
+<span class="nc" id="L462">    }</span>
+
+    @JsonAnyGetter
+    public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L466">        return this.additionalProperties;</span>
+    }
+
+    @JsonAnySetter
+    public void setAdditionalProperties(String name, Object value) {
+<span class="nc" id="L471">        this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L472">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

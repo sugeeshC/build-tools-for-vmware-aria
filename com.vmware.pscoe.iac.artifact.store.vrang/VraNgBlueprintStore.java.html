@@ -1,0 +1,393 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgBlueprintStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.vrang</a> &gt; <span class="el_source">VraNgBlueprintStore.java</span></div><h1>VraNgBlueprintStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.stream.JsonReader;
+import com.vmware.pscoe.iac.artifact.VraNgReleaseManager;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgBlueprint;
+import com.vmware.pscoe.iac.artifact.store.filters.CustomFolderFolderFilter;
+import static com.vmware.pscoe.iac.artifact.store.vrang.VraNgDirs.DIR_BLUEPRINTS;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.HashSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.Objects;
+
+<span class="fc" id="L50">public class VraNgBlueprintStore extends AbstractVraNgStore {</span>
+
+	/* ============================
+	 * Static properties
+	 ============================ */
+
+
+	/**
+	 * The file name where all the details for the BP will be stored.
+	 */
+	private static final String BP_DETAILS_FILE_NAME = &quot;details.json&quot;;
+
+	/**
+	 * The file name where the raw content of the BP will be stored.
+	 */
+	private static final String BP_CONTENT_FILE_NAME = &quot;content.yaml&quot;;
+
+	/* ============================
+	 * Publicly available interface
+	 ============================ */
+
+	/**
+	 * Importing content into vRA target environment.
+	 *
+	 * @param sourceDirectory target path
+	 */
+	public void importContent(final File sourceDirectory) {
+		// Collect available blueprint definitions
+<span class="fc" id="L78">		File bpFolder = new File(Paths.get(sourceDirectory.getPath(), DIR_BLUEPRINTS).toString());</span>
+<span class="pc bpc" id="L79" title="1 of 2 branches missed.">		if (!bpFolder.exists()) {</span>
+<span class="nc" id="L80">			logger.info(&quot;No blueprints available - skip import&quot;);</span>
+<span class="nc" id="L81">			return;</span>
+		}
+
+		// Check if there are any blueprints to import
+<span class="fc" id="L85">		File[] localBpList = this.filterBasedOnConfiguration(bpFolder, new CustomFolderFolderFilter(this.getItemListFromDescriptor()));</span>
+
+<span class="pc bpc" id="L87" title="1 of 4 branches missed.">		if (localBpList == null || localBpList.length == 0) {</span>
+<span class="fc" id="L88">			logger.info(&quot;No blueprints available - skip import&quot;);</span>
+<span class="fc" id="L89">			return;</span>
+		}
+
+<span class="fc" id="L92">		Map&lt;String, VraNgBlueprint&gt; bpsOnServerByName = this.getAllBlueprints().stream()</span>
+<span class="fc" id="L93">			.collect(Collectors.toMap(</span>
+				VraNgBlueprint::getName,
+<span class="fc" id="L95">				item -&gt; item,</span>
+				(existing, replacement) -&gt; {
+<span class="fc" id="L97">					throw new IllegalStateException(&quot;Blueprint with the same name found in the project, this is not supported in BTVA: (&quot; + existing.getName() + &quot;)&quot;);</span>
+				},
+				LinkedHashMap::new
+			));
+
+		// Iterating blueprints by folder
+<span class="fc bfc" id="L103" title="All 2 branches covered.">		for (File bpDir : localBpList) {</span>
+<span class="fc" id="L104">			this.handleBlueprintImport(bpDir, bpsOnServerByName);</span>
+		}
+<span class="fc" id="L106">	}</span>
+
+	/* ==============
+	 * Export logic
+	 ============== */
+
+	/**
+	 * Used to fetch the store's data from the package descriptor.
+	 *
+	 * @return list of bps
+	 */
+	@Override
+	protected List&lt;String&gt; getItemListFromDescriptor() {
+<span class="fc" id="L119">		return this.vraNgPackageDescriptor.getBlueprint();</span>
+	}
+
+	/**
+	 * Fetching all blueprints and stores them on the filesystem.
+	 */
+	@Override
+	protected void exportStoreContent() {
+<span class="fc" id="L127">		Map&lt;String, VraNgBlueprint&gt; blueprintsOnServer = this.fetchBlueprintsOnServer(new HashSet&lt;String&gt;());</span>
+
+<span class="fc bfc" id="L129" title="All 2 branches covered.">		for (String blueprintName : blueprintsOnServer.keySet()) {</span>
+<span class="fc" id="L130">			storeBlueprintsOnFilesystem(vraNgPackage, blueprintsOnServer.get(blueprintName));</span>
+<span class="fc" id="L131">		}</span>
+<span class="fc" id="L132">	}</span>
+
+	/**
+	 * Fetches filtered blueprints and stores them on the filesystem.
+	 *
+	 * @param blueprintNames list of bp names
+	 */
+	@Override
+	protected void exportStoreContent(final List&lt;String&gt; blueprintNames) {
+<span class="fc" id="L141">		Set&lt;String&gt; blueprintsBucket = new HashSet&lt;String&gt;(blueprintNames);</span>
+<span class="fc" id="L142">		Map&lt;String, VraNgBlueprint&gt; blueprintsOnServer = this.fetchBlueprintsOnServer(blueprintsBucket);</span>
+
+<span class="fc" id="L144">		Set&lt;String&gt; blueprintNamesOnServer = blueprintsOnServer.keySet();</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">		for (String blueprintName : blueprintNames) {</span>
+			// Check the export the content.yaml BPs and try to find them on the server
+<span class="fc bfc" id="L147" title="All 2 branches covered.">			if (!blueprintNamesOnServer.contains(blueprintName)) {</span>
+<span class="fc" id="L148">				throw new IllegalStateException(&quot;Blueprints with name [&quot; + blueprintName + &quot;] doesn't exist on the remote&quot;);</span>
+			}
+<span class="fc" id="L150">			storeBlueprintsOnFilesystem(vraNgPackage, blueprintsOnServer.get(blueprintName));</span>
+<span class="fc" id="L151">		}</span>
+<span class="fc" id="L152">	}</span>
+
+	/**
+	 * Fetches blueprints from the server.
+	 * Checks if there are duplicated blueprints in vRA and ignores them.
+	 * If there are blueprintNames provided, they will be used to check for duplicates as well
+	 *
+	 * @param blueprintsBucket - Set of blueprint names
+	 * @return Map&lt;String, VraNgBlueprint&gt;
+	 */
+	private Map&lt;String, VraNgBlueprint&gt; fetchBlueprintsOnServer(final Set&lt;String&gt; blueprintsBucket) {
+		// Check if there are duplicates in project
+		// If content.yaml has blueprints contained multiple times in project, error is thrown
+		// Otherwise duplicates are reported without errors
+<span class="fc" id="L166">		Map&lt;String, VraNgBlueprint&gt; blueprintsOnServer = new HashMap&lt;&gt;();</span>
+
+<span class="fc" id="L168">		this.getAllBlueprints().forEach(bp -&gt; {</span>
+<span class="pc bpc" id="L169" title="1 of 2 branches missed.">			if (blueprintsOnServer.containsKey(bp.getName())) {</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">				if (blueprintsBucket.contains(bp.getName())) {</span>
+<span class="nc" id="L171">					throw new IllegalStateException(&quot;Project contains multiple blueprints with name &quot; + bp.getName());</span>
+				}
+
+<span class="nc" id="L174">				logger.warn(&quot;Project contains multiple blueprints with name '{}'&quot;, bp.getName());</span>
+			} else {
+<span class="fc" id="L176">				blueprintsOnServer.put(bp.getName(), bp);</span>
+			}
+<span class="fc" id="L178">		});</span>
+
+<span class="fc" id="L180">		return blueprintsOnServer;</span>
+	}
+
+	/**
+	 * Creating the file structure and files representing a blueprint.
+	 *
+	 * @param serverPackage
+	 * @param blueprint
+	 */
+	private void storeBlueprintsOnFilesystem(final Package serverPackage, final VraNgBlueprint blueprint) {
+<span class="fc" id="L190">		String bpName = blueprint.getName();</span>
+<span class="fc" id="L191">		logger.debug(&quot;Exporting '{}'&quot;, bpName);</span>
+
+		// Creating the blueprint folder
+<span class="fc" id="L194">		String bpFolderPath = Paths.get(new File(serverPackage.getFilesystemPath()).getPath(), DIR_BLUEPRINTS, bpName).toString();</span>
+<span class="fc" id="L195">		File bpFolder = new File(bpFolderPath);</span>
+<span class="pc bpc" id="L196" title="1 of 2 branches missed.">		if (!bpFolder.exists()) {</span>
+<span class="fc" id="L197">			bpFolder.mkdirs();</span>
+		}
+
+		// Storing blueprint details
+<span class="fc" id="L201">		String detailsFileName = bpFolderPath + &quot;/&quot; + BP_DETAILS_FILE_NAME;</span>
+<span class="fc" id="L202">		JsonObject bpDetails = new JsonObject();</span>
+<span class="fc" id="L203">		bpDetails.add(&quot;id&quot;, new JsonPrimitive(blueprint.getId()));</span>
+<span class="fc" id="L204">		bpDetails.add(&quot;name&quot;, new JsonPrimitive(bpName));</span>
+<span class="fc" id="L205">		bpDetails.add(&quot;description&quot;, new JsonPrimitive(blueprint.getDescription()));</span>
+<span class="fc" id="L206">		bpDetails.add(&quot;requestScopeOrg&quot;, new JsonPrimitive(blueprint.getRequestScopeOrg()));</span>
+<span class="fc" id="L207">		Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="fc" id="L208">		byte[] detailsContent = gson.toJson(gson.fromJson(bpDetails.toString(), JsonObject.class)).getBytes();</span>
+<span class="fc" id="L209">		logger.debug(&quot;Creating details file: &quot; + detailsFileName);</span>
+		try {
+<span class="fc" id="L211">			logger.debug(&quot;Created file: {}&quot;, Files.write(Paths.get(detailsFileName), detailsContent, StandardOpenOption.CREATE));</span>
+<span class="nc" id="L212">		} catch (Exception e) {</span>
+<span class="nc" id="L213">			System.out.println(e);</span>
+<span class="fc" id="L214">		}</span>
+
+		// Storing blueprint content
+<span class="fc" id="L217">		String contentFileName = bpFolderPath + &quot;/&quot; + BP_CONTENT_FILE_NAME;</span>
+<span class="fc" id="L218">		logger.debug(&quot;Creating content file: &quot; + contentFileName);</span>
+		try {
+<span class="fc" id="L220">			byte[] contentBytes = blueprint.getContent().getBytes();</span>
+<span class="fc" id="L221">			logger.debug(&quot;Created file: {}&quot;, Files.write(Paths.get(contentFileName), contentBytes, StandardOpenOption.CREATE));</span>
+<span class="nc" id="L222">		} catch (Exception e) {</span>
+<span class="nc" id="L223">			logger.error(&quot;Unable to store blueprint content file {} {}&quot;, bpName, contentFileName);</span>
+<span class="nc" id="L224">			throw new RuntimeException(&quot;Unable to store blueprint.&quot;, e);</span>
+<span class="fc" id="L225">		}</span>
+<span class="fc" id="L226">	}</span>
+
+	/* ==============
+	 * Import logic
+	 ============== */
+
+	/**
+	 * Handling import of a single blueprint - reading files from a directory, it's name would match
+	 * the blueprint name and contain files describing its details, content and versions.
+	 *
+	 * @param bpDir blueprint folder
+	 * @param bpsOnServerByName existing blueprints from the server
+	 * @throws IllegalStateException if blueprint folder name mismatch with the name from details.json
+	 */
+	private void handleBlueprintImport(final File bpDir, final Map&lt;String, VraNgBlueprint&gt; bpsOnServerByName) {
+<span class="fc" id="L241">		String bpName = bpDir.getName();</span>
+<span class="fc" id="L242">		logger.info(&quot;Attempting to import blueprint \&quot;&quot; + bpDir.getName() + &quot;\&quot;&quot;);</span>
+<span class="fc" id="L243">		VraNgBlueprint bp = loadBlueprintFromFilesystem(bpDir);</span>
+		String bpID;
+
+		// Check the blueprint folder name(bpName) with the name from details.json(bp.getName())
+<span class="fc bfc" id="L247" title="All 2 branches covered.">		if (!Objects.equals(bp.getName(), bpName)) {</span>
+<span class="fc" id="L248">			throw new IllegalStateException(String.format(&quot;Mismatch between the blueprint folder name and the name from details.json. (%s, %s)&quot;, bpName, bp.getName()));</span>
+		}
+
+		// Check if the blueprint exists
+<span class="fc" id="L252">		VraNgBlueprint existingRecord = null;</span>
+<span class="pc bpc" id="L253" title="1 of 2 branches missed.">		if (bpsOnServerByName.containsKey(bp.getName())) {</span>
+<span class="nc" id="L254">			existingRecord = bpsOnServerByName.get(bp.getName());</span>
+		}
+
+<span class="pc bpc" id="L257" title="1 of 2 branches missed.">		if (existingRecord == null) {</span>
+<span class="fc" id="L258">			bpID = restClient.createBlueprint(bp);</span>
+<span class="fc" id="L259">			bp.setId(bpID);</span>
+		} else {
+<span class="nc" id="L261">			bpID = existingRecord.getId();</span>
+<span class="nc" id="L262">			bp.setId(bpID);</span>
+<span class="nc" id="L263">			restClient.updateBlueprint(bp);</span>
+		}
+
+		// Importing blueprint versions
+<span class="fc" id="L267">		VraNgReleaseManager releaseManager = new VraNgReleaseManager(this.restClient);</span>
+<span class="fc" id="L268">		releaseManager.releaseNextVersion(bp);</span>
+<span class="pc bpc" id="L269" title="1 of 2 branches missed.">		if (this.config.getUnreleaseBlueprintVersions()) {</span>
+			// Sleep so versions can be ordered correctly. Milliseconds parsing in JAVA is not very good, so we are
+			// forcing a one second difference between versions
+			try {
+<span class="nc" id="L273">				TimeUnit.SECONDS.sleep(1L);</span>
+<span class="nc" id="L274">			} catch (InterruptedException ignored) { }</span>
+
+<span class="nc" id="L276">			this.unreleaseOldVersions(bp);</span>
+		}
+<span class="fc" id="L278">	}</span>
+
+	/* ==============
+	 * Helper methods
+	 ============== */
+
+	/**
+	 * Read contents from a file - return as string value.
+	 *
+	 * @param file file
+	 * @return String
+	 */
+	private String readFileToString(final File file) {
+		try {
+<span class="fc" id="L292">			return Files.readAllLines(Paths.get(file.getPath()), StandardCharsets.UTF_8).stream()</span>
+<span class="fc" id="L293">				.collect(Collectors.joining(System.lineSeparator())).toString();</span>
+<span class="nc" id="L294">		} catch (IOException e) {</span>
+<span class="nc" id="L295">			logger.error(&quot;Unable to read blueprint {}&quot;, file.getPath());</span>
+<span class="nc" id="L296">			throw new RuntimeException(&quot;Unable to read blueprint.&quot;, e);</span>
+		}
+	}
+
+	/**
+	 * Fetching blueprint details + content from the filesystem exports.
+	 *
+	 * @param bpDir blueprint directory
+	 * @return VraNgBlueprint
+	 */
+	private VraNgBlueprint loadBlueprintFromFilesystem(final File bpDir) {
+		try {
+			// Fetching blueprint details from filesystem
+<span class="fc" id="L309">			File detailsFile = new File(Paths.get(bpDir.getPath(), BP_DETAILS_FILE_NAME).toString());</span>
+<span class="fc" id="L310">			File contentFile = new File(Paths.get(bpDir.getPath(), BP_CONTENT_FILE_NAME).toString());</span>
+
+			// Importing blueprint content
+<span class="fc" id="L313">			JsonReader detailsReader = new JsonReader(new FileReader(detailsFile.getPath()));</span>
+<span class="fc" id="L314">			VraNgBlueprint bp = new Gson().fromJson(detailsReader, VraNgBlueprint.class);</span>
+<span class="fc" id="L315">			bp.setContent(readFileToString(contentFile));</span>
+
+<span class="fc" id="L317">			return bp;</span>
+<span class="nc" id="L318">		} catch (FileNotFoundException e) {</span>
+<span class="nc" id="L319">			logger.error(&quot;Unable to load blueprint {}&quot;, bpDir.getName());</span>
+<span class="nc" id="L320">			throw new RuntimeException(&quot;Unable to read file.&quot;, e);</span>
+		}
+	}
+
+	/**
+	 * Fetching a list of blueprints from vRA.
+	 *
+	 * @return List&lt;VraNgBlueprint&gt;
+	 */
+	private List&lt;VraNgBlueprint&gt; getAllBlueprints() {
+<span class="fc" id="L330">		return this.restClient.getAllBlueprints();</span>
+	}
+
+	/**
+	 * A helper method that will unrelease all versions of the blueprint outside of the latest one.
+	 *
+	 * @param blueprint blueprint to unrelease all versions from orderedVersions
+	 */
+	private void unreleaseOldVersions(final VraNgBlueprint blueprint) {
+<span class="nc" id="L339">		String versionsJSON = this.restClient.getBlueprintVersions(blueprint.getId());</span>
+
+<span class="nc" id="L341">		Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="nc" id="L342">		JsonArray versionsArray = gson.fromJson(versionsJSON, JsonArray.class);</span>
+
+		// Order the array, since id may be not in order... (due to previous Aria versions, use createdAt as a source of order)
+<span class="nc" id="L345">		versionsArray = this.getVersionsInCorrectOrder(versionsArray);</span>
+
+		// Remove the latest one, we don't want to unrelease that one
+<span class="nc" id="L348">		versionsArray.remove(versionsArray.size() - 1);</span>
+
+		try {
+<span class="nc" id="L351">			versionsArray.forEach(version -&gt; {</span>
+<span class="nc" id="L352">				logger.debug(&quot;Unreleasing version: %s&quot;, version.getAsJsonObject().get(&quot;id&quot;).getAsString());</span>
+<span class="nc" id="L353">				this.restClient.unreleaseBlueprintVersion(blueprint.getId(), version.getAsJsonObject().get(&quot;id&quot;).getAsString());</span>
+<span class="nc" id="L354">			});</span>
+<span class="nc" id="L355">		} catch (NullPointerException npe) {</span>
+<span class="nc" id="L356">			logger.error(&quot;There was an error while processingv versions: %s&quot;, npe);</span>
+<span class="nc" id="L357">		}</span>
+<span class="nc" id="L358">	}</span>
+
+	/**
+	 * A helper method that will order the versions JsonArray returned by id, so when importing they are imported in the correct order
+	 * and when importing or creating a new version no errors are thrown.
+	 *
+	 * @param versionsArray versions
+	 * @return orderedVersions
+	 */
+	private JsonArray getVersionsInCorrectOrder(final JsonArray versionsArray) {
+		// Create an ArrayList from the JsonArray, so we can compare the elements via Collections
+<span class="nc" id="L369">		ArrayList&lt;JsonElement&gt; newList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L370">		JsonArray orderedVersions = new JsonArray();</span>
+
+		try {
+<span class="nc" id="L373">			versionsArray.forEach(newList::add);</span>
+
+			// Implementing a custom comparator for the Versions based on createdAt, so we can guarantee the order of export and therefore import.
+<span class="nc" id="L376">			newList.sort((one, two) -&gt; {</span>
+				// Extract the createdAt attribute and remove the start and end quote from it
+<span class="nc" id="L378">				String creationDateOne = one.getAsJsonObject().get(&quot;createdAt&quot;).toString()</span>
+<span class="nc" id="L379">					.replaceAll(&quot;^\&quot;|\&quot;$&quot;, &quot;&quot;);</span>
+<span class="nc" id="L380">				String creationDateTwo = two.getAsJsonObject().get(&quot;createdAt&quot;).toString()</span>
+<span class="nc" id="L381">					.replaceAll(&quot;^\&quot;|\&quot;$&quot;, &quot;&quot;);</span>
+
+				// Date is returned in ISO-8601, e.g. &quot;2022-08-22T14:17:00.073876Z&quot;;
+<span class="nc" id="L384">				return Instant.parse(creationDateOne).compareTo(Instant.parse(creationDateTwo));</span>
+			});
+<span class="nc" id="L386">		} catch (NullPointerException npe) {</span>
+<span class="nc" id="L387">			logger.error(&quot;Provided versions array is null&quot;);</span>
+<span class="nc" id="L388">		}</span>
+<span class="nc" id="L389">		newList.forEach(orderedVersions::add);</span>
+<span class="nc" id="L390">		return orderedVersions;</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

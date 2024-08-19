@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StatsDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest.model.vrli.v2</a> &gt; <span class="el_source">StatsDTO.java</span></div><h1>StatsDTO.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.rest.model.vrli.v2;
+
+/*-
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({ &quot;lastRanAt&quot;, &quot;nextRunAt&quot;, &quot;runCount&quot;, &quot;lastRunTime&quot;, &quot;totalRunTime&quot;, &quot;lastHitAt&quot; })
+
+<span class="nc" id="L25">public class StatsDTO {</span>
+	@JsonProperty(&quot;lastRanAt&quot;)
+	private long lastRanAt;
+
+	@JsonProperty(&quot;nextRunAt&quot;)
+	private long nextRunAt;
+
+	@JsonProperty(&quot;runCount&quot;)
+	private long runCount;
+
+	@JsonProperty(&quot;lastRunTime&quot;)
+	private long lastRunTime;
+
+	@JsonProperty(&quot;totalRunTime&quot;)
+	private long totalRunTime;
+
+	@JsonProperty(&quot;lastHitAt&quot;)
+	private long lastHitAt;
+
+	@JsonProperty(&quot;lastRanAt&quot;)
+	public long getLastRanAt() {
+<span class="nc" id="L46">		return lastRanAt;</span>
+	}
+
+	@JsonProperty(&quot;lastRanAt&quot;)
+	public void setLastRanAt(long lastRanAt) {
+<span class="nc" id="L51">		this.lastRanAt = lastRanAt;</span>
+<span class="nc" id="L52">	}</span>
+
+	@JsonProperty(&quot;nextRunAt&quot;)
+	public long getNextRunAt() {
+<span class="nc" id="L56">		return nextRunAt;</span>
+	}
+
+	@JsonProperty(&quot;nextRunAt&quot;)
+	public void setNextRunAt(long nextRunAt) {
+<span class="nc" id="L61">		this.nextRunAt = nextRunAt;</span>
+<span class="nc" id="L62">	}</span>
+
+	@JsonProperty(&quot;runCount&quot;)
+	public long getRunCount() {
+<span class="nc" id="L66">		return runCount;</span>
+	}
+
+	@JsonProperty(&quot;runCount&quot;)
+	public void setRunCount(long runCount) {
+<span class="nc" id="L71">		this.runCount = runCount;</span>
+<span class="nc" id="L72">	}</span>
+
+	@JsonProperty(&quot;lastRunTime&quot;)
+	public long getLastRunTime() {
+<span class="nc" id="L76">		return lastRunTime;</span>
+	}
+
+	@JsonProperty(&quot;lastRunTime&quot;)
+	public void setLastRunTime(long lastRunTime) {
+<span class="nc" id="L81">		this.lastRunTime = lastRunTime;</span>
+<span class="nc" id="L82">	}</span>
+
+	@JsonProperty(&quot;totalRunTime&quot;)
+	public long getTotalRunTime() {
+<span class="nc" id="L86">		return totalRunTime;</span>
+	}
+
+	@JsonProperty(&quot;totalRunTime&quot;)
+	public void setTotalRunTime(long totalRunTime) {
+<span class="nc" id="L91">		this.totalRunTime = totalRunTime;</span>
+<span class="nc" id="L92">	}</span>
+
+	@JsonProperty(&quot;lastHitAt&quot;)
+	public long getLastHitAt() {
+<span class="nc" id="L96">		return lastHitAt;</span>
+	}
+
+	@JsonProperty(&quot;lastHitAt&quot;)
+	public void setLastHitAt(long lastHitAt) {
+<span class="nc" id="L101">		this.lastHitAt = lastHitAt;</span>
+<span class="nc" id="L102">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

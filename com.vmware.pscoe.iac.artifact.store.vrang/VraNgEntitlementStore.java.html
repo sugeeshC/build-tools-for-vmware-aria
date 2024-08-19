@@ -1,0 +1,362 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgEntitlementStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.vrang</a> &gt; <span class="el_source">VraNgEntitlementStore.java</span></div><h1>VraNgEntitlementStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import static com.vmware.pscoe.iac.artifact.model.vrang.VraNgCatalogEntitlementType.CATALOG_ITEM_IDENTIFIER;
+import static com.vmware.pscoe.iac.artifact.model.vrang.VraNgCatalogEntitlementType.CATALOG_SOURCE_IDENTIFIER;
+import static com.vmware.pscoe.iac.artifact.store.vrang.VraNgDirs.DIR_ENTITLEMENTS;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVraNg;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCatalogEntitlement;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCatalogEntitlementType;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCatalogItem;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgContentSourceBase;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgContentSourceType;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageDescriptor;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgProject;
+import com.vmware.pscoe.iac.artifact.rest.RestClientVraNg;
+import com.vmware.pscoe.iac.artifact.store.filters.CustomFolderFileFilter;
+import org.apache.commons.lang3.StringUtils;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
+
+<span class="fc" id="L50">public class VraNgEntitlementStore extends AbstractVraNgStore {</span>
+    private List&lt;VraNgProject&gt; projects;
+    private String configuredProjectId;
+    private Map&lt;String, List&lt;VraNgContentSourceBase&gt;&gt; contentSources;
+    private Map&lt;String, List&lt;VraNgCatalogItem&gt;&gt; catalogItems;
+    private static final String PROJECTS_DELIMITER = &quot;,&quot;;
+
+    @Override
+    public void init(RestClientVraNg restClient, Package vraNgPackage, ConfigurationVraNg config, VraNgPackageDescriptor vraNgPackageDescriptor) {
+<span class="fc" id="L59">        super.init(restClient, vraNgPackage, config, vraNgPackageDescriptor);</span>
+<span class="fc" id="L60">        this.projects = this.restClient.getProjects();</span>
+<span class="fc" id="L61">        this.configuredProjectId = this.restClient.getProjectId();</span>
+<span class="fc" id="L62">    }</span>
+
+    @Override
+    public void importContent(File sourceDirectory) {
+<span class="fc" id="L66">        this.importCatalogEntitlements(sourceDirectory);</span>
+<span class="fc" id="L67">    }</span>
+
+	/**
+	 * Used to fetch the store's data from the package descriptor
+	 *
+	 * @return list of entitlements
+	 */
+	@Override
+	protected List&lt;String&gt; getItemListFromDescriptor() {
+<span class="fc" id="L76">		return this.vraNgPackageDescriptor.getCatalogEntitlement();</span>
+	}
+
+    /**
+     * Export all catalog entitlements from a server and store them in YAML files.
+     *
+     */
+	protected void exportStoreContent() {
+<span class="fc" id="L84">        List&lt;VraNgCatalogEntitlement&gt; entitlements = this.restClient.getAllCatalogEntitlements();</span>
+<span class="fc" id="L85">        entitlements.forEach(entitlement -&gt; storeEntitlementOnFilesystem(vraNgPackage, entitlement));</span>
+<span class="fc" id="L86">    }</span>
+
+    /**
+     * Export catalog entitlements from a list of entitlement names and store them
+     * in YAML files.
+     *
+     * @param catalogEntitlementNames list of entitlement names to export
+     */
+    protected void exportStoreContent( List&lt;String&gt; catalogEntitlementNames ) {
+<span class="fc" id="L95">        List&lt;VraNgCatalogEntitlement&gt; allEntitlements = this.restClient.getAllCatalogEntitlements();</span>
+<span class="fc" id="L96">        catalogEntitlementNames.forEach(name -&gt; {</span>
+            // find the catalog entitlement by name on the target system (must be shared
+            // with at least 1 project)
+<span class="fc" id="L99">            List&lt;VraNgCatalogEntitlement&gt; entitlements = allEntitlements.stream()</span>
+<span class="fc" id="L100">                    .filter(item -&gt; item.getName().equalsIgnoreCase(name)).collect(Collectors.toList());</span>
+<span class="pc bpc" id="L101" title="1 of 4 branches missed.">            if (entitlements != null &amp;&amp; !entitlements.isEmpty()) {</span>
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">                entitlements.removeIf(entitlement -&gt; !catalogEntitlementNames.contains(entitlement.getName()));</span>
+<span class="fc" id="L103">                entitlements.forEach(entitlement -&gt; storeEntitlementOnFilesystem(vraNgPackage, entitlement));</span>
+			} else {
+<span class="fc" id="L105">				throw new IllegalStateException(</span>
+<span class="fc" id="L106">						String.format(</span>
+								&quot;Entitlement [%s] not found on the server.&quot;,
+								name));
+			}
+<span class="fc" id="L110">		});</span>
+<span class="fc" id="L111">    }</span>
+
+    /**
+     * Store entitlement in YAML file. The entitlement representation not tied to
+     * the environment allowing portability.
+     *
+     * @param serverPackage vra package
+     * @param entitlement   entitlement representation
+     */
+    private void storeEntitlementOnFilesystem(Package serverPackage, VraNgCatalogEntitlement entitlement) {
+<span class="fc" id="L121">        logger.debug(&quot;Storing entitlement {}&quot;, entitlement.getName());</span>
+
+<span class="fc" id="L123">        Map&lt;String, String&gt; data = new LinkedHashMap&lt;String, String&gt;();</span>
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">		data.put(&quot;id&quot;, entitlement.getId() != null ? entitlement.getId(): &quot;&quot;);</span>
+<span class="pc bpc" id="L125" title="1 of 2 branches missed.">		data.put(&quot;name&quot;, entitlement.getName()!= null ? entitlement.getName() : &quot;&quot;);</span>
+<span class="pc bpc" id="L126" title="1 of 2 branches missed.">		data.put(&quot;type&quot;, entitlement.getType() != null ?entitlement.getType().toString(): VraNgCatalogEntitlementType.DEFAULT.toString());</span>
+<span class="pc bpc" id="L127" title="1 of 2 branches missed.">		data.put(&quot;sourceType&quot;, entitlement.getSourceType() != null ? entitlement.getSourceType().toString(): VraNgContentSourceType.UNKNOWN.toString());</span>
+<span class="fc" id="L128">        data.put(&quot;projectId&quot;, entitlement.getProjects().stream().collect(Collectors.joining(PROJECTS_DELIMITER)));</span>
+<span class="fc" id="L129">        data.put(&quot;projectName&quot;, entitlement.getProjects().stream().map(this::projectIdToName).collect(Collectors.joining(PROJECTS_DELIMITER)));</span>
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">        data.put( &quot;iconId&quot;, entitlement.getIconId() == null ? null : entitlement.getIconId() );</span>
+
+<span class="fc" id="L132">        DumperOptions options = new DumperOptions();</span>
+<span class="fc" id="L133">        options.setExplicitStart(true);</span>
+<span class="fc" id="L134">        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);</span>
+
+<span class="fc" id="L136">        Yaml yaml = new Yaml(options);</span>
+<span class="fc" id="L137">        StringWriter writer = new StringWriter();</span>
+<span class="fc" id="L138">        yaml.dump(data, writer);</span>
+
+<span class="fc" id="L140">        File store = new File(serverPackage.getFilesystemPath());</span>
+<span class="fc" id="L141">        File entitlementsFile = Paths.get(store.getPath(), DIR_ENTITLEMENTS, entitlement.getName() + &quot;.yaml&quot;).toFile();</span>
+<span class="fc" id="L142">        entitlementsFile.getParentFile().mkdirs();</span>
+
+        try {
+<span class="fc" id="L145">            Files.write(Paths.get(entitlementsFile.getPath()), writer.toString().getBytes(), StandardOpenOption.CREATE);</span>
+<span class="fc" id="L146">            logger.info(&quot;Created entitlement file '{}' for entitlement '{}'&quot;, entitlementsFile.getAbsoluteFile(),</span>
+<span class="fc" id="L147">                    entitlement.getName());</span>
+<span class="nc" id="L148">        } catch (IOException e) {</span>
+<span class="nc" id="L149">            logger.error(&quot;Unable to store entitlement '{}' to file '{}' : {}&quot;, entitlement.getName(),</span>
+<span class="nc" id="L150">                    entitlementsFile.getPath(), e.getMessage());</span>
+<span class="nc" id="L151">            throw new RuntimeException(String.format(&quot;Unable to store entitlement '%s' to file '%s'. : %s&quot;,</span>
+<span class="nc" id="L152">                    entitlement.getName(), entitlementsFile.getName(), e.getMessage()), e);</span>
+<span class="fc" id="L153">        }</span>
+<span class="fc" id="L154">    }</span>
+
+    private String projectIdToName(String id) {
+<span class="fc" id="L157">        return this.projects</span>
+<span class="fc" id="L158">                .stream()</span>
+<span class="pc" id="L159">                .filter(project -&gt; project.getId().equals(id))</span>
+<span class="pc" id="L160">                .map(project -&gt; project.getName())</span>
+<span class="fc" id="L161">                .findFirst()</span>
+<span class="fc" id="L162">                .orElse(null);</span>
+    }
+
+    private String projectNameToId(String name) {
+<span class="nc" id="L166">        return this.projects</span>
+<span class="nc" id="L167">                .stream()</span>
+<span class="nc" id="L168">                .filter(project -&gt; project.getName().equals(name))</span>
+<span class="nc" id="L169">                .map(project -&gt; project.getId())</span>
+<span class="nc" id="L170">                .findFirst()</span>
+<span class="nc" id="L171">                .orElse(null);</span>
+    }
+
+ 	/**
+	 * Import all catalog entitlements from a package.
+	 *
+	 * @param sourceDirectory temporary directory containing the files
+	 */
+	private void importCatalogEntitlements(File sourceDirectory) {
+		// verify directory
+<span class="fc" id="L181">		File entitlementsFolder = Paths.get(sourceDirectory.getPath(), VraNgDirs.DIR_ENTITLEMENTS).toFile();</span>
+<span class="pc bpc" id="L182" title="1 of 2 branches missed.">		if (!entitlementsFolder.exists()) {</span>
+<span class="nc" id="L183">			logger.info(&quot;Catalog Entitlements folder is missing '{}' &quot;, VraNgDirs.DIR_ENTITLEMENTS);</span>
+<span class="nc" id="L184">			return;</span>
+		}
+		// collect local state - entitlement files
+		// Check if there are any blueprints to import
+<span class="fc" id="L188">		File[] localList = this.filterBasedOnConfiguration(entitlementsFolder, new CustomFolderFileFilter(this.getItemListFromDescriptor()));</span>
+<span class="pc bpc" id="L189" title="2 of 4 branches missed.">		if (localList == null || localList.length == 0) {</span>
+<span class="fc" id="L190">			logger.info(&quot;No Catalog Entitlements available - skip import&quot;);</span>
+<span class="fc" id="L191">			return;</span>
+		}
+
+<span class="nc" id="L194">		List&lt;VraNgCatalogEntitlement&gt; entitlements = Arrays.stream(localList)</span>
+<span class="nc" id="L195">				.map(this::readCatalogEntitlementFromYaml)</span>
+<span class="nc" id="L196">				.collect(Collectors.toList());</span>
+<span class="nc" id="L197">		List&lt;String&gt; projectIds = entitlements.stream().map(ent -&gt; ent.getProjects())</span>
+<span class="nc" id="L198">				.flatMap(List::stream)</span>
+<span class="nc" id="L199">				.distinct()</span>
+<span class="nc" id="L200">				.collect(Collectors.toList());</span>
+<span class="nc bnc" id="L201" title="All 2 branches missed.">		if (!projectIds.contains(this.configuredProjectId)) {</span>
+<span class="nc" id="L202">			projectIds.add(this.configuredProjectId);</span>
+		}
+<span class="nc" id="L204">		this.contentSources = this.restClient.getContentSourcesForProjects(projectIds);</span>
+<span class="nc" id="L205">		this.catalogItems = this.restClient.getCatalogItemsForProjects(projectIds);</span>
+
+<span class="nc" id="L207">		StringBuilder messages = new StringBuilder();</span>
+		// import entitlements to VRA
+<span class="nc" id="L209">		entitlements.forEach(entitlement -&gt; {</span>
+			try {
+				// import catalog entitlement
+<span class="nc" id="L212">				logger.debug(&quot;Importing entitlements '{}'&quot;, entitlement.getName());</span>
+<span class="nc" id="L213">				this.importCatalogEntitlement(entitlement);</span>
+<span class="nc" id="L214">			} catch (RuntimeException e) {</span>
+<span class="nc" id="L215">				messages.append(String.format(&quot;Unable to import catalog entitlement '%s' : %s&quot;, entitlement.getName(),</span>
+<span class="nc" id="L216">						e.getMessage()));</span>
+<span class="nc" id="L217">			}</span>
+<span class="nc" id="L218">		});</span>
+
+		// throw an error if one or more entitlements could not be read / created
+<span class="nc bnc" id="L221" title="All 2 branches missed.">		if (messages.length() &gt; 0) {</span>
+<span class="nc" id="L222">			throw new RuntimeException(messages.toString());</span>
+		}
+<span class="nc" id="L224">	}</span>
+
+    /**
+     * Deserialize YAML representation of a catalog entitlement
+     *
+     * @param yamlFile source entitlement file
+     * @return an entitlement representation
+     * @throws FileNotFoundException
+     */
+    private VraNgCatalogEntitlement readCatalogEntitlementFromYaml(File yamlFile) {
+<span class="nc" id="L234">        Yaml yaml = new Yaml();</span>
+<span class="nc" id="L235">        try (FileInputStream file = new FileInputStream(yamlFile)) {</span>
+<span class="nc" id="L236">            Map&lt;String, Object&gt; yamlContent = yaml.load(file);</span>
+
+<span class="nc bnc" id="L238" title="All 2 branches missed.">            String id = yamlContent.get(&quot;id&quot;) == null ? &quot;&quot; : yamlContent.getOrDefault(&quot;id&quot;, &quot;&quot;).toString();</span>
+<span class="nc bnc" id="L239" title="All 2 branches missed.">            String name = yamlContent.get(&quot;name&quot;) == null ? &quot;&quot; : yamlContent.getOrDefault(&quot;name&quot;, &quot;&quot;).toString();</span>
+<span class="nc bnc" id="L240" title="All 2 branches missed.">            String projectName = yamlContent.get(&quot;projectName&quot;) == null ? &quot;&quot;</span>
+<span class="nc" id="L241">                    : yamlContent.getOrDefault(&quot;projectName&quot;, &quot;&quot;).toString();</span>
+<span class="nc bnc" id="L242" title="All 2 branches missed.">            String projectId = yamlContent.get(&quot;projectId&quot;) == null ? &quot;&quot;</span>
+<span class="nc" id="L243">                    : yamlContent.getOrDefault(&quot;projectId&quot;, &quot;&quot;).toString();</span>
+<span class="nc" id="L244">            VraNgCatalogEntitlementType entitlementType = VraNgCatalogEntitlementType</span>
+<span class="nc" id="L245">                    .fromString(yamlContent.getOrDefault(&quot;type&quot;, &quot;&quot;).toString());</span>
+<span class="nc" id="L246">            VraNgContentSourceType sourceType = VraNgContentSourceType</span>
+<span class="nc" id="L247">                    .fromString(yamlContent.getOrDefault(&quot;sourceType&quot;, &quot;&quot;).toString());</span>
+            // project name takes precedence over project id
+<span class="nc bnc" id="L249" title="All 2 branches missed.">            List&lt;String&gt; projects = StringUtils.isNotEmpty(projectName)</span>
+<span class="nc bnc" id="L250" title="All 2 branches missed.">                    ? Arrays.stream(projectName.split(&quot;,&quot;)).map(this::projectNameToId).filter(prjId -&gt; prjId != null).collect(Collectors.toList())</span>
+<span class="nc" id="L251">                    : Arrays.asList(projectId.split(PROJECTS_DELIMITER));</span>
+
+<span class="nc" id="L253">            return new VraNgCatalogEntitlement(id, null, name, projects, entitlementType, sourceType);</span>
+<span class="nc" id="L254">        } catch (Exception e) {</span>
+<span class="nc" id="L255">            throw new RuntimeException(&quot;Error loading entitlement files&quot;, e);</span>
+        }
+    }
+
+    private void importCatalogEntitlement(VraNgCatalogEntitlement entitlement) {
+        /*
+         * Reconcile remote state using the following rules: 1. If an entitlement with
+         * the same name exists remotely - recreate the entitlement 2. If an entitlement
+         * with the same name doesn't exist remotely and respective target exists -
+         * create the entitlement 3. If an entitlement with the same name doesn't exist
+         * remotely and there's no target - do not create the entitlement and log a
+         * warning
+         */
+<span class="nc bnc" id="L268" title="All 2 branches missed.">        if (!entitlement.getProjects().contains(this.configuredProjectId)) {</span>
+<span class="nc" id="L269">            List&lt;String&gt; additionalProjects = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L270">            additionalProjects.add(this.configuredProjectId);</span>
+<span class="nc" id="L271">            additionalProjects.addAll(entitlement.getProjects());</span>
+<span class="nc" id="L272">            entitlement.setProjects(additionalProjects);</span>
+        }
+<span class="nc" id="L274">        entitlement.setProjects(entitlement</span>
+<span class="nc" id="L275">                .getProjects()</span>
+<span class="nc" id="L276">                .stream()</span>
+<span class="nc" id="L277">                .filter(projectId -&gt; this.projects.stream().anyMatch(proj -&gt; proj.getId().equals(projectId)))</span>
+<span class="nc" id="L278">                .collect(Collectors.toList()));</span>
+
+        try {
+<span class="nc bnc" id="L281" title="All 3 branches missed.">            switch (entitlement.getType()) {</span>
+                case CATALOG_SOURCE_IDENTIFIER: {
+<span class="nc" id="L283">                    logger.debug(&quot;Importing '{}'&quot;, CATALOG_SOURCE_IDENTIFIER);</span>
+<span class="nc" id="L284">                    this.importContentSourceEntitlement(entitlement);</span>
+<span class="nc" id="L285">                    break;</span>
+                }
+                case CATALOG_ITEM_IDENTIFIER: {
+<span class="nc" id="L288">                    logger.debug(&quot;Importing {}&quot;, CATALOG_ITEM_IDENTIFIER);</span>
+<span class="nc" id="L289">                    this.importCatalogItemEntitlement(entitlement);</span>
+<span class="nc" id="L290">                    break;</span>
+                }
+                default: {
+<span class="nc" id="L293">                    logger.warn(&quot;Unknown entitlement type '{}'&quot;, entitlement.getType());</span>
+                    break;
+                }
+            }
+<span class="nc" id="L297">        } catch (RuntimeException e) {</span>
+<span class="nc" id="L298">            logger.error(e.getMessage());</span>
+<span class="nc" id="L299">            throw e;</span>
+<span class="nc" id="L300">        }</span>
+<span class="nc" id="L301">    }</span>
+
+    private void importContentSourceEntitlement(VraNgCatalogEntitlement entitlement) {
+        // fetch existing content sources
+
+<span class="nc bnc" id="L306" title="All 2 branches missed.">        for (String project : entitlement.getProjects()) {</span>
+<span class="nc" id="L307">            String projectName = this.projectIdToName(project);</span>
+<span class="nc bnc" id="L308" title="All 2 branches missed.">            if (!this.contentSources.containsKey(project)) {</span>
+<span class="nc" id="L309">                logger.warn(&quot;No catalog source could be found for entitlement '{}' and project '{}'&quot;, entitlement.getName(), projectName);</span>
+<span class="nc" id="L310">                continue;</span>
+            }
+<span class="nc" id="L312">            List&lt;VraNgContentSourceBase&gt; contentSourcesPerProject = contentSources.get(project);</span>
+<span class="nc bnc" id="L313" title="All 2 branches missed.">            if (contentSourcesPerProject != null) {</span>
+                // Definition for contentSourcesPerProject.contains(entitlement.getName())
+<span class="nc" id="L315">                boolean entitlementNotExists = contentSourcesPerProject.stream().</span>
+<span class="nc" id="L316">                        noneMatch(contentSource -&gt; contentSource.getName().equalsIgnoreCase(entitlement.getName()));</span>
+<span class="nc" id="L317">                logger.debug(&quot;Entitlement not exists: {}&quot;, entitlementNotExists);</span>
+
+<span class="nc bnc" id="L319" title="All 2 branches missed.">                if (entitlementNotExists) {</span>
+<span class="nc" id="L320">                    throw new RuntimeException(String.format(&quot;The entitlement %s don't exists.&quot;, entitlement.getName()));</span>
+                }
+<span class="nc" id="L322">                logger.debug(&quot;contentSourcesPerProject list size: {}&quot;, contentSourcesPerProject.size());</span>
+
+<span class="nc bnc" id="L324" title="All 2 branches missed.">                for (VraNgContentSourceBase contentSource : contentSourcesPerProject) {</span>
+<span class="nc bnc" id="L325" title="All 2 branches missed.">                    if (contentSource.getName().equalsIgnoreCase(entitlement.getName())) {</span>
+<span class="nc" id="L326">                        entitlement.setId(null);</span>
+<span class="nc" id="L327">                        entitlement.setSourceId(contentSource.getId());</span>
+<span class="nc" id="L328">                        this.restClient.createCatalogEntitlement(entitlement, project);</span>
+<span class="nc" id="L329">                        logger.info(&quot;Imported catalog source entitlement '{}' for project '{}'&quot;, entitlement.getName(), projectName);</span>
+                    }
+<span class="nc" id="L331">                }</span>
+            }
+<span class="nc" id="L333">        }</span>
+
+<span class="nc" id="L335">    }</span>
+
+    private void importCatalogItemEntitlement(VraNgCatalogEntitlement entitlement) {
+        // fetch existing catalog items
+
+<span class="nc bnc" id="L340" title="All 2 branches missed.">        for (String project : entitlement.getProjects()) {</span>
+<span class="nc" id="L341">            String projectName = this.restClient.getProjectNameById(project);</span>
+<span class="nc bnc" id="L342" title="All 2 branches missed.">            if (!catalogItems.containsKey(project)) {</span>
+<span class="nc" id="L343">                logger.warn(&quot;No catalog items could be found for entitlement '{}' and project '{}'&quot;,</span>
+<span class="nc" id="L344">                        entitlement.getName(), projectName);</span>
+<span class="nc" id="L345">                continue;</span>
+            }
+<span class="nc" id="L347">            List&lt;VraNgCatalogItem&gt; catalogItemsPerProject = catalogItems.get(project);</span>
+<span class="nc bnc" id="L348" title="All 2 branches missed.">            if (catalogItemsPerProject != null) {</span>
+<span class="nc bnc" id="L349" title="All 2 branches missed.">                for (VraNgCatalogItem catalogItem : catalogItemsPerProject) {</span>
+<span class="nc bnc" id="L350" title="All 2 branches missed.">                    if (catalogItem.getName().equalsIgnoreCase(entitlement.getName())) {</span>
+<span class="nc" id="L351">                        entitlement.setId(null);</span>
+<span class="nc" id="L352">                        entitlement.setSourceId(catalogItem.getId());</span>
+<span class="nc" id="L353">                        this.restClient.createCatalogEntitlement(entitlement, project);</span>
+<span class="nc" id="L354">                        logger.info(&quot;Imported catalog item entitlement '{}' for project '{}'&quot;, entitlement.getName(),</span>
+                                projectName);
+                    }
+<span class="nc" id="L357">                }</span>
+            }
+<span class="nc" id="L359">        }</span>
+<span class="nc" id="L360">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

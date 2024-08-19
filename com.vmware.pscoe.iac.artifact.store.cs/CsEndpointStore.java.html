@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CsEndpointStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.cs</a> &gt; <span class="el_source">CsEndpointStore.java</span></div><h1>CsEndpointStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.cs;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.rest.model.cs.Endpoint;
+import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
+<span class="fc" id="L35">public class CsEndpointStore extends AbstractCsStore {</span>
+	private static final String DIR_ENDPOINTS = &quot;endpoints&quot;;
+<span class="fc" id="L37">	private final Logger logger = LoggerFactory.getLogger(CsEndpointStore.class);</span>
+
+	/**
+	* Exporting the contents of all blueprints listed in the content.yaml file, available for the configured project
+	*/
+	public void exportContent() {
+<span class="fc" id="L43">		List&lt;String&gt; endpointNames = this.descriptor.getEndpoint();</span>
+<span class="pc bpc" id="L44" title="1 of 2 branches missed.">		if (endpointNames != null) {</span>
+<span class="fc" id="L45">			this.exportEndpoints(csPackage, endpointNames);</span>
+		} else {
+<span class="nc" id="L47">			logger.info(&quot;No endpoints found in content.yaml&quot;);</span>
+		}
+<span class="fc" id="L49">	}</span>
+
+	/**
+	 * Importing content into vRA target environment
+	 * @param sourceDirectory sourceDirectory
+	 */
+	public void importContent(File sourceDirectory) {
+<span class="fc" id="L56">		File endpointsFolder = Paths.get(sourceDirectory.getPath(), DIR_ENDPOINTS).toFile();</span>
+<span class="pc bpc" id="L57" title="1 of 2 branches missed.">		if (!endpointsFolder.exists()) {</span>
+<span class="nc" id="L58">			logger.info(&quot;No endpoints folder found in content.&quot;);</span>
+<span class="nc" id="L59">			return;</span>
+		}
+
+<span class="fc" id="L62">		Collection&lt;File&gt; endpointFiles = FileUtils.listFiles(endpointsFolder, new String[] {&quot;yaml&quot;}, false);</span>
+<span class="pc bpc" id="L63" title="2 of 4 branches missed.">		if (endpointFiles == null || endpointFiles.isEmpty()) {</span>
+<span class="nc" id="L64">			logger.info(&quot;No endpoints files found in content.&quot;);</span>
+<span class="nc" id="L65">			return;</span>
+		}
+<span class="fc" id="L67">		importEndpoints(endpointFiles);</span>
+<span class="fc" id="L68">	}</span>
+
+	private void exportEndpoints(Package csPackage, List&lt;String&gt; endpointNames) {
+<span class="fc" id="L71">		restClient.getProjectEndpoints()</span>
+<span class="fc" id="L72">				.stream()</span>
+<span class="fc" id="L73">				.filter(ep -&gt; endpointNames.contains(ep.getName()))</span>
+<span class="fc" id="L74">				.forEach(endpoint -&gt; {</span>
+<span class="fc" id="L75">					logger.info(&quot;Exporting endpoint: {}&quot;, endpoint.getName());</span>
+<span class="fc" id="L76">					endpoint.setId(null);</span>
+<span class="fc" id="L77">					endpoint.setProject(null);</span>
+<span class="fc" id="L78">					endpoint.setCloudProxyId(null);</span>
+<span class="fc" id="L79">					CsStoreHelper.storeToYamlFile(csPackage.getFilesystemPath(), DIR_ENDPOINTS, endpoint.getName(), endpoint);</span>
+<span class="fc" id="L80">					addEndpointVarsToExtractionContext(endpoint);</span>
+<span class="fc" id="L81">				});</span>
+<span class="fc" id="L82">	}</span>
+
+	private void importEndpoints(Collection&lt;File&gt; endpointFiles) {
+<span class="fc" id="L85">		List&lt;Endpoint&gt; existingEndpoints = restClient.getProjectEndpoints();</span>
+
+<span class="fc" id="L87">		endpointFiles.stream()</span>
+<span class="fc" id="L88">				.map(file -&gt; CsStoreHelper.loadFromYamlFile(file, Endpoint.class))</span>
+<span class="fc" id="L89">				.forEach(endpoint -&gt; {</span>
+<span class="fc" id="L90">					endpoint.setProject(restClient.getProjectName());</span>
+<span class="fc" id="L91">					endpoint.setCloudProxyId(restClient.getCloudProxyId());</span>
+<span class="fc" id="L92">					Optional&lt;Endpoint&gt; optional = existingEndpoints.stream()</span>
+<span class="fc" id="L93">							.filter(ex -&gt; ex.getName().equals(endpoint.getName()))</span>
+<span class="fc" id="L94">							.findFirst();</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">					if (optional.isPresent()) {</span>
+<span class="fc" id="L96">						endpoint.setId(optional.get().getId());</span>
+<span class="fc" id="L97">						restClient.updateEndpoint(endpoint);</span>
+
+					} else {
+<span class="fc" id="L100">						restClient.createEndpoint(endpoint);</span>
+					}
+<span class="fc" id="L102">				});</span>
+<span class="fc" id="L103">	}</span>
+
+	private void addEndpointVarsToExtractionContext(Endpoint endpoint) {
+<span class="fc" id="L106">		Set&lt;String&gt; allMatches = new LinkedHashSet&lt;String&gt;();</span>
+<span class="fc" id="L107">		Pattern pattern = Pattern.compile(&quot;\\$\\{var\\.(.*?)\\}&quot;);</span>
+<span class="fc" id="L108">		endpoint.getProperties().values().forEach(val -&gt; {</span>
+<span class="nc" id="L109">			Matcher m = pattern.matcher(val);</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">			while (m.find()) {</span>
+<span class="nc" id="L111">				allMatches.add(m.group(1));</span>
+			}
+<span class="nc" id="L113">		});</span>
+
+<span class="fc" id="L115">		List&lt;String&gt; newVars = allMatches.stream()</span>
+<span class="pc bnc" id="L116" title="All 2 branches missed.">				.filter(el -&gt; !descriptor.getVariable().contains(el))</span>
+<span class="fc" id="L117">				.collect(Collectors.toList());</span>
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">		if (newVars.size() &gt; 0) {</span>
+<span class="nc" id="L119">			logger.info(&quot;Variables from endpoint:&quot; + newVars.toString());</span>
+<span class="nc" id="L120">			descriptor.getVariable().addAll(newVars);</span>
+		}
+<span class="fc" id="L122">	}</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

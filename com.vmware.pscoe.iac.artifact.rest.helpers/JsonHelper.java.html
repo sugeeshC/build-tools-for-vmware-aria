@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JsonHelper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest.helpers</a> &gt; <span class="el_source">JsonHelper.java</span></div><h1>JsonHelper.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.rest.helpers;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
+import java.util.function.Function;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+<span class="nc" id="L32">public class JsonHelper {</span>
+
+<span class="nc" id="L34">    private static final Logger logger = LoggerFactory.getLogger(JsonHelper.class);</span>
+
+    public static String getPrettyJson(String json) {
+        try{
+<span class="nc" id="L38">            Gson gson = new GsonBuilder().setPrettyPrinting().serializeNulls().create();</span>
+<span class="nc" id="L39">            return gson.toJson(JsonParser.parseString(json));</span>
+<span class="nc" id="L40">        }catch(JsonSyntaxException e) {</span>
+<span class="nc" id="L41">            logger.error(&quot;Unable to parse Json[&quot; + json + &quot;]&quot;, e);</span>
+<span class="nc" id="L42">            return json;</span>
+        }
+    }
+
+    public static String toJson(Map&lt;String, Object&gt; map) {
+<span class="nc" id="L47">        Gson gson = new GsonBuilder().setPrettyPrinting().serializeNulls().create();</span>
+<span class="nc" id="L48">        return gson.toJson(map);</span>
+    }
+
+    public static String toSortedJson(Map&lt;String, Object&gt; map) {
+<span class="nc" id="L52">        Gson gson = new GsonBuilder().setPrettyPrinting().serializeNulls().create();</span>
+<span class="nc" id="L53">        return gson.toJson(toTreeMap(map));</span>
+    }
+
+    @SuppressWarnings(&quot;unchecked&quot;)
+    private static TreeMap&lt;String, Object&gt; toTreeMap(Map&lt;String, Object&gt; obj) {
+<span class="nc" id="L58">        TreeMap&lt;String, Object&gt; result = new TreeMap&lt;String, Object&gt;();</span>
+<span class="nc" id="L59">        obj.forEach((key, value) -&gt; {</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">            result.put(key, value instanceof Map ? JsonHelper.toTreeMap((Map&lt;String, Object&gt;) value) : value);</span>
+<span class="nc" id="L61">        });</span>
+<span class="nc" id="L62">        return result;</span>
+    }
+
+    public static &lt;U&gt; U getAs(JsonObject el, String property, Function&lt;JsonElement, U&gt; mapper) {
+<span class="nc" id="L66">        return Optional.ofNullable(el.get(property)).map(mapper).orElse(null);</span>
+    }
+
+    public static &lt;U&gt; U getDefAs(JsonObject el, String property, Function&lt;JsonElement, U&gt; mapper, U def) {
+<span class="nc" id="L70">        return Optional.ofNullable(el.get(property)).map(mapper).orElse(def);</span>
+    }
+
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

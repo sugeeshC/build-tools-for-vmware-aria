@@ -1,0 +1,1174 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResourcesDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest.model.vrops</a> &gt; <span class="el_source">ResourcesDTO.java</span></div><h1>ResourcesDTO.java</h1><pre class="source lang-java linenums">
+package com.vmware.pscoe.iac.artifact.rest.model.vrops;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({ &quot;pageInfo&quot;, &quot;links&quot;, &quot;resourceList&quot; })
+<span class="nc" id="L36">public final class ResourcesDTO implements Serializable {</span>
+	private static final long serialVersionUID = -4565701751149713687L;
+
+	/**
+	 * pageInfo.
+	 */
+	@JsonProperty(&quot;pageInfo&quot;)
+	private PageInfo pageInfo;
+
+	/**
+	 * links.
+	 */
+	@JsonProperty(&quot;links&quot;)
+	private List&lt;Link&gt; links;
+
+	/**
+	 * resourceList.
+	 */
+<span class="nc" id="L54">	@JsonProperty(&quot;resourceList&quot;)</span>
+	private List&lt;ResourceList&gt; resourceList = new ArrayList&lt;&gt;();
+
+	/**
+	 * additionalProperties.
+	 */
+<span class="nc" id="L60">	@JsonIgnore</span>
+	private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+	/**
+	 * getPageInfo.
+	 * 
+	 * @return pageInfo
+	 */
+	@JsonProperty(&quot;pageInfo&quot;)
+	public PageInfo getPageInfo() {
+<span class="nc" id="L70">		return pageInfo;</span>
+	}
+
+	/**
+	 * setPageInfo.
+	 * 
+	 * @param pageInfo
+	 */
+	@JsonProperty(&quot;pageInfo&quot;)
+	public void setPageInfo(PageInfo pageInfo) {
+<span class="nc" id="L80">		this.pageInfo = pageInfo;</span>
+<span class="nc" id="L81">	}</span>
+
+	/**
+	 * getLinks.
+	 * 
+	 * @return links
+	 */
+	@JsonProperty(&quot;links&quot;)
+	public List&lt;Link&gt; getLinks() {
+<span class="nc" id="L90">		return links;</span>
+	}
+
+	/**
+	 * setLinks.
+	 * 
+	 * @param links
+	 */
+	@JsonProperty(&quot;links&quot;)
+	public void setLinks(List&lt;Link&gt; links) {
+<span class="nc" id="L100">		this.links = links;</span>
+<span class="nc" id="L101">	}</span>
+
+	/**
+	 * getResourceList.
+	 * 
+	 * @return resourceList
+	 */
+	@JsonProperty(&quot;resourceList&quot;)
+	public List&lt;ResourceList&gt; getResourceList() {
+<span class="nc" id="L110">		return resourceList;</span>
+	}
+
+	/**
+	 * setResourceList.
+	 * 
+	 * @param resourceList
+	 */
+	@JsonProperty(&quot;resourceList&quot;)
+	public void setResourceList(List&lt;ResourceList&gt; resourceList) {
+<span class="nc" id="L120">		this.resourceList = resourceList;</span>
+<span class="nc" id="L121">	}</span>
+
+	/**
+	 * getAdditionalProperties.
+	 * 
+	 * @return additionalProperties
+	 */
+	@JsonAnyGetter
+	public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L130">		return this.additionalProperties;</span>
+	}
+
+	/**
+	 * setAdditionalProperties.
+	 * 
+	 * @param key
+	 * @param val
+	 */
+	@JsonAnySetter
+	public void setAdditionalProperties(String key, Object val) {
+<span class="nc" id="L141">		this.additionalProperties.put(key, val);</span>
+<span class="nc" id="L142">	}</span>
+
+	@JsonPropertyOrder({ &quot;totalCount&quot;, &quot;page&quot;, &quot;pageSize&quot; })
+<span class="nc" id="L145">	public static final class PageInfo {</span>
+		/**
+		 * totalCount.
+		 */
+		@JsonProperty(&quot;totalCount&quot;)
+		private Long totalCount;
+
+		/**
+		 * page.
+		 */
+		@JsonProperty(&quot;page&quot;)
+		private Long page;
+
+		/**
+		 * pageSize.
+		 */
+		@JsonProperty(&quot;pageSize&quot;)
+		private Long pageSize;
+
+		/**
+		 * additionalProperties.
+		 */
+<span class="nc" id="L167">		@JsonIgnore</span>
+		private transient Map&lt;String, Object&gt; additionalProperties = new LinkedHashMap&lt;String, Object&gt;();
+
+		/**
+		 * getTotalCount.
+		 * 
+		 * @return totalCount
+		 */
+		@JsonProperty(&quot;totalCount&quot;)
+		public Long getTotalCount() {
+<span class="nc" id="L177">			return totalCount;</span>
+		}
+
+		/**
+		 * setTotalCount.
+		 * 
+		 * @param totalCount
+		 */
+		@JsonProperty(&quot;totalCount&quot;)
+		public void setTotalCount(Long totalCount) {
+<span class="nc" id="L187">			this.totalCount = totalCount;</span>
+<span class="nc" id="L188">		}</span>
+
+		/**
+		 * getPage.
+		 * 
+		 * @return page
+		 */
+		@JsonProperty(&quot;page&quot;)
+		public Long getPage() {
+<span class="nc" id="L197">			return page;</span>
+		}
+
+		/**
+		 * setPage.
+		 * 
+		 * @param page
+		 */
+		@JsonProperty(&quot;page&quot;)
+		public void setPage(Long page) {
+<span class="nc" id="L207">			this.page = page;</span>
+<span class="nc" id="L208">		}</span>
+
+		/**
+		 * getPageSize.
+		 * 
+		 * @return pageSize
+		 */
+		@JsonProperty(&quot;pageSize&quot;)
+		public Long getPageSize() {
+<span class="nc" id="L217">			return pageSize;</span>
+		}
+
+		/**
+		 * setPageSize.
+		 * 
+		 * @param pageSize
+		 */
+		@JsonProperty(&quot;pageSize&quot;)
+		public void setPageSize(Long pageSize) {
+<span class="nc" id="L227">			this.pageSize = pageSize;</span>
+<span class="nc" id="L228">		}</span>
+
+		/**
+		 * getAdditionalProperties.
+		 * 
+		 * @return additionalProperties
+		 */
+		@JsonAnyGetter
+		public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L237">			return this.additionalProperties;</span>
+		}
+
+		/**
+		 * setAdditionalProperty.
+		 * 
+		 * @param key
+		 * @param val
+		 */
+		@JsonAnySetter
+		public void setAdditionalProperty(String key, Object val) {
+<span class="nc" id="L248">			this.additionalProperties.put(key, val);</span>
+<span class="nc" id="L249">		}</span>
+	}
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	@JsonPropertyOrder({ &quot;href&quot;, &quot;rel&quot;, &quot;name&quot; })
+<span class="nc" id="L254">	public static final class Link {</span>
+		/**
+		 * href.
+		 */
+		@JsonProperty(&quot;href&quot;)
+		private String href;
+
+		/**
+		 * rel.
+		 */
+		@JsonProperty(&quot;rel&quot;)
+		private String rel;
+
+		/**
+		 * name.
+		 */
+		@JsonProperty(&quot;name&quot;)
+		private String name;
+
+		/**
+		 * additionalProperties.
+		 */
+<span class="nc" id="L276">		@JsonIgnore</span>
+		private transient Map&lt;String, Object&gt; additionalProperties = new LinkedHashMap&lt;String, Object&gt;();
+
+		/**
+		 * getHref.
+		 * 
+		 * @return href
+		 */
+		@JsonProperty(&quot;href&quot;)
+		public String getHref() {
+<span class="nc" id="L286">			return href;</span>
+		}
+
+		/**
+		 * setHref.
+		 * 
+		 * @param href
+		 */
+		@JsonProperty(&quot;href&quot;)
+		public void setHref(String href) {
+<span class="nc" id="L296">			this.href = href;</span>
+<span class="nc" id="L297">		}</span>
+
+		/**
+		 * getRel.
+		 * 
+		 * @return getRel
+		 */
+		@JsonProperty(&quot;rel&quot;)
+		public String getRel() {
+<span class="nc" id="L306">			return rel;</span>
+		}
+
+		/**
+		 * setRel.
+		 * 
+		 * @param rel
+		 */
+		@JsonProperty(&quot;rel&quot;)
+		public void setRel(String rel) {
+<span class="nc" id="L316">			this.rel = rel;</span>
+<span class="nc" id="L317">		}</span>
+
+		/**
+		 * getName.
+		 * 
+		 * @return name
+		 */
+		@JsonProperty(&quot;name&quot;)
+		public String getName() {
+<span class="nc" id="L326">			return name;</span>
+		}
+
+		/**
+		 * setName.
+		 * 
+		 * @param name
+		 */
+		@JsonProperty(&quot;name&quot;)
+		public void setName(String name) {
+<span class="nc" id="L336">			this.name = name;</span>
+<span class="nc" id="L337">		}</span>
+
+		/**
+		 * getAdditionalProperties.
+		 * 
+		 * @return additionalProperties
+		 */
+		@JsonAnyGetter
+		public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L346">			return this.additionalProperties;</span>
+		}
+
+		/**
+		 * setAdditionalProperty.
+		 * 
+		 * @param key
+		 * @param val
+		 */
+		@JsonAnySetter
+		public void setAdditionalProperty(String key, Object val) {
+<span class="nc" id="L357">			this.additionalProperties.put(key, val);</span>
+<span class="nc" id="L358">		}</span>
+	}
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	@JsonPropertyOrder({ &quot;creationTime&quot;, &quot;resourceKey&quot;, &quot;resourceStatusStates&quot;, &quot;resourceHealth&quot;, &quot;resourceHealthValue&quot;, &quot;dtEnabled&quot;, &quot;monitoringInterval&quot;,
+			&quot;badges&quot;, &quot;relatedResources&quot;, &quot;links&quot;, &quot;identifier&quot; })
+	@JsonIgnoreProperties({ &quot;links&quot; })
+<span class="nc" id="L365">	public static final class ResourceList implements Serializable {</span>
+		private static final long serialVersionUID = -7272621081244854723L;
+
+		/**
+		 * creationTime.
+		 */
+		@JsonProperty(&quot;creationTime&quot;)
+		private long creationTime;
+
+		/**
+		 * credentialInstanceId.
+		 */
+		@JsonProperty(&quot;credentialInstanceId&quot;)
+		private String credentialInstanceId;
+
+		/**
+		 * description.
+		 */
+		@JsonProperty(&quot;description&quot;)
+		private String description;
+
+		/**
+		 * resourceKey.
+		 */
+		@JsonProperty(&quot;resourceKey&quot;)
+		private ResourceKey resourceKey;
+
+		/**
+		 * resourceStatusStates.
+		 */
+<span class="nc" id="L395">		@JsonProperty(&quot;resourceStatusStates&quot;)</span>
+		private List&lt;ResourceStatusState&gt; resourceStatusStates = new ArrayList&lt;&gt;();
+
+		/**
+		 * resourceHealth.
+		 */
+		@JsonProperty(&quot;resourceHealth&quot;)
+		private String resourceHealth;
+
+		/**
+		 * resourceHealthValue.
+		 */
+		@JsonProperty(&quot;resourceHealthValue&quot;)
+		private Double resourceHealthValue;
+
+		/**
+		 * dtEnabled.
+		 */
+		@JsonProperty(&quot;dtEnabled&quot;)
+		private Boolean dtEnabled;
+
+		/**
+		 * monitoringInterval.
+		 */
+		@JsonProperty(&quot;monitoringInterval&quot;)
+		private Integer monitoringInterval;
+
+		/**
+		 * badges.
+		 */
+<span class="nc" id="L425">		@JsonProperty(&quot;badges&quot;)</span>
+		private List&lt;Object&gt; badges = new ArrayList&lt;&gt;();
+
+		/**
+		 * relatedResources.
+		 */
+<span class="nc" id="L431">		@JsonProperty(&quot;relatedResources&quot;)</span>
+		private List&lt;Object&gt; relatedResources = new ArrayList&lt;&gt;();
+
+		/**
+		 * identifier.
+		 */
+		@JsonProperty(&quot;identifier&quot;)
+		private String identifier;
+
+		/**
+		 * additionalProperties.
+		 */
+<span class="nc" id="L443">		@JsonIgnore</span>
+		private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+		/**
+		 * getCreationTime.
+		 * 
+		 * @return creationTime
+		 */
+		@JsonProperty(&quot;creationTime&quot;)
+		public long getCreationTime() {
+<span class="nc" id="L453">			return creationTime;</span>
+		}
+
+		/**
+		 * setCreationTime.
+		 * 
+		 * @param creationTime
+		 */
+		@JsonProperty(&quot;creationTime&quot;)
+		public void setCreationTime(long creationTime) {
+<span class="nc" id="L463">			this.creationTime = creationTime;</span>
+<span class="nc" id="L464">		}</span>
+
+		/**
+		 * getCredentialInstanceId.
+		 * 
+		 * @return credentialInstanceId
+		 */
+		public String getCredentialInstanceId() {
+<span class="nc" id="L472">			return credentialInstanceId;</span>
+		}
+
+		/**
+		 * setCredentialInstanceId.
+		 * 
+		 * @param credentialInstanceId
+		 */
+		public void setCredentialInstanceId(String credentialInstanceId) {
+<span class="nc" id="L481">			this.credentialInstanceId = credentialInstanceId;</span>
+<span class="nc" id="L482">		}</span>
+
+		/**
+		 * getDescription.
+		 * 
+		 * @return description
+		 */
+		public String getDescription() {
+<span class="nc" id="L490">			return description;</span>
+		}
+
+		/**
+		 * setDescription.
+		 * 
+		 * @param description
+		 */
+		public void setDescription(String description) {
+<span class="nc" id="L499">			this.description = description;</span>
+<span class="nc" id="L500">		}</span>
+
+		/**
+		 * getResourceKey.
+		 * 
+		 * @return resourceKey
+		 */
+		@JsonProperty(&quot;resourceKey&quot;)
+		public ResourceKey getResourceKey() {
+<span class="nc" id="L509">			return resourceKey;</span>
+		}
+
+		/**
+		 * setResourceKey.
+		 * 
+		 * @param resourceKey
+		 */
+		@JsonProperty(&quot;resourceKey&quot;)
+		public void setResourceKey(ResourceKey resourceKey) {
+<span class="nc" id="L519">			this.resourceKey = resourceKey;</span>
+<span class="nc" id="L520">		}</span>
+
+		/**
+		 * getResourceStatusStates.
+		 * 
+		 * @return resourceStatusStates
+		 */
+		@JsonProperty(&quot;resourceStatusStates&quot;)
+		public List&lt;ResourceStatusState&gt; getResourceStatusStates() {
+<span class="nc" id="L529">			return resourceStatusStates;</span>
+		}
+
+		/**
+		 * setResourceStatusStates.
+		 * 
+		 * @param resourceStatusStates
+		 */
+		@JsonProperty(&quot;resourceStatusStates&quot;)
+		public void setResourceStatusStates(List&lt;ResourceStatusState&gt; resourceStatusStates) {
+<span class="nc" id="L539">			this.resourceStatusStates = resourceStatusStates;</span>
+<span class="nc" id="L540">		}</span>
+
+		/**
+		 * getResourceHealth.
+		 * 
+		 * @return resourceHealth
+		 */
+		@JsonProperty(&quot;resourceHealth&quot;)
+		public String getResourceHealth() {
+<span class="nc" id="L549">			return resourceHealth;</span>
+		}
+
+		/**
+		 * setResourceHealth.
+		 * 
+		 * @param resourceHealth
+		 */
+		@JsonProperty(&quot;resourceHealth&quot;)
+		public void setResourceHealth(String resourceHealth) {
+<span class="nc" id="L559">			this.resourceHealth = resourceHealth;</span>
+<span class="nc" id="L560">		}</span>
+
+		/**
+		 * getResourceHealthValue.
+		 * 
+		 * @return resourceHealthValue
+		 */
+		@JsonProperty(&quot;resourceHealthValue&quot;)
+		public Double getResourceHealthValue() {
+<span class="nc" id="L569">			return resourceHealthValue;</span>
+		}
+
+		/**
+		 * setResourceHealthValue.
+		 * 
+		 * @param resourceHealthValue
+		 */
+		@JsonProperty(&quot;resourceHealthValue&quot;)
+		public void setResourceHealthValue(Double resourceHealthValue) {
+<span class="nc" id="L579">			this.resourceHealthValue = resourceHealthValue;</span>
+<span class="nc" id="L580">		}</span>
+
+		/**
+		 * isDtEnabled.
+		 * 
+		 * @return dtEnabled
+		 */
+		@JsonProperty(&quot;dtEnabled&quot;)
+		public Boolean isDtEnabled() {
+<span class="nc" id="L589">			return dtEnabled;</span>
+		}
+
+		/**
+		 * setDtEnabled.
+		 * 
+		 * @param dtEnabled
+		 */
+		@JsonProperty(&quot;dtEnabled&quot;)
+		public void setDtEnabled(Boolean dtEnabled) {
+<span class="nc" id="L599">			this.dtEnabled = dtEnabled;</span>
+<span class="nc" id="L600">		}</span>
+
+		/**
+		 * getMonitoringInterval.
+		 * 
+		 * @return monitoringInterval
+		 */
+		@JsonProperty(&quot;monitoringInterval&quot;)
+		public Integer getMonitoringInterval() {
+<span class="nc" id="L609">			return monitoringInterval;</span>
+		}
+
+		/**
+		 * setMonitoringInterval.
+		 * 
+		 * @param monitoringInterval
+		 */
+		@JsonProperty(&quot;monitoringInterval&quot;)
+		public void setMonitoringInterval(Integer monitoringInterval) {
+<span class="nc" id="L619">			this.monitoringInterval = monitoringInterval;</span>
+<span class="nc" id="L620">		}</span>
+
+		/**
+		 * getBadges.
+		 * 
+		 * @return badges
+		 */
+		@JsonProperty(&quot;badges&quot;)
+		public List&lt;Object&gt; getBadges() {
+<span class="nc" id="L629">			return badges;</span>
+		}
+
+		/**
+		 * setBadges.
+		 * 
+		 * @param badges
+		 */
+		@JsonProperty(&quot;badges&quot;)
+		public void setBadges(List&lt;Object&gt; badges) {
+<span class="nc" id="L639">			this.badges = badges;</span>
+<span class="nc" id="L640">		}</span>
+
+		/**
+		 * getRelatedResources.
+		 * 
+		 * @return relatedResources
+		 */
+		@JsonProperty(&quot;relatedResources&quot;)
+		public List&lt;Object&gt; getRelatedResources() {
+<span class="nc" id="L649">			return relatedResources;</span>
+		}
+
+		/**
+		 * setRelatedResources.
+		 * 
+		 * @param relatedResources
+		 */
+		@JsonProperty(&quot;relatedResources&quot;)
+		public void setRelatedResources(List&lt;Object&gt; relatedResources) {
+<span class="nc" id="L659">			this.relatedResources = relatedResources;</span>
+<span class="nc" id="L660">		}</span>
+
+		/**
+		 * getIdentifier.
+		 * 
+		 * @return identifier
+		 */
+		@JsonProperty(&quot;identifier&quot;)
+		public String getIdentifier() {
+<span class="nc" id="L669">			return identifier;</span>
+		}
+
+		/**
+		 * setIdentifier.
+		 * 
+		 * @param identifier
+		 */
+		@JsonProperty(&quot;identifier&quot;)
+		public void setIdentifier(String identifier) {
+<span class="nc" id="L679">			this.identifier = identifier;</span>
+<span class="nc" id="L680">		}</span>
+
+		/**
+		 * getAdditionalProperties.
+		 * 
+		 * @return additionalProperties
+		 */
+		@JsonAnyGetter
+		public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L689">			return this.additionalProperties;</span>
+		}
+
+		/**
+		 * setAdditionalProperties.
+		 * 
+		 * @param key
+		 * @param val
+		 */
+		@JsonAnySetter
+		public void setAdditionalProperties(String key, Object val) {
+<span class="nc" id="L700">			this.additionalProperties.put(key, val);</span>
+<span class="nc" id="L701">		}</span>
+	}
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	@JsonPropertyOrder({ &quot;adapterInstanceId&quot;, &quot;resourceStatus&quot;, &quot;resourceState&quot;, &quot;statusMessage&quot; })
+<span class="nc" id="L706">	public static final class ResourceStatusState implements Serializable {</span>
+		private static final long serialVersionUID = -787582647822155817L;
+
+		/**
+		 * adapterInstanceId.
+		 */
+		@JsonProperty(&quot;adapterInstanceId&quot;)
+		private String adapterInstanceId;
+
+		/**
+		 * resourceStatus.
+		 */
+		@JsonProperty(&quot;resourceStatus&quot;)
+		private String resourceStatus;
+
+		/**
+		 * resourceState.
+		 */
+		@JsonProperty(&quot;resourceState&quot;)
+		private String resourceState;
+
+		/**
+		 * statusMessage.
+		 */
+		@JsonProperty(&quot;statusMessage&quot;)
+		private String statusMessage;
+
+		/**
+		 * additionalProperties.
+		 */
+<span class="nc" id="L736">		@JsonIgnore</span>
+		private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+		/**
+		 * getAdapterInstanceId.
+		 * 
+		 * @return adapterInstanceId
+		 */
+		@JsonProperty(&quot;adapterInstanceId&quot;)
+		public String getAdapterInstanceId() {
+<span class="nc" id="L746">			return adapterInstanceId;</span>
+		}
+
+		/**
+		 * setAdapterInstanceId.
+		 * 
+		 * @param adapterInstanceId
+		 */
+		@JsonProperty(&quot;adapterInstanceId&quot;)
+		public void setAdapterInstanceId(String adapterInstanceId) {
+<span class="nc" id="L756">			this.adapterInstanceId = adapterInstanceId;</span>
+<span class="nc" id="L757">		}</span>
+
+		/**
+		 * getResourceStatus.
+		 * 
+		 * @return adapterInstanceId
+		 */
+		@JsonProperty(&quot;resourceStatus&quot;)
+		public String getResourceStatus() {
+<span class="nc" id="L766">			return resourceStatus;</span>
+		}
+
+		/**
+		 * setResourceStatus.
+		 * 
+		 * @param resourceStatus
+		 */
+		@JsonProperty(&quot;resourceStatus&quot;)
+		public void setResourceStatus(String resourceStatus) {
+<span class="nc" id="L776">			this.resourceStatus = resourceStatus;</span>
+<span class="nc" id="L777">		}</span>
+
+		/**
+		 * getResourceState.
+		 * 
+		 * @return resourceState
+		 */
+		@JsonProperty(&quot;resourceState&quot;)
+		public String getResourceState() {
+<span class="nc" id="L786">			return resourceState;</span>
+		}
+
+		/**
+		 * setResourceState.
+		 * 
+		 * @param resourceState
+		 */
+		@JsonProperty(&quot;resourceState&quot;)
+		public void setResourceState(String resourceState) {
+<span class="nc" id="L796">			this.resourceState = resourceState;</span>
+<span class="nc" id="L797">		}</span>
+
+		/**
+		 * getStatusMessage.
+		 * 
+		 * @return statusMessage
+		 */
+		@JsonProperty(&quot;statusMessage&quot;)
+		public String getStatusMessage() {
+<span class="nc" id="L806">			return statusMessage;</span>
+		}
+
+		/**
+		 * statusMessage.
+		 * 
+		 * @param statusMessage
+		 */
+		@JsonProperty(&quot;statusMessage&quot;)
+		public void setStatusMessage(String statusMessage) {
+<span class="nc" id="L816">			this.statusMessage = statusMessage;</span>
+<span class="nc" id="L817">		}</span>
+
+		/**
+		 * getAdditionalProperties.
+		 * 
+		 * @return additionalProperties
+		 */
+		@JsonAnyGetter
+		public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L826">			return this.additionalProperties;</span>
+		}
+
+		/**
+		 * setAdditionalProperties.
+		 * 
+		 * @param key
+		 * @param val
+		 */
+		@JsonAnySetter
+		public void setAdditionalProperties(String key, Object val) {
+<span class="nc" id="L837">			this.additionalProperties.put(key, val);</span>
+<span class="nc" id="L838">		}</span>
+	}
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	@JsonPropertyOrder({ &quot;name&quot;, &quot;adapterKindKey&quot;, &quot;resourceKindKey&quot;, &quot;resourceIdentifiers&quot; })
+<span class="nc" id="L843">	public static final class ResourceKey implements Serializable {</span>
+		private static final long serialVersionUID = -7173935404365000209L;
+
+		/**
+		 * name.
+		 */
+		@JsonProperty(&quot;name&quot;)
+		private String name;
+
+		/**
+		 * adapterKindKey.
+		 */
+		@JsonProperty(&quot;adapterKindKey&quot;)
+		private String adapterKindKey;
+
+		/**
+		 * resourceKindKey.
+		 */
+		@JsonProperty(&quot;resourceKindKey&quot;)
+		private String resourceKindKey;
+
+		/**
+		 * resourceIdentifiers.
+		 */
+<span class="nc" id="L867">		@JsonProperty(&quot;resourceIdentifiers&quot;)</span>
+		private List&lt;ResourceIdentifier&gt; resourceIdentifiers = new ArrayList&lt;&gt;();
+
+		/**
+		 * additionalProperties.
+		 */
+<span class="nc" id="L873">		@JsonIgnore</span>
+		private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+		/**
+		 * getName.
+		 * 
+		 * @return name
+		 */
+		@JsonProperty(&quot;name&quot;)
+		public String getName() {
+<span class="nc" id="L883">			return name;</span>
+		}
+
+		/**
+		 * setName.
+		 * 
+		 * @param name
+		 */
+		@JsonProperty(&quot;name&quot;)
+		public void setName(String name) {
+<span class="nc" id="L893">			this.name = name;</span>
+<span class="nc" id="L894">		}</span>
+
+		/**
+		 * getAdapterKindKey.
+		 * 
+		 * @return adapterKindKey
+		 */
+		@JsonProperty(&quot;adapterKindKey&quot;)
+		public String getAdapterKindKey() {
+<span class="nc" id="L903">			return adapterKindKey;</span>
+		}
+
+		/**
+		 * setAdapterKindKey.
+		 * 
+		 * @param adapterKindKey
+		 */
+		@JsonProperty(&quot;adapterKindKey&quot;)
+		public void setAdapterKindKey(String adapterKindKey) {
+<span class="nc" id="L913">			this.adapterKindKey = adapterKindKey;</span>
+<span class="nc" id="L914">		}</span>
+
+		/**
+		 * getResourceKindKey.
+		 * 
+		 * @return resourceKindKey
+		 */
+		@JsonProperty(&quot;resourceKindKey&quot;)
+		public String getResourceKindKey() {
+<span class="nc" id="L923">			return resourceKindKey;</span>
+		}
+
+		/**
+		 * resourceKindKey.
+		 * 
+		 * @param resourceKindKey
+		 */
+		@JsonProperty(&quot;resourceKindKey&quot;)
+		public void setResourceKindKey(String resourceKindKey) {
+<span class="nc" id="L933">			this.resourceKindKey = resourceKindKey;</span>
+<span class="nc" id="L934">		}</span>
+
+		/**
+		 * getResourceIdentifiers.
+		 * 
+		 * @return resourceIdentifiers
+		 */
+		@JsonProperty(&quot;resourceIdentifiers&quot;)
+		public List&lt;ResourceIdentifier&gt; getResourceIdentifiers() {
+<span class="nc" id="L943">			return resourceIdentifiers;</span>
+		}
+
+		/**
+		 * setResourceIdentifiers.
+		 * 
+		 * @param resourceIdentifiers
+		 */
+		@JsonProperty(&quot;resourceIdentifiers&quot;)
+		public void setResourceIdentifiers(List&lt;ResourceIdentifier&gt; resourceIdentifiers) {
+<span class="nc" id="L953">			this.resourceIdentifiers = resourceIdentifiers;</span>
+<span class="nc" id="L954">		}</span>
+
+		/**
+		 * getAdditionalProperties.
+		 * 
+		 * @return additionalProperties
+		 */
+		@JsonAnyGetter
+		public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L963">			return this.additionalProperties;</span>
+		}
+
+		/**
+		 * setAdditionalProperties.
+		 * 
+		 * @param key
+		 * @param val
+		 */
+		@JsonAnySetter
+		public void setAdditionalProperties(String key, Object val) {
+<span class="nc" id="L974">			this.additionalProperties.put(key, val);</span>
+<span class="nc" id="L975">		}</span>
+	}
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	@JsonPropertyOrder({ &quot;identifierType&quot;, &quot;value&quot; })
+<span class="nc" id="L980">	public static final class ResourceIdentifier implements Serializable {</span>
+		private static final long serialVersionUID = -4631445128052519908L;
+
+		/**
+		 * identifierType.
+		 */
+		@JsonProperty(&quot;identifierType&quot;)
+		private IdentifierType identifierType;
+
+		/**
+		 * value.
+		 */
+		@JsonProperty(&quot;value&quot;)
+		private String value;
+
+		/**
+		 * additionalProperties.
+		 */
+<span class="nc" id="L998">		@JsonIgnore</span>
+		private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+		/**
+		 * getIdentifierType.
+		 * 
+		 * @return identifierType
+		 */
+		@JsonProperty(&quot;identifierType&quot;)
+		public IdentifierType getIdentifierType() {
+<span class="nc" id="L1008">			return identifierType;</span>
+		}
+
+		/**
+		 * setIdentifierType.
+		 * 
+		 * @param identifierType
+		 */
+		@JsonProperty(&quot;identifierType&quot;)
+		public void setIdentifierType(IdentifierType identifierType) {
+<span class="nc" id="L1018">			this.identifierType = identifierType;</span>
+<span class="nc" id="L1019">		}</span>
+
+		/**
+		 * getValue.
+		 * 
+		 * @return value
+		 */
+		@JsonProperty(&quot;value&quot;)
+		public String getValue() {
+<span class="nc" id="L1028">			return value;</span>
+		}
+
+		/**
+		 * setValue.
+		 * 
+		 * @param value
+		 */
+		@JsonProperty(&quot;value&quot;)
+		public void setValue(String value) {
+<span class="nc" id="L1038">			this.value = value;</span>
+<span class="nc" id="L1039">		}</span>
+
+		/**
+		 * getAdditionalProperties.
+		 * 
+		 * @return additionalProperties
+		 */
+		@JsonAnyGetter
+		public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L1048">			return this.additionalProperties;</span>
+		}
+
+		/**
+		 * setAdditionalProperties.
+		 * 
+		 * @param key
+		 * @param val
+		 */
+		@JsonAnySetter
+		public void setAdditionalProperties(String key, Object val) {
+<span class="nc" id="L1059">			this.additionalProperties.put(key, val);</span>
+<span class="nc" id="L1060">		}</span>
+	}
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	@JsonPropertyOrder({ &quot;name&quot;, &quot;dataType&quot;, &quot;isPartOfUniqueness&quot; })
+<span class="nc" id="L1065">	public static final class IdentifierType implements Serializable {</span>
+		private static final long serialVersionUID = -1370467208132974903L;
+
+		/**
+		 * name.
+		 */
+		@JsonProperty(&quot;name&quot;)
+		private String name;
+
+		/**
+		 * dataType.
+		 */
+		@JsonProperty(&quot;dataType&quot;)
+		private String dataType;
+
+		/**
+		 * isPartOfUniqueness.
+		 */
+		@JsonProperty(&quot;isPartOfUniqueness&quot;)
+		private Boolean isPartOfUniqueness;
+
+		/**
+		 * additionalProperties.
+		 */
+<span class="nc" id="L1089">		@JsonIgnore</span>
+		private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+		/**
+		 * getName.
+		 * 
+		 * @return name
+		 */
+		@JsonProperty(&quot;name&quot;)
+		public String getName() {
+<span class="nc" id="L1099">			return name;</span>
+		}
+
+		/**
+		 * setName.
+		 * 
+		 * @param name
+		 */
+		@JsonProperty(&quot;name&quot;)
+		public void setName(String name) {
+<span class="nc" id="L1109">			this.name = name;</span>
+<span class="nc" id="L1110">		}</span>
+
+		/**
+		 * getDataType.
+		 * 
+		 * @return dataType
+		 */
+		@JsonProperty(&quot;dataType&quot;)
+		public String getDataType() {
+<span class="nc" id="L1119">			return dataType;</span>
+		}
+
+		/**
+		 * setDataType.
+		 * 
+		 * @param dataType
+		 */
+		@JsonProperty(&quot;dataType&quot;)
+		public void setDataType(String dataType) {
+<span class="nc" id="L1129">			this.dataType = dataType;</span>
+<span class="nc" id="L1130">		}</span>
+
+		/**
+		 * isIsPartOfUniqueness.
+		 * 
+		 * @return isPartOfUniqueness
+		 */
+		@JsonProperty(&quot;isPartOfUniqueness&quot;)
+		public Boolean isIsPartOfUniqueness() {
+<span class="nc" id="L1139">			return isPartOfUniqueness;</span>
+		}
+
+		/**
+		 * setIsPartOfUniqueness.
+		 * 
+		 * @param isPartOfUniqueness
+		 */
+		@JsonProperty(&quot;isPartOfUniqueness&quot;)
+		public void setIsPartOfUniqueness(Boolean isPartOfUniqueness) {
+<span class="nc" id="L1149">			this.isPartOfUniqueness = isPartOfUniqueness;</span>
+<span class="nc" id="L1150">		}</span>
+
+		/**
+		 * getAdditionalProperties.
+		 * 
+		 * @return additionalProperties
+		 */
+		@JsonAnyGetter
+		public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L1159">			return this.additionalProperties;</span>
+		}
+
+		/**
+		 * setAdditionalProperties.
+		 * 
+		 * @param key
+		 * @param val
+		 */
+		@JsonAnySetter
+		public void setAdditionalProperties(String key, Object val) {
+<span class="nc" id="L1170">			this.additionalProperties.put(key, val);</span>
+<span class="nc" id="L1171">		}</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthUserDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest.model.vrops</a> &gt; <span class="el_source">AuthUserDTO.java</span></div><h1>AuthUserDTO.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.rest.model.vrops;
+
+/*-
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({ &quot;id&quot;, &quot;username&quot;, &quot;firstName&quot;, &quot;lastName&quot;, &quot;password&quot;, &quot;emailAddress&quot;, &quot;distinguishedName&quot;, &quot;enabled&quot;, &quot;groupIds&quot;, &quot;roleNames&quot;,
+		&quot;role-permissions&quot;, &quot;lastLoginTime&quot;, &quot;links&quot; })
+<span class="fc" id="L32">public class AuthUserDTO {</span>
+
+	@JsonProperty(&quot;id&quot;)
+	private String id;
+
+	@JsonProperty(&quot;username&quot;)
+	private String username;
+
+	@JsonProperty(&quot;firstName&quot;)
+	private String firstName;
+
+	@JsonProperty(&quot;lastName&quot;)
+	private String lastName;
+
+	@JsonProperty(&quot;password&quot;)
+	private Object password;
+
+	@JsonProperty(&quot;emailAddress&quot;)
+	private String emailAddress;
+
+	@JsonProperty(&quot;distinguishedName&quot;)
+	private String distinguishedName;
+
+	@JsonProperty(&quot;enabled&quot;)
+	private Boolean enabled;
+
+	@JsonProperty(&quot;groupIds&quot;)
+	private List&lt;String&gt; groupIds;
+
+	@JsonProperty(&quot;roleNames&quot;)
+	private List&lt;String&gt; roleNames;
+
+	@JsonProperty(&quot;role-permissions&quot;)
+	private List&lt;RolePermission&gt; rolePermissions;
+
+	@JsonProperty(&quot;lastLoginTime&quot;)
+	private Long lastLoginTime;
+
+	@JsonProperty(&quot;links&quot;)
+	private List&lt;Link&gt; links;
+
+<span class="fc" id="L73">	@JsonIgnore</span>
+	private Map&lt;String, Object&gt; additionalProperties = new LinkedHashMap&lt;String, Object&gt;();
+
+	@JsonProperty(&quot;id&quot;)
+	public String getId() {
+<span class="nc" id="L78">		return id;</span>
+	}
+
+	@JsonProperty(&quot;id&quot;)
+	public void setId(String id) {
+<span class="nc" id="L83">		this.id = id;</span>
+<span class="nc" id="L84">	}</span>
+
+	@JsonProperty(&quot;username&quot;)
+	public String getUsername() {
+<span class="fc" id="L88">		return username;</span>
+	}
+
+	@JsonProperty(&quot;username&quot;)
+	public void setUsername(String username) {
+<span class="fc" id="L93">		this.username = username;</span>
+<span class="fc" id="L94">	}</span>
+
+	@JsonProperty(&quot;firstName&quot;)
+	public String getFirstName() {
+<span class="nc" id="L98">		return firstName;</span>
+	}
+
+	@JsonProperty(&quot;firstName&quot;)
+	public void setFirstName(String firstName) {
+<span class="nc" id="L103">		this.firstName = firstName;</span>
+<span class="nc" id="L104">	}</span>
+
+	@JsonProperty(&quot;lastName&quot;)
+	public String getLastName() {
+<span class="nc" id="L108">		return lastName;</span>
+	}
+
+	@JsonProperty(&quot;lastName&quot;)
+	public void setLastName(String lastName) {
+<span class="nc" id="L113">		this.lastName = lastName;</span>
+<span class="nc" id="L114">	}</span>
+
+	@JsonProperty(&quot;password&quot;)
+	public Object getPassword() {
+<span class="nc" id="L118">		return password;</span>
+	}
+
+	@JsonProperty(&quot;password&quot;)
+	public void setPassword(Object password) {
+<span class="nc" id="L123">		this.password = password;</span>
+<span class="nc" id="L124">	}</span>
+
+	@JsonProperty(&quot;emailAddress&quot;)
+	public String getEmailAddress() {
+<span class="nc" id="L128">		return emailAddress;</span>
+	}
+
+	@JsonProperty(&quot;emailAddress&quot;)
+	public void setEmailAddress(String emailAddress) {
+<span class="nc" id="L133">		this.emailAddress = emailAddress;</span>
+<span class="nc" id="L134">	}</span>
+
+	@JsonProperty(&quot;distinguishedName&quot;)
+	public String getDistinguishedName() {
+<span class="nc" id="L138">		return distinguishedName;</span>
+	}
+
+	@JsonProperty(&quot;distinguishedName&quot;)
+	public void setDistinguishedName(String distinguishedName) {
+<span class="nc" id="L143">		this.distinguishedName = distinguishedName;</span>
+<span class="nc" id="L144">	}</span>
+
+	@JsonProperty(&quot;enabled&quot;)
+	public Boolean getEnabled() {
+<span class="nc" id="L148">		return enabled;</span>
+	}
+
+	@JsonProperty(&quot;enabled&quot;)
+	public void setEnabled(Boolean enabled) {
+<span class="nc" id="L153">		this.enabled = enabled;</span>
+<span class="nc" id="L154">	}</span>
+
+	@JsonProperty(&quot;groupIds&quot;)
+	public List&lt;String&gt; getGroupIds() {
+<span class="nc" id="L158">		return groupIds;</span>
+	}
+
+	@JsonProperty(&quot;groupIds&quot;)
+	public void setGroupIds(List&lt;String&gt; groupIds) {
+<span class="nc" id="L163">		this.groupIds = groupIds;</span>
+<span class="nc" id="L164">	}</span>
+
+	@JsonProperty(&quot;roleNames&quot;)
+	public List&lt;String&gt; getRoleNames() {
+<span class="nc" id="L168">		return roleNames;</span>
+	}
+
+	@JsonProperty(&quot;roleNames&quot;)
+	public void setRoleNames(List&lt;String&gt; roleNames) {
+<span class="nc" id="L173">		this.roleNames = roleNames;</span>
+<span class="nc" id="L174">	}</span>
+
+	@JsonProperty(&quot;role-permissions&quot;)
+	public List&lt;RolePermission&gt; getRolePermissions() {
+<span class="nc" id="L178">		return rolePermissions;</span>
+	}
+
+	@JsonProperty(&quot;role-permissions&quot;)
+	public void setRolePermissions(List&lt;RolePermission&gt; rolePermissions) {
+<span class="nc" id="L183">		this.rolePermissions = rolePermissions;</span>
+<span class="nc" id="L184">	}</span>
+
+	@JsonProperty(&quot;lastLoginTime&quot;)
+	public Long getLastLoginTime() {
+<span class="nc" id="L188">		return lastLoginTime;</span>
+	}
+
+	@JsonProperty(&quot;lastLoginTime&quot;)
+	public void setLastLoginTime(Long lastLoginTime) {
+<span class="nc" id="L193">		this.lastLoginTime = lastLoginTime;</span>
+<span class="nc" id="L194">	}</span>
+
+	@JsonProperty(&quot;links&quot;)
+	public List&lt;Link&gt; getLinks() {
+<span class="nc" id="L198">		return links;</span>
+	}
+
+	@JsonProperty(&quot;links&quot;)
+	public void setLinks(List&lt;Link&gt; links) {
+<span class="nc" id="L203">		this.links = links;</span>
+<span class="nc" id="L204">	}</span>
+
+	@JsonAnyGetter
+	public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L208">		return this.additionalProperties;</span>
+	}
+
+	@JsonAnySetter
+	public void setAdditionalProperty(String name, Object value) {
+<span class="nc" id="L213">		this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L214">	}</span>
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	@JsonPropertyOrder({ &quot;roleName&quot;, &quot;scopeId&quot;, &quot;allowAllObjects&quot; })
+<span class="nc" id="L218">	public static class RolePermission {</span>
+
+		@JsonProperty(&quot;roleName&quot;)
+		private String roleName;
+
+		@JsonProperty(&quot;scopeId&quot;)
+		private String scopeId;
+
+		@JsonProperty(&quot;allowAllObjects&quot;)
+		private Boolean allowAllObjects;
+<span class="nc" id="L228">		@JsonIgnore</span>
+		private Map&lt;String, Object&gt; additionalProperties = new LinkedHashMap&lt;String, Object&gt;();
+
+		@JsonProperty(&quot;roleName&quot;)
+		public String getRoleName() {
+<span class="nc" id="L233">			return roleName;</span>
+		}
+
+		@JsonProperty(&quot;roleName&quot;)
+		public void setRoleName(String roleName) {
+<span class="nc" id="L238">			this.roleName = roleName;</span>
+<span class="nc" id="L239">		}</span>
+
+		@JsonProperty(&quot;scopeId&quot;)
+		public String getScopeId() {
+<span class="nc" id="L243">			return scopeId;</span>
+		}
+
+		@JsonProperty(&quot;scopeId&quot;)
+		public void setScopeId(String scopeId) {
+<span class="nc" id="L248">			this.scopeId = scopeId;</span>
+<span class="nc" id="L249">		}</span>
+
+		@JsonProperty(&quot;allowAllObjects&quot;)
+		public Boolean getAllowAllObjects() {
+<span class="nc" id="L253">			return allowAllObjects;</span>
+		}
+
+		@JsonProperty(&quot;allowAllObjects&quot;)
+		public void setAllowAllObjects(Boolean allowAllObjects) {
+<span class="nc" id="L258">			this.allowAllObjects = allowAllObjects;</span>
+<span class="nc" id="L259">		}</span>
+
+		@JsonAnyGetter
+		public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L263">			return this.additionalProperties;</span>
+		}
+
+		@JsonAnySetter
+		public void setAdditionalProperty(String name, Object value) {
+<span class="nc" id="L268">			this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L269">		}</span>
+	}
+
+	@JsonInclude(JsonInclude.Include.NON_NULL)
+	@JsonPropertyOrder({ &quot;href&quot;, &quot;rel&quot;, &quot;name&quot; })
+<span class="nc" id="L274">	public static class Link {</span>
+
+		@JsonProperty(&quot;href&quot;)
+		private String href;
+
+		@JsonProperty(&quot;rel&quot;)
+		private String rel;
+
+		@JsonProperty(&quot;name&quot;)
+		private String name;
+
+<span class="nc" id="L285">		@JsonIgnore</span>
+		private Map&lt;String, Object&gt; additionalProperties = new LinkedHashMap&lt;String, Object&gt;();
+
+		@JsonProperty(&quot;href&quot;)
+		public String getHref() {
+<span class="nc" id="L290">			return href;</span>
+		}
+
+		@JsonProperty(&quot;href&quot;)
+		public void setHref(String href) {
+<span class="nc" id="L295">			this.href = href;</span>
+<span class="nc" id="L296">		}</span>
+
+		@JsonProperty(&quot;rel&quot;)
+		public String getRel() {
+<span class="nc" id="L300">			return rel;</span>
+		}
+
+		@JsonProperty(&quot;rel&quot;)
+		public void setRel(String rel) {
+<span class="nc" id="L305">			this.rel = rel;</span>
+<span class="nc" id="L306">		}</span>
+
+		@JsonProperty(&quot;name&quot;)
+		public String getName() {
+<span class="nc" id="L310">			return name;</span>
+		}
+
+		@JsonProperty(&quot;name&quot;)
+		public void setName(String name) {
+<span class="nc" id="L315">			this.name = name;</span>
+<span class="nc" id="L316">		}</span>
+
+		@JsonAnyGetter
+		public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L320">			return this.additionalProperties;</span>
+		}
+
+		@JsonAnySetter
+		public void setAdditionalProperty(String name, Object value) {
+<span class="nc" id="L325">			this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L326">		}</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

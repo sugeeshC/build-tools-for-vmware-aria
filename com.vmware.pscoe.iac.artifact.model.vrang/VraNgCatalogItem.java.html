@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgCatalogItem.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.vrang</a> &gt; <span class="el_source">VraNgCatalogItem.java</span></div><h1>VraNgCatalogItem.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+/**
+ * Service Broker catalog item.
+ */
+public class VraNgCatalogItem {
+	/**
+	 * sourceId.
+	 */
+	private String sourceId;
+	/**
+	 * sourceName.
+	 */
+	private String sourceName;
+	/**
+	 * name.
+	 */
+	private String name;
+	/**
+	 * id.
+	 */
+	private String id;
+	/**
+	 * iconId.
+	 */
+	private String iconId;
+	/**
+	 * iconExtension.
+	 */
+	private String iconExtension;
+	/**
+	 * formId.
+	 */
+	private String formId;
+	/**
+	 * type.
+	 */
+	private final VraNgCatalogItemType type;
+
+	/**
+	 * Constructor function.
+	 * 
+	 * @param idIn Id input variable
+	 * @param sourceIdIn source input variable
+	 * @param nameIn name input variable
+	 * @param sourceNameIn source name input variable
+	 * @param typeIn type input variable
+	 */
+	public VraNgCatalogItem(
+			final String idIn,
+			final String sourceIdIn,
+			final String nameIn,
+			final String sourceNameIn,
+<span class="fc" id="L69">			final VraNgCatalogItemType typeIn) {</span>
+<span class="fc" id="L70">		this.id = idIn;</span>
+<span class="fc" id="L71">		this.sourceId = sourceIdIn;</span>
+<span class="fc" id="L72">		this.name = nameIn;</span>
+<span class="fc" id="L73">		this.sourceName = sourceNameIn;</span>
+<span class="fc" id="L74">		this.type = typeIn;</span>
+<span class="fc" id="L75">	}</span>
+
+	/**
+	 * Getter for id.
+	 * 
+	 * @return String id
+	 */
+	public String getId() {
+<span class="fc" id="L83">		return this.id;</span>
+	}
+
+	/**
+	 * Catalog Item id gets updated when we need to fetch the correct id from the
+	 * server to do operations like.
+	 * patching an iconID
+	 * 
+	 * @param idIn is
+	 */
+	public void setId(final String idIn) {
+<span class="fc" id="L94">		this.id = idIn;</span>
+<span class="fc" id="L95">	}</span>
+
+	/**
+	 * Getter for sourceId.
+	 * 
+	 * @return String
+	 */
+	public String getSourceId() {
+<span class="fc" id="L103">		return this.sourceId;</span>
+	}
+
+	/**
+	 * Getter for sourceName.
+	 * 
+	 * @return String
+	 */
+	public String getSourceName() {
+<span class="fc" id="L112">		return this.sourceName;</span>
+	}
+
+	/**
+	 * Getter for name.
+	 * 
+	 * @return String
+	 */
+	public String getName() {
+<span class="fc" id="L121">		return this.name;</span>
+	}
+
+	/**
+	 * setName.
+	 *
+	 * @param nameIn nane value
+	 */
+	public void setName(final String nameIn) {
+<span class="nc" id="L130">		this.name = nameIn;</span>
+<span class="nc" id="L131">	}</span>
+
+	/**
+	 * Getter for iconId.
+	 * 
+	 * @return String
+	 */
+	public String getIconId() {
+<span class="fc" id="L139">		return this.iconId;</span>
+	}
+
+	/**
+	 * Setter for iconId.
+	 * @param iconIdIn icon id value
+	 */
+	public void setIconId(final String iconIdIn) {
+<span class="fc" id="L147">		this.iconId = iconIdIn;</span>
+<span class="fc" id="L148">	}</span>
+
+	/**
+	 * Is there a icon associated with this catalog item.
+	 * 
+	 * @return boolean
+	 */
+	public boolean hasIcon() {
+<span class="pc bpc" id="L156" title="1 of 4 branches missed.">		return this.iconId != null &amp;&amp; this.iconExtension != null;</span>
+	}
+
+	/**
+	 * Setter for icon extension.
+	 * @param iconExtensionIn icon extension value
+	 */
+	public void setIconExtension(final String iconExtensionIn) {
+<span class="fc" id="L164">		this.iconExtension = iconExtensionIn;</span>
+<span class="fc" id="L165">	}</span>
+
+	/**
+	 * Getter for getIconExtension.
+	 * 
+	 * @return String
+	 */
+	public String getIconExtension() {
+<span class="fc" id="L173">		return this.iconExtension;</span>
+	}
+
+	/**
+	 * Getter for formId.
+	 * 
+	 * @return String
+	 */
+	public String getFormId() {
+<span class="nc" id="L182">		return this.formId;</span>
+	}
+
+	/**
+	 * Setter for formId.
+	 * @param formIdIn String
+	 */
+	public void setFormId(final String formIdIn) {
+<span class="fc" id="L190">		this.formId = formIdIn;</span>
+<span class="fc" id="L191">	}</span>
+
+	/**
+	 * Is there a form associated with this catalog item.
+	 * 
+	 * @return boolean
+	 */
+	public boolean hasForm() {
+<span class="fc bfc" id="L199" title="All 2 branches covered.">		return this.formId != null;</span>
+	}
+
+	/**
+	 * Decision based on the type needs to performed to see which call we need to
+	 * perform in 812.
+	 * 
+	 * @return VraNgContentSourceType
+	 */
+	public VraNgContentSourceType getType() {
+<span class="pc bpc" id="L209" title="1 of 2 branches missed.">		if (this.type == null) {</span>
+<span class="nc" id="L210">			return VraNgContentSourceType.UNKNOWN;</span>
+		}
+<span class="fc" id="L212">		return this.type.getId();</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

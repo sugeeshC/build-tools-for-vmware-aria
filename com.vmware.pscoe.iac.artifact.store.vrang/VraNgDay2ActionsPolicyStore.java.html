@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgDay2ActionsPolicyStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.vrang</a> &gt; <span class="el_source">VraNgDay2ActionsPolicyStore.java</span></div><h1>VraNgDay2ActionsPolicyStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.vrang;
+
+/*-
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 - 2024 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.stream.JsonReader;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgDay2ActionsPolicy;
+import com.vmware.pscoe.iac.artifact.store.filters.CustomFolderFileFilter;
+import com.vmware.pscoe.iac.artifact.utils.VraNgOrganizationUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+<span class="fc" id="L39">public final class VraNgDay2ActionsPolicyStore extends AbstractVraNgStore {</span>
+	/**
+	 * Suffix used for all of the resources saved by this store.
+	 */
+	private static final String CUSTOM_RESOURCE_SUFFIX = &quot;.json&quot;;
+	/**
+	 * Sub folder path for day 2 actions policy.
+	 */
+	private static final String DAY2_ACTIONS_POLICY = &quot;day2-actions&quot;;
+	/**
+	 * Logger.
+	 */
+<span class="fc" id="L51">	private final Logger logger = LoggerFactory.getLogger(VraNgDay2ActionsPolicyStore.class);</span>
+
+	/**
+	 * Imports policies found in specified folder on server, according to filter specified in content.yml file.
+	 * If there is a list of policy names - import only the specified policies.
+	 * If there is no list, import everything.
+	 * @param sourceDirectory the folder where policy files are stored.
+	 */
+	@Override
+	public void importContent(File sourceDirectory) {
+<span class="fc" id="L61">		logger.info(&quot;Importing files from the '{}' directory&quot;,</span>
+			com.vmware.pscoe.iac.artifact.store.vrang.VraNgDirs.DIR_POLICIES);
+		// verify directory exists
+<span class="fc" id="L64">		File policyFolder = Paths</span>
+<span class="fc" id="L65">			.get(sourceDirectory.getPath(),</span>
+				com.vmware.pscoe.iac.artifact.store.vrang.VraNgDirs.DIR_POLICIES,
+				DAY2_ACTIONS_POLICY)
+<span class="fc" id="L68">			.toFile();</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">		if (!policyFolder.exists()) {</span>
+<span class="fc" id="L70">			logger.info(&quot;Day 2 Actions policy directory not found.&quot;);</span>
+<span class="fc" id="L71">			return;</span>
+		}
+
+<span class="fc" id="L74">		List&lt;String&gt; policies = this.getItemListFromDescriptor();</span>
+
+<span class="fc" id="L76">		File[] day2ActionsolicyFiles = this.filterBasedOnConfiguration(policyFolder,</span>
+			new CustomFolderFileFilter(policies));
+
+<span class="pc bpc" id="L79" title="2 of 4 branches missed.">		if (day2ActionsolicyFiles != null &amp;&amp; day2ActionsolicyFiles.length == 0) {</span>
+<span class="nc" id="L80">			logger.info(&quot;Could not find any Day 2 Actions Policies.&quot;);</span>
+<span class="nc" id="L81">			return;</span>
+		}
+
+<span class="fc" id="L84">		logger.info(&quot;Found Day 2 Actions  Policies. Importing ...&quot;);</span>
+
+<span class="fc bfc" id="L86" title="All 2 branches covered.">		for (File policyFile : day2ActionsolicyFiles) {</span>
+			//exclude hidden files e.g. .DS_Store
+			//exclude files that do not end with a '.json' extension as defined in CUSTOM_RESOURCE_SUFFIX
+<span class="fc" id="L89">			String filename = policyFile.getName();</span>
+<span class="pc bpc" id="L90" title="2 of 4 branches missed.">			if (!filename.startsWith(&quot;.&quot;) &amp;&amp; filename.endsWith(CUSTOM_RESOURCE_SUFFIX)) {</span>
+<span class="fc" id="L91">				this.handleDay2ActionsPolicyImport(policyFile);</span>
+			} else {
+<span class="nc" id="L93">				logger.warn(&quot;Skipped unexpected file '{}'&quot;, filename);</span>
+			}
+		}
+<span class="fc" id="L96">	}</span>
+
+	/**
+	 * .
+	 * Handles logic to update or create a day 2 actions policy.
+	 *
+	 * @param day2ActionspolicyFile
+	 */
+	private void handleDay2ActionsPolicyImport(final File day2ActionspolicyFile) {
+<span class="fc" id="L105">		VraNgDay2ActionsPolicy policy = jsonFileToVraNgDay2ActionsPolicy(day2ActionspolicyFile);</span>
+		//replace object organization id with target organization Id
+<span class="fc" id="L107">		String organizationId = VraNgOrganizationUtil.getOrganization(this.restClient, this.config).getId();</span>
+
+<span class="fc" id="L109">		logger.info(&quot;Attempting to import day 2 actions policy '{}', from file'{}'&quot;, policy.getName(), day2ActionspolicyFile.getName());</span>
+		//if the policy has a project property, replace it with current project id.
+		//if the policy does not have a project property - replacing it will change the policy,
+		// so do not replace a null or blank value.
+<span class="pc bpc" id="L113" title="2 of 6 branches missed.">		if (policy.getProjectId() != null &amp;&amp; !(policy.getProjectId().isBlank()) &amp;&amp; !policy.getOrgId().equals(organizationId)) {</span>
+<span class="fc" id="L114">			logger.debug(&quot;Replacing policy projectId with projectId from configuration.&quot;);</span>
+<span class="fc" id="L115">			policy.setProjectId(this.restClient.getProjectId());</span>
+		}
+<span class="fc" id="L117">		policy.setOrgId(organizationId);</span>
+<span class="fc" id="L118">		this.restClient.createDay2ActionsPolicy(policy);</span>
+<span class="fc" id="L119">	}</span>
+	/**
+	 * getItemListFromDescriptor.
+	 * @return list of policy names to import or export.
+	 */
+	@Override
+	protected List&lt;String&gt; getItemListFromDescriptor() {
+
+<span class="pc bpc" id="L127" title="1 of 2 branches missed.">		if (this.vraNgPackageDescriptor.getPolicy() == null) {</span>
+<span class="nc" id="L128">			logger.info(&quot;Descriptor policy is null&quot;);</span>
+<span class="nc" id="L129">			return null;</span>
+		} else {
+<span class="fc" id="L131">			logger.info(&quot;Found items {}&quot;, this.vraNgPackageDescriptor.getPolicy().getDay2Actions());</span>
+<span class="fc" id="L132">			return this.vraNgPackageDescriptor.getPolicy().getDay2Actions();</span>
+		}
+	}
+	/**
+	 * Exporting every policy of this type found on server.
+	 */
+	@Override
+	protected void exportStoreContent() {
+<span class="fc" id="L140">		this.logger.debug(&quot;{}-&gt;exportStoreContent()&quot;, this.getClass());</span>
+<span class="fc" id="L141">		List&lt;VraNgDay2ActionsPolicy&gt; rqPolicies = this.restClient.getDay2ActionsPolicies();</span>
+<span class="fc" id="L142">		Path policyFolderPath = getPolicyFolderPath();</span>
+<span class="fc" id="L143">		Map&lt;String, VraNgDay2ActionsPolicy&gt; currentPoliciesOnFileSystem = getCurrentPoliciesOnFileSystem(policyFolderPath);</span>
+
+<span class="fc" id="L145">		rqPolicies.forEach(</span>
+			policy -&gt; {
+<span class="fc" id="L147">				storeDay2ActionsPolicyOnFilesystem(policyFolderPath, policy, currentPoliciesOnFileSystem);</span>
+<span class="fc" id="L148">			});</span>
+<span class="fc" id="L149">	}</span>
+
+	/**
+	 * Exports all the content for the given project based on the names in content.yaml.
+	 *
+	 * @param itemNames Item names for export
+	 */
+	@Override
+	protected void exportStoreContent(final List&lt;String&gt; itemNames) {
+<span class="fc" id="L158">		this.logger.debug(&quot;{}-&gt;exportStoreContent({})&quot;, this.getClass(), itemNames.toString());</span>
+<span class="fc" id="L159">		List&lt;VraNgDay2ActionsPolicy&gt; policies = this.restClient.getDay2ActionsPolicies();</span>
+<span class="fc" id="L160">		Path policyFolderPath = getPolicyFolderPath();</span>
+<span class="fc" id="L161">		Map&lt;String, VraNgDay2ActionsPolicy&gt; currentPoliciesOnFileSystem = getCurrentPoliciesOnFileSystem(policyFolderPath);</span>
+
+
+<span class="fc" id="L164">		policies.forEach(</span>
+			policy -&gt; {
+<span class="pc bpc" id="L166" title="1 of 2 branches missed.">				if (itemNames.contains(policy.getName())) {</span>
+<span class="fc" id="L167">					logger.debug(&quot;exporting '{}'&quot;, policy.getName());</span>
+<span class="fc" id="L168">					storeDay2ActionsPolicyOnFilesystem(policyFolderPath, policy, currentPoliciesOnFileSystem);</span>
+				}
+<span class="fc" id="L170">			});</span>
+<span class="fc" id="L171">	}</span>
+	/**
+	 * Store day 2 actions policy in JSON file.
+	 *
+	 * @param policyFolderPath        day 2 actions folder path
+	 * @param day2ActionsPolicy day2ActionsPolicy representation
+	 * @param currentPoliciesOnFileSystem  a map of file names and policies, already present in the folder, used to avoid duplicate file names.
+	 */
+	private void storeDay2ActionsPolicyOnFilesystem(final Path policyFolderPath,
+													final VraNgDay2ActionsPolicy day2ActionsPolicy,
+													Map&lt;String, VraNgDay2ActionsPolicy&gt; currentPoliciesOnFileSystem) {
+
+<span class="fc" id="L183">		File policyFile = getPolicyFile(policyFolderPath, day2ActionsPolicy, currentPoliciesOnFileSystem);</span>
+<span class="fc" id="L184">		logger.info(&quot;Storing day2ActionsPolicy '{}', to file '{}&quot;, day2ActionsPolicy.getName(), policyFile.getPath());</span>
+
+
+		try {
+			//is serializeNulls() needed?
+<span class="fc" id="L189">			Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="fc" id="L190">			JsonObject d2aPolicyJsonObject = gson.fromJson(new Gson().toJson(day2ActionsPolicy), JsonObject.class);</span>
+			
+<span class="fc" id="L192">			logger.info(&quot;Created day 2 actions policy file {}&quot;,</span>
+<span class="fc" id="L193">				Files.write(Paths.get(policyFile.getPath()),</span>
+<span class="fc" id="L194">					gson.toJson(d2aPolicyJsonObject).getBytes(), StandardOpenOption.CREATE));</span>
+			//after write, put currently policy on the map for the next iteration
+
+<span class="fc" id="L197">			String fileName = policyFile.getName().replace(CUSTOM_RESOURCE_SUFFIX, &quot;&quot;);</span>
+<span class="fc" id="L198">			currentPoliciesOnFileSystem.put(fileName, day2ActionsPolicy);</span>
+
+<span class="nc" id="L200">		} catch (IOException e) {</span>
+<span class="nc" id="L201">			logger.error(&quot;Unable to create day 2 actions policy  {}&quot;, policyFile.getAbsolutePath());</span>
+<span class="nc" id="L202">			throw new RuntimeException(</span>
+<span class="nc" id="L203">				String.format(</span>
+<span class="nc" id="L204">					&quot;Unable to store day 2 actions policy to file %s.&quot;, policyFile.getAbsolutePath()),</span>
+				e);
+<span class="fc" id="L206">		}</span>
+
+<span class="fc" id="L208">	}</span>
+	/**
+	 * @param policyFolderPath the correct subfolder path for the policy type.
+	 * @param policy the policy that is exported.
+	 * @param currentPoliciesOnFileSystem  all the other policies currently in the folder.
+	 * @return the file where to store the policy.
+	 */
+
+	private File getPolicyFile(Path policyFolderPath, VraNgDay2ActionsPolicy policy, Map&lt;String, VraNgDay2ActionsPolicy&gt; currentPoliciesOnFileSystem) {
+<span class="fc" id="L217">		String filename = policy.getName();</span>
+<span class="fc" id="L218">		String policyName = policy.getName();</span>
+<span class="pc bpc" id="L219" title="3 of 6 branches missed.">		if (filename.contains(&quot;..&quot;) || filename.contains(&quot;/&quot;) || filename.contains(&quot;\\&quot;)) {</span>
+<span class="nc" id="L220">			throw new IllegalArgumentException(&quot;Invalid filename &quot; + filename);</span>
+		}
+		//see if filename already exists in map.
+<span class="fc" id="L223">		int index = 1;</span>
+<span class="fc" id="L224">		boolean match = false;</span>
+<span class="fc bfc" id="L225" title="All 2 branches covered.">		while (!match) {</span>
+			//logger.debug(&quot;File name {}, index {} , name with Index {};&quot;, filename, index, filenameWithIndex);
+
+<span class="fc bfc" id="L228" title="All 2 branches covered.">			if (currentPoliciesOnFileSystem.containsKey(filename)) {</span>
+				//check if policy is our policy from previous run or a different one.
+<span class="fc bfc" id="L230" title="All 2 branches covered.">				if (policy.getId().equals(currentPoliciesOnFileSystem.get(filename).getId())) {</span>
+<span class="fc" id="L231">					match = true;</span>
+				} else {
+<span class="fc" id="L233">					filename = policyName + &quot;_&quot; + index;</span>
+<span class="fc" id="L234">					index++;</span>
+
+				}
+			} else {
+<span class="fc" id="L238">				match = true;</span>
+			}
+		}
+
+<span class="fc" id="L242">		logger.debug(&quot;Final Filename is {}, for policy with name {}&quot;, filename, policy.getName());</span>
+
+<span class="fc" id="L244">		File policyFile = Paths.get(</span>
+<span class="fc" id="L245">			String.valueOf(policyFolderPath),</span>
+<span class="fc" id="L246">			filename + CUSTOM_RESOURCE_SUFFIX).toFile();</span>
+<span class="fc" id="L247">		return policyFile;</span>
+	}
+
+	/**
+	 * Read the filesystem where policies will be stored, make a map of pre existing files there, to avoid duplication and/or unintentional overwriting.
+	 * @param policyFolderPath get actual path where policies should be stored.
+	 * @return a map of filenames and policies, found in the path.
+	 */
+	private Map&lt;String, VraNgDay2ActionsPolicy&gt; getCurrentPoliciesOnFileSystem(Path policyFolderPath) {
+
+		//First make sure path exists and is a folder.
+<span class="pc bpc" id="L258" title="1 of 2 branches missed.">		if (!policyFolderPath.toFile().isDirectory()</span>
+<span class="nc bnc" id="L259" title="All 2 branches missed.">			&amp;&amp; !policyFolderPath.toFile().mkdirs()) {</span>
+<span class="nc" id="L260">			logger.warn(&quot;Could not create folder: {}&quot;, policyFolderPath.toFile().getAbsolutePath());</span>
+		}
+
+<span class="fc" id="L263">		File[] policyFiles = policyFolderPath.toFile().listFiles();</span>
+<span class="fc" id="L264">		Map&lt;String, VraNgDay2ActionsPolicy&gt; currentPoliciesOnFileSystem = new HashMap&lt;&gt;();</span>
+
+<span class="fc bfc" id="L266" title="All 2 branches covered.">		for (File policyFile : policyFiles) {</span>
+<span class="fc" id="L267">			String fileNameWithExt = policyFile.getName();</span>
+			//exclude hidden files e.g. .DS_Store
+<span class="pc bpc" id="L269" title="1 of 2 branches missed.">			if (!fileNameWithExt.startsWith(&quot;.&quot;)) {</span>
+<span class="fc" id="L270">				String fileName = fileNameWithExt.replace(CUSTOM_RESOURCE_SUFFIX, &quot;&quot;);</span>
+<span class="fc" id="L271">				currentPoliciesOnFileSystem.put(fileName, this.jsonFileToVraNgDay2ActionsPolicy(policyFile));</span>
+			}
+		}
+<span class="fc" id="L274">		return currentPoliciesOnFileSystem;</span>
+	}
+
+	/**
+	 * Calculate day 2 actions policies sub-folder absolute filesystem path.
+	 * @return the day 2 actions policies sub-folder absolute filesystem path.
+	 */
+	private Path getPolicyFolderPath() {
+<span class="fc" id="L282">		File store = new File(vraNgPackage.getFilesystemPath());</span>
+
+<span class="fc" id="L284">		Path policyFolderPath = Paths.get(</span>
+<span class="fc" id="L285">			store.getPath(),</span>
+			VraNgDirs.DIR_POLICIES,
+			DAY2_ACTIONS_POLICY);
+<span class="fc bfc" id="L288" title="All 2 branches covered.">		if (!policyFolderPath.toFile().isDirectory()</span>
+<span class="pc bpc" id="L289" title="1 of 2 branches missed.">			&amp;&amp; !policyFolderPath.toFile().mkdirs()) {</span>
+<span class="nc" id="L290">			logger.warn(&quot;Could not create folder: {}&quot;, policyFolderPath.getFileName());</span>
+		}
+<span class="fc" id="L292">		return policyFolderPath;</span>
+	}
+
+
+	/**
+	 * Converts a json catalog item file to VraNgDay2ActionsPolicy.
+	 *
+	 * @param jsonFile
+	 *
+	 * @return VraNgDay2ActionsPolicy
+	 */
+	private VraNgDay2ActionsPolicy jsonFileToVraNgDay2ActionsPolicy(final File jsonFile) {
+<span class="fc" id="L304">		logger.debug(&quot;Converting day 2 actions policy file to VraNgDay2ActionsPolicy. Name: '{}'&quot;,</span>
+<span class="fc" id="L305">			jsonFile.getName());</span>
+
+<span class="fc" id="L307">		try (JsonReader reader = new JsonReader(new FileReader(jsonFile.getPath()))) {</span>
+<span class="fc" id="L308">			return new Gson().fromJson(reader, VraNgDay2ActionsPolicy.class);</span>
+<span class="nc" id="L309">		} catch (IOException e) {</span>
+<span class="nc" id="L310">			throw new RuntimeException(String.format(&quot;Error reading from file: %s&quot;, jsonFile.getPath()), e);</span>
+		}
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

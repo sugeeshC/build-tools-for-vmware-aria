@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbxReleaseManager.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact</a> &gt; <span class="el_source">AbxReleaseManager.java</span></div><h1>AbxReleaseManager.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.vmware.pscoe.iac.artifact.model.abx.AbxAction;
+import com.vmware.pscoe.iac.artifact.model.abx.AbxActionVersion;
+import com.vmware.pscoe.iac.artifact.model.abx.AbxPackageDescriptor;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgBlueprint;
+import com.vmware.pscoe.iac.artifact.rest.RestClientVraNg;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+public class AbxReleaseManager {
+
+    RestClientVraNg restClient;
+
+<span class="nc" id="L38">    private final Logger logger = LoggerFactory.getLogger(AbxReleaseManager.class);</span>
+
+<span class="nc" id="L40">    public AbxReleaseManager(RestClientVraNg restClient) {</span>
+<span class="nc" id="L41">        this.restClient = restClient;</span>
+<span class="nc" id="L42">    }</span>
+
+    public void releaseContent(String version, File baseDir) {
+
+<span class="nc" id="L46">        logger.info(&quot;Creating package descriptor from: {}&quot;, baseDir.getAbsolutePath());</span>
+<span class="nc" id="L47">        AbxPackageDescriptor abxDescriptor = AbxPackageDescriptor.getInstance(baseDir);</span>
+
+        // Get existing actions from server
+<span class="nc" id="L50">        List&lt;AbxAction&gt; abxActionsOnServer = this.restClient.getAllAbxActions();</span>
+<span class="nc" id="L51">        Map&lt;String, AbxAction&gt; abxActionsOnServerByName = abxActionsOnServer.stream()</span>
+<span class="nc" id="L52">                .collect(Collectors.toMap(AbxAction::getName, item -&gt; item));</span>
+
+<span class="nc" id="L54">        AbxAction existingAction = abxActionsOnServerByName.get(abxDescriptor.getAction().getName());</span>
+
+<span class="nc bnc" id="L56" title="All 2 branches missed.">        if (existingAction == null) {</span>
+<span class="nc" id="L57">            logger.error(&quot;Action {} does not exist on server. Cannot release!&quot;, abxDescriptor.getAction().getName());</span>
+<span class="nc" id="L58">            return;</span>
+        }
+
+        // determine release version
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        if (version.equals(&quot;auto&quot;)) {</span>
+<span class="nc" id="L63">            releaseNextVersion(existingAction);</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">        } else if (version.equals(&quot;project&quot;)) {</span>
+<span class="nc" id="L65">            releaseVersion(existingAction, abxDescriptor.getAction().version);</span>
+        } else {
+<span class="nc" id="L67">            releaseVersion(existingAction, version);</span>
+        }
+<span class="nc" id="L69">    }</span>
+
+    /**
+     * Attempt to generate a next version and release it.
+     * @param actionOnServer ABX action
+     */
+    protected void releaseNextVersion(AbxAction actionOnServer) {
+<span class="nc" id="L76">        AbxActionVersion latestVersion = this.restClient.getAbxLastUpdatedVersion(actionOnServer);</span>
+        String nextVersion;
+<span class="nc bnc" id="L78" title="All 2 branches missed.">        if (latestVersion != null) {</span>
+<span class="nc" id="L79">            logger.debug(&quot;Latest version: {}&quot;, latestVersion.name);</span>
+<span class="nc" id="L80">            logger.debug(&quot;Latest version id: {}&quot;, latestVersion.id);</span>
+<span class="nc" id="L81">            nextVersion = this.getNextVersion(latestVersion.name);</span>
+        } else {
+<span class="nc" id="L83">            logger.info(&quot;No previous version found. Creating initial version&quot;);</span>
+<span class="nc" id="L84">            nextVersion = this.getNextVersion(null);</span>
+        }
+
+<span class="nc" id="L87">        logger.debug(&quot;Next version of action {}: {}&quot;, actionOnServer.getName(), nextVersion);</span>
+<span class="nc" id="L88">        this.releaseVersion(actionOnServer, nextVersion);</span>
+<span class="nc" id="L89">    }</span>
+
+    /**
+     * Release a new version of the abx action.
+     * @param actionOnServer ABX action
+     * @param version new version
+     */
+    protected void releaseVersion(AbxAction actionOnServer, String version) {
+
+<span class="nc" id="L98">        logger.info(&quot;Creating abx action version {}&quot;, version);</span>
+<span class="nc" id="L99">        AbxActionVersion newVersion = this.restClient.createAbxVersion(actionOnServer, version);</span>
+
+<span class="nc" id="L101">        logger.info(&quot;Releasing abx action version {}&quot;, newVersion.name);</span>
+<span class="nc" id="L102">        AbxActionVersion releasedVersion = this.restClient.releaseAbxVersion(actionOnServer, newVersion.id);</span>
+
+<span class="nc" id="L104">        logger.info(&quot;Version successfully released&quot;);</span>
+<span class="nc" id="L105">    }</span>
+
+    /**
+     * Generate next version based on the previous version format.
+     * Supported version formats are:
+     * * MAJOR
+     * * MAJOR.MINOR
+     * * MAJOR.MINOR.PATCH
+     * A datetime-based version will be returned if the previous version format does not match
+     * any of the supported formats.
+     * @param version previous version
+     * @return next version
+     */
+    private String getNextVersion(String version) {
+
+<span class="nc bnc" id="L120" title="All 2 branches missed.">        if (version == null) {</span>
+            // create a version based on the date and time
+<span class="nc" id="L122">            return getDateVersion();</span>
+        }
+
+<span class="nc" id="L125">        Matcher major = Pattern.compile(&quot;([0-9]+)&quot;).matcher(version);</span>
+<span class="nc" id="L126">        Matcher majorMinor = Pattern.compile(&quot;([0-9]+)\\.([0-9]+)&quot;).matcher(version);</span>
+<span class="nc" id="L127">        Matcher majorMinorPatch = Pattern.compile(&quot;([0-9]+)\\.([0-9]+)\\.([0-9]+)&quot;).matcher(version);</span>
+
+<span class="nc bnc" id="L129" title="All 2 branches missed.">        if (majorMinorPatch.matches()) {</span>
+<span class="nc" id="L130">            logger.debug(&quot;Detected version pattern MAJOR.MINOR.PATCH from {} with incrementable segment '{}'&quot;, version, majorMinorPatch.group(3));</span>
+            // increment the patch segment
+<span class="nc" id="L132">            return majorMinorPatch.group(1) + &quot;.&quot; + majorMinorPatch.group(2) + &quot;.&quot; + (Integer.parseInt(majorMinorPatch.group(3)) + 1);</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">        } else if (majorMinor.matches()) {</span>
+<span class="nc" id="L134">            logger.debug(&quot;Detected version pattern MAJOR.MINOR from '{}' with incrementable segment '{}'&quot;, version, majorMinor.group(2));</span>
+            // increment the minor segment
+<span class="nc" id="L136">            return majorMinor.group(1) + &quot;.&quot; + (Integer.parseInt(majorMinor.group(2)) + 1);</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">        } else if (major.matches()) {</span>
+<span class="nc" id="L138">            logger.debug(&quot;Detected version pattern MAJOR from '{}' with incrementable segment '{}'&quot;, version, major.group(1));</span>
+            // increment the major segment
+<span class="nc" id="L140">            return Integer.toString(Integer.parseInt(major.group(1)) + 1);</span>
+        } else {
+<span class="nc" id="L142">            logger.debug(&quot;Could not determine version pattern from {}&quot;, version);</span>
+<span class="nc" id="L143">            return getDateVersion();</span>
+        }
+
+    }
+
+    /**
+     * Create a version based on the current date and time.
+     * @return datetime-based version
+     */
+    private String getDateVersion() {
+<span class="nc" id="L153">        Date date = Calendar.getInstance().getTime();</span>
+<span class="nc" id="L154">        DateFormat dateFormat = new SimpleDateFormat(&quot;yyyy-MM-dd-HH-mm-ss&quot;);</span>
+<span class="nc" id="L155">        return dateFormat.format(date);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

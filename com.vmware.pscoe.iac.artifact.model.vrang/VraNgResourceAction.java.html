@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgResourceAction.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.vrang</a> &gt; <span class="el_source">VraNgResourceAction.java</span></div><h1>VraNgResourceAction.java</h1><pre class="source lang-java linenums">/**
+ * Package.
+ */
+package com.vmware.pscoe.iac.artifact.model.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+public class VraNgResourceAction {
+
+	/**
+	 * Prime Number 17.
+	 */
+	private static final int PRIME_NUMBER_17 = 17;
+	/**
+	 * Prime Number 31.
+	 */
+	private static final int PRIME_NUMBER_31 = 31;
+	/**
+	 * Resource Action ID.
+	 */
+	private final String id;
+	/**
+	 * Resource Action Name.
+	 */
+	private final String name;
+	/**
+	 * Resource Action JSON.
+	 */
+	private final String json;
+	/**
+	 * Resource Action Resource Type.
+	 */
+	private final String resourceType;
+
+	/**
+	 * Creates a new Resource Action.
+	 * 
+	 * @param identifier   Resource Action id
+	 * @param recourseName Resource Action name
+	 * @param jsonString   Resrouce Action json
+	 */
+<span class="nc" id="L55">	public VraNgResourceAction(final String identifier, final String recourseName, final String jsonString) {</span>
+<span class="nc" id="L56">		this.id = identifier;</span>
+<span class="nc" id="L57">		this.name = recourseName;</span>
+<span class="nc" id="L58">		this.json = jsonString;</span>
+<span class="nc" id="L59">		this.resourceType = null;</span>
+<span class="nc" id="L60">	}</span>
+
+	/**
+	 * Creates a new Resource Action.
+	 * 
+	 * @param identifier           Resource Action id
+	 * @param actionName         Resource Action name
+	 * @param jsonString         Resource Action json
+	 * @param actionResourceType Resource Action Resource Type
+	 */
+<span class="fc" id="L70">	public VraNgResourceAction(final String identifier, final String actionName, final String jsonString, final String actionResourceType) {</span>
+<span class="fc" id="L71">		this.id = identifier;</span>
+<span class="fc" id="L72">		this.name = actionName;</span>
+<span class="fc" id="L73">		this.json = jsonString;</span>
+<span class="fc" id="L74">		this.resourceType = actionResourceType;</span>
+<span class="fc" id="L75">	}</span>
+
+	/**
+	 * Gets the id of the Resource Action.
+	 * 
+	 * @return Resource Action ID
+	 */
+	public String getId() {
+<span class="nc" id="L83">		return this.id;</span>
+	}
+
+	/**
+	 * Gets the Name of the Resource Action.
+	 * 
+	 * @return Resource Action Name
+	 */
+	public String getName() {
+<span class="fc" id="L92">		return this.name;</span>
+	}
+
+	/**
+	 * Gets the JSON String of the Resource Action.
+	 * 
+	 * @return Resource Action JSON String
+	 */
+	public String getJson() {
+<span class="fc" id="L101">		return this.json;</span>
+	}
+
+	/**
+	 * Gets the Resource Type of the Resource Action.
+	 * 
+	 * @return Resource Action Resource Type
+	 */
+	public String getResourceType() {
+<span class="fc" id="L110">		return this.resourceType;</span>
+	}
+
+	/**
+	 * Equals Implementation.
+	 * 
+	 * @return true if equal else false
+	 */
+	@Override
+	public boolean equals(final Object obj) {
+<span class="nc bnc" id="L120" title="All 4 branches missed.">		if (obj == null || !this.getClass().equals(obj.getClass())) {</span>
+<span class="nc" id="L121">			return false;</span>
+		}
+
+<span class="nc" id="L124">		VraNgResourceAction other = (VraNgResourceAction) obj;</span>
+<span class="nc" id="L125">		return this.id.equals(other.getId());</span>
+	}
+
+	/**
+	 * Hash Implementation.
+	 * 
+	 * @return object hash
+	 */
+	@Override
+	public int hashCode() {
+<span class="fc" id="L135">		int result = PRIME_NUMBER_17;</span>
+<span class="fc" id="L136">		return PRIME_NUMBER_31 * result + this.id.hashCode();</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgContentSourceBase.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.vrang</a> &gt; <span class="el_source">VraNgContentSourceBase.java</span></div><h1>VraNgContentSourceBase.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.util.ArrayList;
+import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+<span class="fc" id="L23">public class VraNgContentSourceBase {</span>
+
+    @JsonProperty(&quot;id&quot;)
+    protected String id;
+
+    @JsonProperty(&quot;name&quot;)
+    protected String name;
+
+    @JsonProperty(&quot;description&quot;)
+    protected String description;
+
+    @JsonProperty(&quot;typeId&quot;)
+    protected String typeId;
+
+    @JsonProperty(&quot;itemsImported&quot;)
+    protected int itemsImported;
+
+    @JsonProperty(&quot;itemsFound&quot;)
+    protected int itemsFound;
+
+<span class="fc" id="L43">    @JsonProperty(&quot;lastImportErrors&quot;)</span>
+    protected transient List&lt;String&gt; lastImportErrors = new ArrayList&lt;&gt;();
+
+    @JsonProperty(&quot;global&quot;)
+    protected boolean global;
+
+    public String getId() {
+<span class="nc" id="L50">        return id;</span>
+    }
+
+    public void setId(String id) {
+<span class="fc" id="L54">        this.id = id;</span>
+<span class="fc" id="L55">    }</span>
+
+    public String getName() {
+<span class="fc" id="L58">        return name;</span>
+    }
+
+    public void setName(String name) {
+<span class="fc" id="L62">        this.name = name;</span>
+<span class="fc" id="L63">    }</span>
+
+    public String getTypeId() {
+<span class="nc" id="L66">        return typeId;</span>
+    }
+
+    public void setTypeId(String typeId) {
+<span class="fc" id="L70">        this.typeId = typeId;</span>
+<span class="fc" id="L71">    }</span>
+
+    public Integer getItemsFound() {
+<span class="nc" id="L74">        return itemsFound;</span>
+    }
+
+    public void setItemsFound(Integer itemsFound) {
+<span class="nc" id="L78">        this.itemsFound = itemsFound;</span>
+<span class="nc" id="L79">    }</span>
+
+    public Integer getItemsImported() {
+<span class="nc" id="L82">        return itemsImported;</span>
+    }
+
+    public void setItemsImported(Integer itemsImported) {
+<span class="nc" id="L86">        this.itemsImported = itemsImported;</span>
+<span class="nc" id="L87">    }</span>
+
+    public List&lt;String&gt; getLastImportErrors() {
+<span class="nc" id="L90">        return lastImportErrors;</span>
+    }
+
+    public void setLastImportErrors(List&lt;String&gt; lastImportErrors) {
+<span class="nc" id="L94">        this.lastImportErrors = lastImportErrors;</span>
+<span class="nc" id="L95">    }</span>
+    @JsonIgnore
+    public VraNgContentSourceType getType() {
+<span class="fc" id="L98">        return VraNgContentSourceType.fromString(this.typeId);</span>
+    }
+
+    public String getDescription() {
+<span class="nc" id="L102">        return description;</span>
+    }
+
+    public void setDescription(String description) {
+<span class="nc" id="L106">        this.description = description;</span>
+<span class="nc" id="L107">    }</span>
+
+    public boolean isGlobal() {
+<span class="nc" id="L110">        return global;</span>
+    }
+
+    public void setGlobal(boolean global) {
+<span class="nc" id="L114">        this.global = global;</span>
+<span class="nc" id="L115">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

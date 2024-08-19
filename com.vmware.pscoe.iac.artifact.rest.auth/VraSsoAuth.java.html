@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraSsoAuth.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest.auth</a> &gt; <span class="el_source">VraSsoAuth.java</span></div><h1>VraSsoAuth.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.rest.auth;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.Option;
+import net.minidev.json.JSONArray;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import com.google.gson.Gson;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVro;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVro.AuthProvider;
+import com.vmware.pscoe.iac.artifact.rest.model.sso.SsoEndpointDto;
+
+public class VraSsoAuth {
+    /** CAFE_CLI_OWNER. */
+    private static final String CAFE_CLI_OWNER = &quot;CAFE_CLI_OWNER&quot;;
+    /** Authorication endpoint for vRA 8.x. */
+    private static final String AUTHORIZATION_SERVICE_URL_VRA_CLOUD = &quot;/csp/gateway/am/api/auth/api-tokens/authorize&quot;;
+    /** Login endpoint for vRA 8.x . */
+    private static final String AUTHORIZATION_SERVICE_URL_VRA_8 = &quot;/csp/gateway/am/api/login&quot;;
+    /** Authentication endpoint for vRA 7.x . */
+    private static final String AUTHORIZATION_SERVICE_URL_VRA_7 = &quot;/SAAS/t/%s/auth/oauthtoken&quot;;
+    /** Single Sign On endpont for vRA 7.x . */
+    private static final String COMPONENT_REGISTRY_URL_VRA_7 = &quot;/component-registry/endpoints/types/sso&quot;;
+    /** Endpont used to get the version. */
+    private static final String VERSION_URL = &quot;vco/api/about&quot;;
+    /** Protocol scheme. */
+    private static final String DEFAULT_HTTP_SCHEME = &quot;https&quot;;
+    /** CSP Authentication token name. */
+    private static final String TOKEN_NAME = &quot;cspAuthToken&quot;;
+    /** Bearer token type. */
+    private static final String DEFAULT_TOKEN_TYPE = &quot;Bearer&quot;;
+    /**Version prefix for vRA versions 8.x. */
+    private static final String VRA_8_VERSION_PREFIX = &quot;8.&quot;;
+    /** Http Entity. */
+    private static final String HTTP_ENTITY_TYPE = &quot;httpEntity&quot;;
+    /** Token URI. */
+    private static final String TOKEN_URL_TYPE = &quot;tokenUri&quot;;
+
+    /** vRO Config.*/
+    private ConfigurationVro vroConfig;
+    /** REST Tempalate to be used for communicating with  the REST API of the. */
+    private RestTemplate restTemplate;
+    /** Aria Automation version. */
+    private String serverVersion;
+
+    /**
+     * Create new instance of the class that is using the orivided configuraiton and REST Template.
+     * @param config Configuration on how to connect to Aria Automation.
+     * @param restTemplate REST Temaplate to be used to issue REST API calls.
+     */
+<span class="nc" id="L81">    public VraSsoAuth(ConfigurationVro config, RestTemplate restTemplate) {</span>
+<span class="nc" id="L82">        this.vroConfig = config;</span>
+<span class="nc" id="L83">        this.restTemplate = restTemplate;</span>
+<span class="nc" id="L84">        this.serverVersion = this.getVersion();</span>
+<span class="nc" id="L85">    }</span>
+
+    /**
+     * Accuire authentication token from Aria Automation.
+     * @return The token returned by Aria Automation.
+     */
+    public SsoToken acquireToken() {
+<span class="nc" id="L92">        return acquireToken(null);</span>
+    }
+
+    /**
+     * Accuire authentcation token from Aria Automation using the specified client id.
+     * @param clientId The client id.
+     * @return The token obtained from Aria Automation.
+     */
+    public SsoToken acquireToken(String clientId) {
+        final  Map&lt;String, Object&gt; tokenUriAndHttpEntity;
+<span class="nc bnc" id="L102" title="All 4 branches missed.">		final boolean isTokenAuth = this.serverVersion.endsWith(&quot;-saas-enabled&quot;) || !StringUtils.isEmpty(this.vroConfig.getRefreshToken());</span>
+
+<span class="nc bnc" id="L104" title="All 2 branches missed.">        if (isTokenAuth) {</span>
+<span class="nc" id="L105">			tokenUriAndHttpEntity = getTokenUriAndHttpEntityVraCloud();</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">		} else if (this.serverVersion.startsWith(VRA_8_VERSION_PREFIX)) {</span>
+<span class="nc" id="L107">            tokenUriAndHttpEntity = getTokenUriAndHttpEntityVra8();</span>
+        } else {
+<span class="nc" id="L109">            tokenUriAndHttpEntity = getTokenUriAndHttpEntityVra7(clientId);</span>
+        }
+
+<span class="nc" id="L112">        final URI tokenUri = (URI) tokenUriAndHttpEntity.get(TOKEN_URL_TYPE);</span>
+<span class="nc" id="L113">        final HttpEntity&lt;?&gt; httpEntity = (HttpEntity&lt;?&gt;) tokenUriAndHttpEntity.get(HTTP_ENTITY_TYPE);</span>
+        try {
+<span class="nc" id="L115">            final ResponseEntity&lt;String&gt; response = this.restTemplate.exchange(tokenUri, HttpMethod.POST, httpEntity, String.class);</span>
+
+<span class="nc" id="L117">            final DocumentContext responseBody = JsonPath.parse(response.getBody());</span>
+
+<span class="nc bnc" id="L119" title="All 2 branches missed.">            final String tokenValue = isTokenAuth</span>
+<span class="nc" id="L120">				? responseBody.read(&quot;$.access_token&quot;)</span>
+<span class="nc" id="L121">				: responseBody.read(&quot;$.&quot; + TOKEN_NAME);</span>
+
+<span class="nc" id="L123">            return new SsoToken(tokenValue, AuthProvider.VRA);</span>
+<span class="nc" id="L124">        } catch (Exception e) {</span>
+<span class="nc" id="L125">            throw new RuntimeException(String.format(&quot;Unable to acquire token for VRO SSO authentication: %s. Request was %s %s. Request body not shown due to sensitive data.&quot;,</span>
+<span class="nc" id="L126">                e.getMessage(), HttpMethod.POST, tokenUri));</span>
+        }
+    }
+
+    /**
+     * Get authentication URL type and Entity type and entity from vRealize Automation 7.x using the specified client id.
+     * This will only work for vRealize Automation 7.x versions of vRA.
+     * @param clientId Client id.
+     * @return A map that is containing the Token URL type (TOKEN_URL_TYPE) and the entity type (HTTP_ENTITY_TYPE).
+     */
+    public Map&lt;String, Object&gt; getTokenUriAndHttpEntityVra7(String clientId) {
+<span class="nc bnc" id="L137" title="All 2 branches missed.">        if (StringUtils.isEmpty(clientId)) {</span>
+<span class="nc" id="L138">            clientId = retrieveClientId();</span>
+        }
+
+<span class="nc" id="L141">        final URI tokenUri = UriComponentsBuilder.newInstance()</span>
+<span class="nc" id="L142">            .scheme(DEFAULT_HTTP_SCHEME)</span>
+<span class="nc" id="L143">            .host(this.vroConfig.getAuthHost())</span>
+<span class="nc" id="L144">            .port(this.vroConfig.getAuthPort())</span>
+<span class="nc" id="L145">            .path(String.format(AUTHORIZATION_SERVICE_URL_VRA_7, this.vroConfig.getTenant()))</span>
+<span class="nc" id="L146">            .queryParam(&quot;grant_type&quot;, &quot;password&quot;)</span>
+<span class="nc" id="L147">            .build().toUri();</span>
+
+        // Prepare request payload data
+<span class="nc" id="L150">        final MultiValueMap&lt;String, String&gt; payload = new LinkedMultiValueMap&lt;&gt;();</span>
+<span class="nc" id="L151">        payload.add(&quot;username&quot;, this.vroConfig.getUsername());</span>
+<span class="nc" id="L152">        payload.add(&quot;password&quot;, this.vroConfig.getPassword());</span>
+<span class="nc" id="L153">        payload.add(&quot;domain&quot;, this.vroConfig.getDomain());</span>
+<span class="nc" id="L154">        payload.add(&quot;client_id&quot;, clientId);</span>
+
+<span class="nc" id="L156">        final HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L157">        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);</span>
+
+<span class="nc" id="L159">        HttpEntity&lt;MultiValueMap&lt;String, String&gt;&gt; entity = new HttpEntity&lt;&gt;(payload, headers);</span>
+
+<span class="nc" id="L161">        final Map&lt;String, Object&gt; tokenUriAndHttpEntity = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L162">        tokenUriAndHttpEntity.put(TOKEN_URL_TYPE, tokenUri);</span>
+<span class="nc" id="L163">        tokenUriAndHttpEntity.put(HTTP_ENTITY_TYPE, entity);</span>
+
+<span class="nc" id="L165">        return tokenUriAndHttpEntity;</span>
+    }
+
+    /**
+     * Obtain and return an authentication URL type and entity type from Aria Automation 8.x.
+     * This will only work with Aria Automation verison 8.x of Aria Automation.
+     * @return A map that is containing the Token URL type (TOKEN_URL_TYPE) and the entity type (HTTP_ENTITY_TYPE).
+     */
+    public Map&lt;String, Object&gt; getTokenUriAndHttpEntityVra8() {
+<span class="nc" id="L174">        final URI tokenUri = UriComponentsBuilder.newInstance()</span>
+<span class="nc" id="L175">            .scheme(DEFAULT_HTTP_SCHEME)</span>
+<span class="nc" id="L176">            .host(this.vroConfig.getAuthHost())</span>
+<span class="nc" id="L177">            .port(this.vroConfig.getAuthPort())</span>
+<span class="nc" id="L178">            .path(AUTHORIZATION_SERVICE_URL_VRA_8)</span>
+<span class="nc" id="L179">            .queryParam(&quot;tenant&quot;, this.vroConfig.getTenant())</span>
+<span class="nc" id="L180">            .queryParam(TOKEN_NAME, &quot;&quot;).build().toUri();</span>
+
+        // Prepare request payload data
+<span class="nc" id="L183">        final Map&lt;String, String&gt; payload = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L184">        payload.put(&quot;username&quot;, this.vroConfig.getUsername());</span>
+<span class="nc" id="L185">        payload.put(&quot;password&quot;, this.vroConfig.getPassword());</span>
+<span class="nc" id="L186">        payload.put(&quot;domain&quot;, this.vroConfig.getDomain());</span>
+
+<span class="nc" id="L188">        Gson gsonObject = new Gson();</span>
+<span class="nc" id="L189">        String stringPayload = gsonObject.toJson(payload);</span>
+
+<span class="nc" id="L191">        final HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L192">        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+
+<span class="nc" id="L194">        HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(stringPayload, headers);</span>
+
+<span class="nc" id="L196">        final Map&lt;String, Object&gt; tokenUriAndHttpEntity = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L197">        tokenUriAndHttpEntity.put(TOKEN_URL_TYPE, tokenUri);</span>
+<span class="nc" id="L198">        tokenUriAndHttpEntity.put(HTTP_ENTITY_TYPE, entity);</span>
+
+<span class="nc" id="L200">        return tokenUriAndHttpEntity;</span>
+    }
+
+    /**
+     * Obtain and return an authentication URL type and entity type from Aria Automation Cloud.
+     * This will only work with Aria Automation Cloud.
+     * @return A map that is containing the Token URL type (TOKEN_URL_TYPE) and the entity type (HTTP_ENTITY_TYPE).
+     */
+	public Map&lt;String, Object&gt; getTokenUriAndHttpEntityVraCloud() {
+<span class="nc" id="L209">		final URI tokenUri = UriComponentsBuilder.newInstance()</span>
+<span class="nc" id="L210">			.scheme(DEFAULT_HTTP_SCHEME)</span>
+<span class="nc" id="L211">			.host(this.vroConfig.getAuthHost())</span>
+<span class="nc" id="L212">			.port(this.vroConfig.getAuthPort())</span>
+<span class="nc" id="L213">			.path(AUTHORIZATION_SERVICE_URL_VRA_CLOUD).build().toUri();</span>
+
+<span class="nc" id="L215">		final HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L216">		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);</span>
+
+<span class="nc" id="L218">		final MultiValueMap&lt;String, String&gt; map = new LinkedMultiValueMap&lt;&gt;();</span>
+<span class="nc" id="L219">		map.add(&quot;api_token&quot;, this.vroConfig.getRefreshToken());</span>
+
+<span class="nc" id="L221">		HttpEntity&lt;MultiValueMap&lt;String, String&gt;&gt; entity = new HttpEntity&lt;&gt;(map, headers);</span>
+
+<span class="nc" id="L223">		final Map&lt;String, Object&gt; tokenUriAndHttpEntity = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L224">		tokenUriAndHttpEntity.put(TOKEN_URL_TYPE, tokenUri);</span>
+<span class="nc" id="L225">		tokenUriAndHttpEntity.put(HTTP_ENTITY_TYPE, entity);</span>
+
+<span class="nc" id="L227">		return tokenUriAndHttpEntity;</span>
+	}
+
+    /**
+     * Retrieve SSO Client Id.
+     * @return The client id.
+     */
+    public String retrieveClientId() {
+<span class="nc" id="L235">        final URI tokenUri = UriComponentsBuilder.newInstance()</span>
+<span class="nc" id="L236">                .scheme(DEFAULT_HTTP_SCHEME)</span>
+<span class="nc" id="L237">                .host(this.vroConfig.getAuthHost())</span>
+<span class="nc" id="L238">                .port(this.vroConfig.getAuthPort())</span>
+<span class="nc" id="L239">                .path(COMPONENT_REGISTRY_URL_VRA_7).build().toUri();</span>
+
+<span class="nc" id="L241">        final SsoEndpointDto ssoEndpoint = this.restTemplate.getForObject(tokenUri, SsoEndpointDto.class);</span>
+
+<span class="nc" id="L243">        return ssoEndpoint.getEndPointAttributes().stream().filter(attr -&gt; CAFE_CLI_OWNER.equals(attr.getKey())).findFirst()</span>
+<span class="nc" id="L244">                .orElseThrow(() -&gt; new RuntimeException(&quot;Could not find the SSO Client ID&quot;)).getValue();</span>
+    }
+
+    /**
+     * Retrive vRA version.
+     * @return the strig representation of the version.
+     */
+    private String getVersion() {
+        // vRA Cloud doesn't have vRO services and it's auth host (console.cloud.vmware.com)
+        // is different than the Extensibility Proxy's vRO address (ext-proxy01.corp.local),
+        // hence the /vco/api/about is not available on the 'authHost' address, but on the 'host' address
+<span class="nc" id="L255">        final URI versionUri = UriComponentsBuilder.newInstance()</span>
+<span class="nc" id="L256">                .scheme(DEFAULT_HTTP_SCHEME)</span>
+<span class="nc" id="L257">                .host(this.vroConfig.getHost())</span>
+<span class="nc" id="L258">                .port(this.vroConfig.getPort())</span>
+<span class="nc" id="L259">                .path(VERSION_URL).build().toUri();</span>
+
+<span class="nc" id="L261">        ResponseEntity&lt;String&gt; response = restTemplate.exchange(versionUri, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="nc" id="L263">		Configuration conf = Configuration.defaultConfiguration();</span>
+<span class="nc" id="L264">		conf.addOptions(Option.DEFAULT_PATH_LEAF_TO_NULL);</span>
+<span class="nc" id="L265">		conf.addOptions(Option.SUPPRESS_EXCEPTIONS);</span>
+<span class="nc" id="L266">		DocumentContext jsonDoc = JsonPath.using(conf).parse(response.getBody());</span>
+<span class="nc" id="L267">		JSONArray saasCheck = jsonDoc.read(&quot;$.features[?(@.name == 'saas-enabled')].name&quot;);</span>
+
+<span class="nc" id="L269">		String version = jsonDoc.read(&quot;$.version&quot;);</span>
+<span class="nc bnc" id="L270" title="All 4 branches missed.">		if (version != null &amp;&amp; !saasCheck.isEmpty()) {</span>
+<span class="nc" id="L271">			version += &quot;-saas-enabled&quot;;</span>
+		}
+
+<span class="nc" id="L274">        return version;</span>
+    }
+
+    private HttpEntity&lt;String&gt; getDefaultHttpEntity() {
+<span class="nc" id="L278">        HttpHeaders headers = new HttpHeaders();</span>
+
+<span class="nc" id="L280">        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+
+<span class="nc" id="L282">        return new HttpEntity&lt;&gt;(headers);</span>
+    }
+
+    /**
+     * Single Signe On token class.
+     */
+    public static class SsoToken {
+        /** The token value. */
+        private String value;
+        /** The token type, such as &quot;Bearer&quot;. */
+        private String tokenType;
+        /** Authentication provider. */
+        private AuthProvider type;
+
+        /**
+         * Create a new Single Sign On token based on the given token string and Authentication Provider.
+         * @param token Toek string.
+         * @param type Authentication provider.
+         */
+<span class="nc" id="L301">        public SsoToken(String token, AuthProvider type) {</span>
+<span class="nc" id="L302">            this.value = token;</span>
+<span class="nc" id="L303">            this.type = type;</span>
+<span class="nc" id="L304">            this.tokenType = DEFAULT_TOKEN_TYPE;</span>
+<span class="nc" id="L305">        }</span>
+
+        /**
+         * Return the token string.
+         * @return the token string.
+         */
+        public String getValue() {
+<span class="nc" id="L312">            return value;</span>
+        }
+
+        /**
+         * Return true if expired and  false otherwise.
+         * @return true if expired and false otherwise.
+         */
+        public boolean isExpired() {
+<span class="nc" id="L320">            return Boolean.TRUE;</span>
+        }
+
+        /**
+        * Return the authentication provider type.
+         * @return the authentication provider type.
+         */
+        public AuthProvider getType() {
+<span class="nc" id="L328">            return type;</span>
+        }
+
+        /**
+         * The toekn type such as Bearer.
+         * @return toekn type such as Bearer.
+         */
+        public String getTokenType() {
+<span class="nc" id="L336">            return tokenType;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

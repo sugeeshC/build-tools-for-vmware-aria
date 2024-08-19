@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgFlavorMappingStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.vrang</a> &gt; <span class="el_source">VraNgFlavorMappingStore.java</span></div><h1>VraNgFlavorMappingStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCloudAccount;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgFlavorMapping;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageDescriptor;
+import com.vmware.pscoe.iac.artifact.model.vrang.objectmapping.VraNgCloudRegionProfile;
+import com.vmware.pscoe.iac.artifact.rest.RestClientVraNg;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import static com.vmware.pscoe.iac.artifact.store.vrang.VraNgDirs.DIR_FLAVOR_MAPPINGS;
+import static com.vmware.pscoe.iac.artifact.store.vrang.VraNgDirs.DIR_REGIONS;
+
+<span class="fc" id="L46">public class VraNgFlavorMappingStore extends AbstractVraNgRegionalStore{</span>
+
+<span class="fc" id="L48">    private final Logger logger = LoggerFactory.getLogger(VraNgFlavorMappingStore.class);</span>
+
+    // =================================================
+    // FLAVOR MAPPINGS EXPORT
+    // =================================================
+
+	/**
+	 * Used to fetch the store's data from the package descriptor
+	 *
+	 * @return list of flavor mappings
+	 */
+	@Override
+	protected List&lt;String&gt; getItemListFromDescriptor() {
+<span class="fc" id="L61">		return this.vraNgPackageDescriptor.getFlavorMapping();</span>
+	}
+
+	/**
+	 * Called when the List returned from getItemListFromDescriptor is empty
+	 */
+	@Override
+	protected void exportStoreContent( List&lt;VraNgCloudAccount&gt; cloudAccounts ) {
+<span class="fc" id="L69">		Map&lt;String, List&lt;VraNgFlavorMapping&gt;&gt; flavorsByRegionId = this.restClient.getAllFlavorMappingsByRegion();</span>
+
+<span class="fc" id="L71">		cloudAccounts.forEach(cloudAccount -&gt; {</span>
+<span class="fc" id="L72">			List&lt;String&gt; regionsInCloudAccount = cloudAccount.getRegionIds()</span>
+<span class="fc" id="L73">				.stream()</span>
+<span class="fc" id="L74">				.filter(flavorsByRegionId::containsKey)</span>
+<span class="fc" id="L75">				.collect(Collectors.toList());</span>
+
+<span class="fc" id="L77">			logger.debug(&quot;Exporting flavor mappings from cloud account {}&quot;, cloudAccount.getName());</span>
+
+<span class="fc" id="L79">			regionsInCloudAccount.forEach(regionId -&gt; {</span>
+
+<span class="fc" id="L81">				String profileDirName = cloudAccount.getName() + &quot;~&quot; + regionId;</span>
+
+<span class="fc" id="L83">				File sourceDir = new File(vraNgPackage.getFilesystemPath());</span>
+<span class="fc" id="L84">				VraNgRegionalContentUtils.createCloudRegionProfileFile(cloudAccount, regionId, sourceDir, profileDirName);</span>
+
+<span class="fc" id="L86">				List&lt;VraNgFlavorMapping&gt; flavorMappings = new ArrayList&lt;&gt;( flavorsByRegionId.get( regionId ) );</span>
+
+<span class="fc" id="L88">				logger.info(&quot;Flavour mappings to export: {}&quot;, </span>
+<span class="fc" id="L89">					flavorMappings.stream().map(VraNgFlavorMapping::getName).collect(Collectors.toList()));</span>
+
+<span class="fc" id="L91">				flavorMappings.forEach(flavorMapping -&gt;</span>
+<span class="fc" id="L92">					this.exportFlavorMappingToFileSystem(sourceDir, profileDirName, flavorMapping));</span>
+<span class="fc" id="L93">			});</span>
+<span class="fc" id="L94">		});</span>
+<span class="fc" id="L95">	}</span>
+
+	/**
+	 * Called when the List returned from getItemListFromDescriptor is not empty
+	 *
+	 * @param	cloudAccounts list of cloud accounts
+	 * @param	flavorMappingsToExport list of flavor mappings
+	 */
+	@Override
+	protected void exportStoreContent( List&lt;VraNgCloudAccount&gt; cloudAccounts, List&lt;String&gt; flavorMappingsToExport ) {
+<span class="fc" id="L105">		Map&lt;String, List&lt;VraNgFlavorMapping&gt;&gt; flavorsByRegionId	= this.restClient.getAllFlavorMappingsByRegion();</span>
+
+<span class="fc" id="L107">		cloudAccounts.forEach(cloudAccount -&gt; {</span>
+<span class="fc" id="L108">			List&lt;String&gt; regionsInCloudAccount = cloudAccount.getRegionIds()</span>
+<span class="fc" id="L109">				.stream()</span>
+<span class="fc" id="L110">				.filter(flavorsByRegionId::containsKey)</span>
+<span class="fc" id="L111">				.collect(Collectors.toList());</span>
+
+<span class="fc" id="L113">			logger.debug(&quot;Exporting flavor mappings from cloud account {}&quot;, cloudAccount.getName());</span>
+
+<span class="fc" id="L115">			regionsInCloudAccount.forEach(regionId -&gt; {</span>
+<span class="fc" id="L116">				String profileDirName = cloudAccount.getName() + &quot;~&quot; + regionId;</span>
+
+<span class="fc" id="L118">				File sourceDir = new File(vraNgPackage.getFilesystemPath());</span>
+<span class="fc" id="L119">				VraNgRegionalContentUtils.createCloudRegionProfileFile(cloudAccount, regionId, sourceDir, profileDirName);</span>
+
+<span class="fc" id="L121">				List&lt;VraNgFlavorMapping&gt; flavorMappings = flavorsByRegionId.get(regionId)</span>
+<span class="fc" id="L122">					.stream()</span>
+<span class="fc" id="L123">					.filter(fm -&gt; flavorMappingsToExport.contains(fm.getName()))</span>
+<span class="fc" id="L124">					.collect(Collectors.toList());</span>
+
+<span class="fc" id="L126">				logger.info(&quot;Flavour mappings to export: {}&quot;, </span>
+<span class="fc" id="L127">					flavorMappings.stream().map(VraNgFlavorMapping::getName).collect(Collectors.toList()));</span>
+
+<span class="fc" id="L129">				flavorMappings.forEach(flavorMapping -&gt;</span>
+<span class="fc" id="L130">					this.exportFlavorMappingToFileSystem(sourceDir, profileDirName, flavorMapping));</span>
+<span class="fc" id="L131">			});</span>
+<span class="fc" id="L132">		});</span>
+<span class="fc" id="L133">	}</span>
+
+    /**
+     * Save a flavor mapping to a JSON file
+     * @param sourceDir source directory
+     * @param profileDirName region directory
+     * @param flavorMapping flavor mapping
+     */
+    private void exportFlavorMappingToFileSystem(File sourceDir, String profileDirName, VraNgFlavorMapping flavorMapping) {
+<span class="fc" id="L142">        File flavorMappingFile =</span>
+<span class="fc" id="L143">                Paths.get(sourceDir.getPath(), DIR_REGIONS, profileDirName, DIR_FLAVOR_MAPPINGS, flavorMapping.getName() + &quot;.json&quot;).toFile();</span>
+
+<span class="fc" id="L145">        flavorMappingFile.getParentFile().mkdirs();</span>
+
+        try {
+<span class="fc" id="L148">            Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="fc" id="L149">            String flavorJson = gson.toJson(gson.fromJson(flavorMapping.getJson(), JsonObject.class));</span>
+<span class="fc" id="L150">            logger.info(&quot;Created file {}&quot;, Files.write(Paths.get(flavorMappingFile.getPath()), flavorJson.getBytes(), StandardOpenOption.CREATE));</span>
+<span class="nc" id="L151">        } catch (IOException e) {</span>
+<span class="nc" id="L152">            logger.error(&quot;Unable to store flavor mapping {} {}&quot;, flavorMapping.getName(), flavorMappingFile.getPath());</span>
+<span class="nc" id="L153">            throw new RuntimeException(&quot;Unable to store flavor mapping.&quot;, e);</span>
+<span class="fc" id="L154">        }</span>
+<span class="fc" id="L155">    }</span>
+
+    // =================================================
+    // FLAVOR MAPPINGS IMPORT
+    // =================================================
+
+    /**
+     * Import all flavor profiles from a package.
+     * @param sourceDirectory temporary directory containing the files
+	 * @param importTags list of tags
+     */
+    public void importContent(File sourceDirectory, List&lt;String&gt; importTags) {
+<span class="nc" id="L167">        File regionsFolder = Paths.get(sourceDirectory.getPath(), DIR_REGIONS).toFile();</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">        if (!regionsFolder.exists()) {</span>
+<span class="nc" id="L169">            logger.debug(&quot;Regions directory does not exist. Skipping import of flavor profiles...&quot;);</span>
+<span class="nc" id="L170">            return;</span>
+        }
+
+<span class="nc" id="L173">        List&lt;VraNgCloudAccount&gt; cloudAccounts = this.restClient.getCloudAccounts();</span>
+
+<span class="nc" id="L175">        Map&lt;String, List&lt;String&gt;&gt; flavorProfilesByRegion = this.restClient.getAllFlavorProfilesByRegion();</span>
+
+<span class="nc" id="L177">        logger.debug(&quot;Flavor profiles by region: {}&quot;, flavorProfilesByRegion);</span>
+
+        // list all directories in the regions folder
+<span class="nc" id="L180">        Arrays.asList(regionsFolder.listFiles(File::isDirectory)).forEach(regionProfileDir -&gt; {</span>
+            try {
+<span class="nc" id="L182">                VraNgCloudRegionProfile cloudRegionProfile = VraNgRegionalContentUtils.getCloudRegionProfile(regionProfileDir);</span>
+<span class="nc" id="L183">                cloudAccounts</span>
+<span class="nc" id="L184">                        .stream()</span>
+<span class="nc" id="L185">                        .filter(cloudAccount -&gt; VraNgRegionalContentUtils.isIntersecting(cloudAccount.getTags(), importTags))</span>
+<span class="nc" id="L186">                        .filter(cloudAccount -&gt; cloudAccount.getType().equals(cloudRegionProfile.getRegionType()))</span>
+<span class="nc" id="L187">                        .forEach(cloudAccount -&gt; cloudAccount.getRegionIds()</span>
+<span class="nc" id="L188">                                .forEach(regionId -&gt; this.importFlavorProfilesInRegion(</span>
+                                        regionId,
+                                        regionProfileDir,
+                                        flavorProfilesByRegion)));
+<span class="nc" id="L192">            } catch (IOException e) {</span>
+<span class="nc" id="L193">                e.printStackTrace();</span>
+<span class="nc" id="L194">            }</span>
+<span class="nc" id="L195">        });</span>
+<span class="nc" id="L196">    }</span>
+
+    /**
+     * Create a list of flavor mappings from JSON file representation
+     * @param flavorMappingsDir directory containing the flavor mappings for the region
+     * @return list of flavor mappings
+     */
+    private List&lt;VraNgFlavorMapping&gt; getFlavorMappingsFromFileSystem(File flavorMappingsDir) {
+<span class="nc" id="L204">        List&lt;VraNgFlavorMapping&gt; flavorMappings = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L205">        FileUtils.listFiles(flavorMappingsDir, new String[] { &quot;json&quot; }, false).forEach(fm -&gt; {</span>
+            try {
+<span class="nc" id="L207">                File fmFile = (File) fm;</span>
+<span class="nc" id="L208">                String flavorMappingName = FilenameUtils.removeExtension(fmFile.getName());</span>
+<span class="nc" id="L209">                String flavorMappingContent = FileUtils.readFileToString(fmFile, &quot;UTF-8&quot;);</span>
+<span class="nc" id="L210">                flavorMappings.add(new VraNgFlavorMapping(flavorMappingName, flavorMappingContent));</span>
+<span class="nc" id="L211">            } catch (IOException e) {</span>
+<span class="nc" id="L212">                e.printStackTrace();</span>
+<span class="nc" id="L213">            }</span>
+<span class="nc" id="L214">        });</span>
+
+<span class="nc" id="L216">        return flavorMappings;</span>
+    }
+
+    /**
+     * Import flavor mappings in a cloud region (cloud zone). If a flavor profile already exists,
+     * update it with a new mapping, otherwise create a flavor profile with a single mapping inside.
+     * @param regionId region id
+     * @param regionProfileDir region directory
+     * @param flavorProfilesByRegion list of existing flavor profiles on server
+     */
+    private void importFlavorProfilesInRegion(
+            String regionId, File regionProfileDir, Map&lt;String, List&lt;String&gt;&gt; flavorProfilesByRegion) {
+
+<span class="nc" id="L229">        File flavorMappingsDir = Paths.get(regionProfileDir.getPath(), DIR_FLAVOR_MAPPINGS).toFile();</span>
+<span class="nc bnc" id="L230" title="All 2 branches missed.">        if (!flavorMappingsDir.exists()) {</span>
+<span class="nc" id="L231">            logger.debug(&quot;Flavor mappings directory {} does not exist in region {}. Skipping...&quot;, DIR_FLAVOR_MAPPINGS, regionId);</span>
+<span class="nc" id="L232">            return;</span>
+        }
+<span class="nc" id="L234">        List&lt;VraNgFlavorMapping&gt; flavorMappings = this.getFlavorMappingsFromFileSystem(flavorMappingsDir);</span>
+
+<span class="nc" id="L236">        logger.info(&quot;Creating/updating {} flavor mappings: {}&quot;,</span>
+<span class="nc" id="L237">			flavorMappings.size(), flavorMappings.stream().map(VraNgFlavorMapping::getName).collect(Collectors.toList()));</span>
+
+<span class="nc bnc" id="L239" title="All 2 branches missed.">        if (flavorProfilesByRegion.containsKey(regionId)) {</span>
+<span class="nc" id="L240">            this.updateFlavorProfilesWithMappings(flavorProfilesByRegion.get(regionId), flavorMappings);</span>
+        } else {
+<span class="nc" id="L242">            this.createFlavorProfilesWithMappings(regionId, flavorMappings);</span>
+        }
+<span class="nc" id="L244">    }</span>
+
+    private void updateFlavorProfilesWithMappings(
+            List&lt;String&gt; flavorProfilesToPatch, List&lt;VraNgFlavorMapping&gt; flavorMappings) {
+
+<span class="nc" id="L249">        flavorProfilesToPatch.forEach(flavorProfileId -&gt; {</span>
+<span class="nc" id="L250">            this.restClient.updateFlavor(flavorProfileId, flavorMappings);</span>
+<span class="nc" id="L251">        });</span>
+<span class="nc" id="L252">    }</span>
+
+    private void createFlavorProfilesWithMappings(String regionId, List&lt;VraNgFlavorMapping&gt; flavorMappings) {
+<span class="nc" id="L255">        this.restClient.createFlavor(regionId, &quot;Auto Generated Profile from Import&quot;, flavorMappings);</span>
+<span class="nc" id="L256">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

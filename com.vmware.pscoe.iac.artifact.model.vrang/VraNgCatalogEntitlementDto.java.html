@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgCatalogEntitlementDto.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.vrang</a> &gt; <span class="el_source">VraNgCatalogEntitlementDto.java</span></div><h1>VraNgCatalogEntitlementDto.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+<span class="nc" id="L21">public class VraNgCatalogEntitlementDto {</span>
+
+    private String id;
+    private String projectId;
+<span class="nc" id="L25">    private Map&lt;String, String&gt; definition = new LinkedHashMap&lt;String, String&gt;();</span>
+
+    public String getId() {
+<span class="nc" id="L28">        return id;</span>
+    }
+
+    public void setId(String id) {
+<span class="nc" id="L32">        this.id = id;</span>
+<span class="nc" id="L33">    }</span>
+
+    public String getProjectId() {
+<span class="nc" id="L36">        return projectId;</span>
+    }
+
+    public void setProjectId(String projectId) {
+<span class="nc" id="L40">        this.projectId = projectId;</span>
+<span class="nc" id="L41">    }</span>
+
+    public Map&lt;String, String&gt; getDefinition() {
+<span class="nc" id="L44">        return definition;</span>
+    }
+
+    public void setDefinition(Map&lt;String, String&gt; definition) {
+<span class="nc" id="L48">        this.definition = definition;</span>
+<span class="nc" id="L49">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

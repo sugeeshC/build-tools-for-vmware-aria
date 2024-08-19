@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VrliPackageStoreV1.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact</a> &gt; <span class="el_source">VrliPackageStoreV1.java</span></div><h1>VrliPackageStoreV1.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.List;
+
+import com.vmware.pscoe.iac.artifact.rest.client.vrli.RestClientVrliV1;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.rest.model.vrli.v1.AlertDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrli.v1.ContentPackDTO;
+
+public class VrliPackageStoreV1 extends AbstractVrliPackageStore {
+    private final RestClientVrliV1 restClient;
+
+<span class="nc" id="L40">    public VrliPackageStoreV1(RestClientVrliV1 restClient) {</span>
+<span class="nc" id="L41">		this.restClient = restClient;</span>
+<span class="nc" id="L42">		logger = LoggerFactory.getLogger(VrliPackageStoreV1.class);</span>
+<span class="nc" id="L43">    }</span>
+
+    protected void exportAlerts(Package vrliPakage, List&lt;String&gt; alertNames) {
+<span class="nc bnc" id="L46" title="All 4 branches missed.">        if (alertNames == null || alertNames.isEmpty()) {</span>
+<span class="nc" id="L47">            return;</span>
+        }
+<span class="nc" id="L49">        List&lt;AlertDTO&gt; allAlerts = this.restClient.getAllAlerts();</span>
+<span class="nc bnc" id="L50" title="All 4 branches missed.">        if (allAlerts == null || allAlerts.isEmpty()) {</span>
+<span class="nc" id="L51">            return;</span>
+        }
+<span class="nc bnc" id="L53" title="All 2 branches missed.">        for (AlertDTO alert : allAlerts) {</span>
+<span class="nc bnc" id="L54" title="All 2 branches missed.">            if (alertNames.stream().anyMatch(name -&gt; this.isPackageAssetMatching(name, alert.getName()))) {</span>
+<span class="nc" id="L55">                this.exportAlert(vrliPakage, alert);</span>
+            }
+<span class="nc" id="L57">        }</span>
+<span class="nc" id="L58">    }</span>
+
+    protected void exportContentPacks(Package vrliPakage, List&lt;String&gt; contentPackNames) {
+<span class="nc bnc" id="L61" title="All 4 branches missed.">        if (contentPackNames == null || contentPackNames.isEmpty()) {</span>
+<span class="nc" id="L62">			logger.warn(&quot;No content packs defined for export.&quot;);</span>
+<span class="nc" id="L63">            return;</span>
+        }
+<span class="nc" id="L65">        List&lt;ContentPackDTO&gt; allContentPacks = this.restClient.getAllContentPacks();</span>
+<span class="nc bnc" id="L66" title="All 4 branches missed.">        if (allContentPacks == null || allContentPacks.isEmpty()) {</span>
+<span class="nc" id="L67">			logger.warn(&quot;No content packs defined on vRLI server.&quot;);</span>
+<span class="nc" id="L68">            return;</span>
+        }
+<span class="nc bnc" id="L70" title="All 2 branches missed.">        for (ContentPackDTO contentPack : allContentPacks) {</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">            if (contentPackNames.stream().anyMatch(name -&gt; this.isPackageAssetMatching(name, contentPack.getName()))) {</span>
+<span class="nc" id="L72">                String contentPackData = this.restClient.getContentPack(contentPack.getNamespace());</span>
+<span class="nc bnc" id="L73" title="All 2 branches missed.">                if (StringUtils.isEmpty(contentPackData)) {</span>
+<span class="nc" id="L74">                    logger.warn(&quot;No data found for content pack '{}'&quot;, contentPack.getName());</span>
+<span class="nc" id="L75">                    continue;</span>
+                }
+<span class="nc" id="L77">                exportContentPack(vrliPakage, contentPack.getName(), contentPackData);</span>
+<span class="nc" id="L78">            } else {</span>
+<span class="nc" id="L79">				logger.warn(&quot;No content pack match with name '{}'&quot;, contentPack.getName());</span>
+			}
+<span class="nc" id="L81">        }</span>
+<span class="nc" id="L82">    }</span>
+
+	@Override
+    protected void importAlert(File alertFile) {
+        try {
+<span class="nc" id="L87">            String alertJson = FileUtils.readFileToString(alertFile, StandardCharsets.UTF_8);</span>
+<span class="nc" id="L88">            restClient.importAlert(alertJson);</span>
+<span class="nc" id="L89">        } catch (IOException e) {</span>
+<span class="nc" id="L90">            throw new RuntimeException(&quot;Error reading from file: &quot; + alertFile.getPath(), e);</span>
+<span class="nc" id="L91">        }</span>
+<span class="nc" id="L92">    }</span>
+
+	@Override
+    protected void importContentPack(File contentPackFile) {
+        try {
+<span class="nc" id="L97">            logger.info(&quot;Importing content pack from file '{}'&quot;, contentPackFile.getName());</span>
+<span class="nc" id="L98">            String contentPackJson = FileUtils.readFileToString(contentPackFile, StandardCharsets.UTF_8);</span>
+<span class="nc" id="L99">            restClient.importContentPack(contentPackFile.getName(), contentPackJson);</span>
+<span class="nc" id="L100">        } catch (IOException e) {</span>
+<span class="nc" id="L101">            throw new RuntimeException(&quot;Error reading from file: &quot; + contentPackFile.getPath(), e);</span>
+<span class="nc" id="L102">        }</span>
+<span class="nc" id="L103">    }</span>
+
+	protected File exportAlert(Package vrliPakage, AlertDTO alert) {
+<span class="nc" id="L106">		File store = new File(vrliPakage.getFilesystemPath());</span>
+<span class="nc" id="L107">		File alertFile = Paths.get(store.getPath(), DIR_ALERTS, alert.getId() + &quot;.json&quot;).toFile();</span>
+<span class="nc" id="L108">		alertFile.getParentFile().mkdirs();</span>
+
+		try {
+<span class="nc" id="L111">			logger.info(&quot;Exporting alert '{}'&quot;, alert.getName());</span>
+<span class="nc" id="L112">			Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="nc" id="L113">			String alertJson = gson.toJson(alert, AlertDTO.class);</span>
+<span class="nc" id="L114">			Files.write(Paths.get(alertFile.getPath()), alertJson.getBytes(), StandardOpenOption.CREATE);</span>
+<span class="nc" id="L115">		} catch (IOException e) {</span>
+<span class="nc" id="L116">			logger.error(&quot;Unable to store alert {} {}&quot;, alert.getName(), alertFile.getPath());</span>
+<span class="nc" id="L117">			throw new RuntimeException(String.format(&quot;Unable to store alert '%s' : %s.&quot;, alert.getName(), e.getMessage()));</span>
+<span class="nc" id="L118">		}</span>
+
+<span class="nc" id="L120">		return alertFile;</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

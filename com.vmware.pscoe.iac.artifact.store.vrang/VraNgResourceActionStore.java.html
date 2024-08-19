@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgResourceActionStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.vrang</a> &gt; <span class="el_source">VraNgResourceActionStore.java</span></div><h1>VraNgResourceActionStore.java</h1><pre class="source lang-java linenums">/** 
+ * Package
+ */
+package com.vmware.pscoe.iac.artifact.store.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationException;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgResourceAction;
+import com.vmware.pscoe.iac.artifact.store.filters.CustomFolderFileFilter;
+import com.vmware.pscoe.iac.artifact.utils.VraNgProjectUtil;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static com.vmware.pscoe.iac.artifact.store.vrang.VraNgDirs.DIR_RESOURCE_ACTIONS;
+
+<span class="fc" id="L44">public class VraNgResourceActionStore extends AbstractVraNgStore {</span>
+		
+	/**
+	 * Separator for the Resource Type and the Resource Action Name. Used so we can have unique names even if we have
+	 * 	two resource actions of same name with different types. You can have a resource action with __ in the name
+	 * 	but not Source name with it.
+	 */
+	private static final String RESOURCE_ACTION_SEPARATOR	= &quot;__&quot;;
+
+    /**
+     * Import Content.
+     * @param sourceDirectory source directory
+    */
+	public void importContent(final File sourceDirectory) {
+<span class="fc" id="L58">		logger.info(&quot;Importing files from the '{}' directory&quot;, DIR_RESOURCE_ACTIONS);</span>
+<span class="fc" id="L59">		File folder = Paths.get(sourceDirectory.getPath(), DIR_RESOURCE_ACTIONS).toFile();</span>
+<span class="pc bpc" id="L60" title="1 of 2 branches missed.">		if (!folder.exists()) {</span>
+<span class="nc" id="L61">			logger.warn(&quot;Resource Actions Dir not found.&quot;);</span>
+<span class="nc" id="L62">			return;</span>
+		}
+<span class="fc" id="L64">		File[] files = this.filterBasedOnConfiguration(folder, new CustomFolderFileFilter(this.getItemListFromDescriptor()));</span>
+<span class="pc bpc" id="L65" title="2 of 4 branches missed.">		if (files == null || files.length == 0) {</span>
+<span class="fc" id="L66">			logger.warn(&quot;Could not find any resource actions.&quot;);</span>
+<span class="fc" id="L67">			return;</span>
+		}
+
+<span class="nc" id="L70">		logger.info(&quot;Found Resource Actions. Importing...&quot;);</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">		for (File file : files) {</span>
+<span class="nc" id="L72">			this.importResourceAction(file);</span>
+		}
+<span class="nc" id="L74">	}</span>
+
+	/**
+	 * Used to fetch the store's data from the package descriptor.
+	 *
+	 * @return list of resource actions
+	 */
+	@Override
+	protected List&lt;String&gt; getItemListFromDescriptor() {
+<span class="fc" id="L83">		return this.vraNgPackageDescriptor.getResourceAction();</span>
+	}
+
+	/**
+	 * Exports all resource actions.
+	 */
+	@Override
+	protected void exportStoreContent() {
+<span class="fc" id="L91">		Map&lt;String, VraNgResourceAction&gt; resourceActionOnServer	= this.restClient.getAllResourceActions();</span>
+
+<span class="fc bfc" id="L93" title="All 2 branches covered.">		for (String resourceActionId : resourceActionOnServer.keySet()) {</span>
+<span class="fc" id="L94">			storeResourceActionOnFilesystem(</span>
+				vraNgPackage,
+<span class="fc" id="L96">				resourceActionOnServer.get(resourceActionId) .getName(),</span>
+<span class="fc" id="L97">				resourceActionOnServer.get(resourceActionId).getJson()</span>
+			);
+<span class="fc" id="L99">		}</span>
+<span class="fc" id="L100">	}</span>
+
+	/**
+	 * Exports all resource actions that do not match the filter passed.
+	 * 
+	 * @param resourceActionsToExport filtered list of resource actions to export
+	 */
+	protected void exportStoreContent(final List&lt;String&gt; resourceActionsToExport) {
+<span class="fc" id="L108">		Map&lt;String, VraNgResourceAction&gt; resourceActionOnServer = this.restClient.getAllResourceActions();</span>
+<span class="fc" id="L109">		Set&lt;VraNgResourceAction&gt; serverResourceActions = resourceActionOnServer.values().stream()</span>
+<span class="fc" id="L110">				.collect(Collectors.toSet());</span>
+
+<span class="fc" id="L112">		resourceActionsToExport.forEach(complexName -&gt; {</span>
+<span class="fc" id="L113">			String[] nameParts = complexName.split(RESOURCE_ACTION_SEPARATOR, 2);</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">			if (nameParts.length != 2) {</span>
+<span class="fc" id="L115">				throw new RuntimeException(</span>
+<span class="fc" id="L116">					String.format(</span>
+						&quot;Incorrect resourceAction name convention. Use: RESOURCE_TYPE__RESOURCE_ACTION_NAME, actual %s&quot;,
+						complexName
+					)
+				);
+			}
+
+<span class="fc" id="L123">			String resourceType		= nameParts[0];</span>
+<span class="fc" id="L124">			String resourceActionName	= nameParts[1];</span>
+
+<span class="fc" id="L126">			VraNgResourceAction serverResourceAction = serverResourceActions.stream()</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">					.filter(ra -&gt; resourceActionName.equals(ra.getName())</span>
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">						&amp;&amp; resourceType.equals(ra.getResourceType()))</span>
+<span class="fc" id="L129">					.findAny()</span>
+<span class="fc" id="L130">					.orElse(null);</span>
+
+<span class="fc bfc" id="L132" title="All 2 branches covered.">			if (serverResourceAction == null) {</span>
+<span class="fc" id="L133">				throw new IllegalStateException(</span>
+<span class="fc" id="L134">						String.format(&quot;Resource Action [%s] not found on the server.&quot;, resourceActionName));</span>
+			}
+<span class="fc" id="L136">			storeResourceActionOnFilesystem(</span>
+					vraNgPackage,
+					complexName,
+<span class="fc" id="L139">					serverResourceAction.getJson());</span>
+<span class="fc" id="L140">		});</span>
+<span class="fc" id="L141">	}</span>
+
+    /**
+     * Sanitize ResourceAction json from unnecessary elements that prevent store or
+     * publish later the content.
+     * @param resourceActionJsonElement Resource Action Json Element
+     */
+    private void sanitizeResourceActionJsonElement(final JsonObject resourceActionJsonElement) {
+
+        // leaving orgId in the JSON prevents pushing to different vRA organizations
+        // orgId is optional when importing in vRA, so it can be safely removed
+<span class="fc" id="L152">        resourceActionJsonElement.remove(&quot;orgId&quot;);</span>
+
+<span class="fc" id="L154">        logger.debug(&quot;Removing id property from formDefinition element ...&quot;);</span>
+<span class="fc" id="L155">        String formDefinitionItemName = &quot;formDefinition&quot;;</span>
+<span class="fc" id="L156">        String formDefinitionIdName = &quot;id&quot;;</span>
+        // When create new resource action, formDefinition element do not have to
+        // contain id property. See IAC-400.
+<span class="fc" id="L159">        resourceActionJsonElement.getAsJsonObject(formDefinitionItemName).remove(formDefinitionIdName);</span>
+<span class="fc" id="L160">    }</span>
+
+    /**
+     * Save a resource action to a JSON file.
+     * 
+     * @param pkg                source package
+     * @param resourceActionName source resource action name
+     * @param resourceActionJson source resource action json
+     * @return Resoruce Action File
+     */
+    private File storeResourceActionOnFilesystem(final Package pkg, final String resourceActionName, final String resourceActionJson) {
+<span class="fc" id="L171">        File store = new File(pkg.getFilesystemPath());</span>
+<span class="fc" id="L172">        File resourceAction = Paths.get(store.getPath(), DIR_RESOURCE_ACTIONS, resourceActionName + &quot;.json&quot;).toFile();</span>
+<span class="fc" id="L173">        resourceAction.getParentFile().mkdirs();</span>
+
+        try {
+<span class="fc" id="L176">            Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="fc" id="L177">            final JsonObject resourceActionJsonElement = gson.fromJson(resourceActionJson, JsonObject.class);</span>
+
+<span class="fc" id="L179">            this.sanitizeResourceActionJsonElement(resourceActionJsonElement);</span>
+
+<span class="fc" id="L181">            String resourceActionJSON = gson.toJson(resourceActionJsonElement);</span>
+<span class="fc" id="L182">            logger.info(&quot;Created file {}&quot;, Files.write(Paths.get(resourceAction.getPath()),</span>
+<span class="fc" id="L183">                    resourceActionJSON.getBytes(), StandardOpenOption.CREATE));</span>
+<span class="nc" id="L184">        } catch (IOException e) {</span>
+<span class="nc" id="L185">            logger.error(&quot;Unable to store resource action {} {}&quot;, resourceActionName, resourceAction.getPath());</span>
+<span class="nc" id="L186">            throw new RuntimeException(&quot;Unable to store resource action.&quot;, e);</span>
+<span class="fc" id="L187">        }</span>
+
+<span class="fc" id="L189">        return resourceAction;</span>
+    }
+
+    /**
+     * Import resource actions from a file.
+     * 
+     * @param jsonFile file of the resource action
+     */
+    private void importResourceAction(final File jsonFile) {
+<span class="nc" id="L198">        String resourceActionName = &quot;&quot;;</span>
+        try {
+<span class="nc" id="L200">            resourceActionName = FilenameUtils.removeExtension(jsonFile.getName());</span>
+<span class="nc" id="L201">            logger.info(&quot;Importing resource action {}...&quot;, resourceActionName);</span>
+<span class="nc" id="L202">            String resourceActionJson = FileUtils.readFileToString(jsonFile, &quot;UTF-8&quot;);</span>
+
+<span class="nc" id="L204">            Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="nc" id="L205">            final JsonObject resourceActionJsonElement = gson.fromJson(resourceActionJson, JsonObject.class);</span>
+
+<span class="nc" id="L207">            this.sanitizeResourceActionJsonElement(resourceActionJsonElement);</span>
+
+<span class="nc" id="L209">            this.populateVroEndpoint(resourceActionJsonElement);</span>
+
+<span class="nc" id="L211">		    VraNgProjectUtil.changeProjectIdBetweenOrganizations(this.restClient, resourceActionJsonElement, &quot;projectId&quot;);</span>
+
+            // Get resource action id property and use it to try to delete existing one
+            // resource action
+<span class="nc" id="L215">            String resourceActionId = resourceActionJsonElement.get(&quot;id&quot;).getAsString();</span>
+<span class="nc" id="L216">            resourceActionJson = gson.toJson(resourceActionJsonElement);</span>
+            // Let's try to delete resource action first before import it.
+            try {
+<span class="nc" id="L219">                logger.info(&quot;Deleting resource action '{}' ('{}') if exists ...&quot;, resourceActionName, resourceActionId);</span>
+<span class="nc" id="L220">                restClient.deleteResourceAction(resourceActionName, resourceActionId);</span>
+<span class="nc" id="L221">            } catch (RuntimeException e) {</span>
+<span class="nc" id="L222">                logger.error(&quot;Delete resource action '{}' ('{}') failed. Error: {}&quot;, resourceActionName,</span>
+                        resourceActionId, e);
+<span class="nc" id="L224">            }</span>
+
+<span class="nc" id="L226">            String resultResourceActionJson = restClient.importResourceAction(resourceActionName, resourceActionJson);</span>
+<span class="nc" id="L227">            JsonObject resultJsonObject = updateFormInfoOnTopOfResult(</span>
+<span class="nc" id="L228">                    gson.fromJson(resultResourceActionJson, JsonObject.class), resourceActionJsonElement);</span>
+<span class="nc" id="L229">            restClient.importResourceAction(resourceActionName, gson.toJson(resultJsonObject));</span>
+
+<span class="nc" id="L231">        } catch (ConfigurationException e) {</span>
+<span class="nc" id="L232">            logger.error(&quot;Error importing resource action {}...&quot;, resourceActionName);</span>
+<span class="nc" id="L233">            throw new RuntimeException(e);</span>
+<span class="nc" id="L234">        } catch (IOException e) {</span>
+<span class="nc" id="L235">            throw new RuntimeException(&quot;Error reading from file: &quot; + jsonFile.getPath(), e);</span>
+<span class="nc" id="L236">        } catch (RuntimeException e) {</span>
+<span class="nc" id="L237">            throw new RuntimeException(&quot;Error executing POST to server: &quot;, e);</span>
+<span class="nc" id="L238">        }</span>
+<span class="nc" id="L239">    }</span>
+    /**
+     * Populate Vro Endpoint.
+     * 
+     * @param resourceActionJsonElement file of the resource action
+     */
+    private void populateVroEndpoint(final JsonObject resourceActionJsonElement) throws ConfigurationException {
+<span class="nc" id="L246">        String runnableItemName = &quot;runnableItem&quot;;</span>
+<span class="nc" id="L247">        String endpointLinkName = &quot;endpointLink&quot;;</span>
+
+        // remove endpointLink from the runnable item, it will be populated automaticaly
+<span class="nc" id="L250">        resourceActionJsonElement.getAsJsonObject(runnableItemName).remove(endpointLinkName);</span>
+
+        // add the updated endpointLink fetched from the target
+        // environment/configuration
+<span class="nc" id="L254">        resourceActionJsonElement.getAsJsonObject(runnableItemName).addProperty(endpointLinkName,</span>
+<span class="nc" id="L255">                this.getVroTargetIntegrationEndpointLink());</span>
+<span class="nc" id="L256">    }</span>
+
+    /**
+     * Update Form Info On Top Of Result.
+     * 
+     * @param resultJsonObject file of the resource action
+     * @param sourceJsonObject file of the resource action
+     * @return Json Object
+     */
+    private JsonObject updateFormInfoOnTopOfResult(final JsonObject resultJsonObject, final JsonObject sourceJsonObject) {
+
+<span class="nc" id="L267">        String newFormId = resultJsonObject.getAsJsonObject(&quot;formDefinition&quot;).getAsJsonPrimitive(&quot;id&quot;).getAsString();</span>
+<span class="nc" id="L268">        JsonObject sourceForm = sourceJsonObject.getAsJsonObject(&quot;formDefinition&quot;);</span>
+<span class="nc" id="L269">        sourceForm.addProperty(&quot;id&quot;, newFormId);</span>
+<span class="nc" id="L270">        resultJsonObject.add(&quot;formDefinition&quot;, sourceForm);</span>
+<span class="nc" id="L271">        return resultJsonObject;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

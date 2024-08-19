@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AlertDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest.model.vrli.v2</a> &gt; <span class="el_source">AlertDTO.java</span></div><h1>AlertDTO.java</h1><pre class="source lang-java linenums">
+package com.vmware.pscoe.iac.artifact.rest.model.vrli.v2;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+import java.io.Serializable;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({ &quot;id&quot;, &quot;enabled&quot;, &quot;type&quot;, &quot;name&quot;, &quot;hitCount&quot;, &quot;hitOperator&quot;, &quot;searchPeriod&quot;, &quot;searchInterval&quot;,
+	&quot;info&quot;, &quot;recommendation&quot;, &quot;contentPackNamespace&quot;, &quot;contentPackName&quot;, &quot;recipients&quot;, &quot;stats&quot;, &quot;ownerUuid&quot;,
+	&quot;ownerName&quot;, &quot;query&quot; })
+<span class="nc" id="L29">public class AlertDTO implements Serializable {</span>
+    private static final long serialVersionUID = 1913969984744233760L;
+
+    @JsonProperty(&quot;id&quot;)
+    private String id;
+
+    @JsonProperty(&quot;enabled&quot;)
+    private boolean enabled;
+
+	@JsonProperty(&quot;type&quot;)
+	private String type;
+
+	@JsonProperty(&quot;name&quot;)
+	private String name;
+
+	@JsonProperty(&quot;hitCount&quot;)
+	private long hitCount;
+
+	@JsonProperty(&quot;hitOperator&quot;)
+	private String hitOperator;
+
+	@JsonProperty(&quot;searchPeriod&quot;)
+	private long searchPeriod;
+
+	@JsonProperty(&quot;searchInterval&quot;)
+	private long searchInterval;
+
+	@JsonProperty(&quot;info&quot;)
+	private String info;
+
+	@JsonProperty(&quot;recommendation&quot;)
+	private String recommendation;
+
+	@JsonProperty(&quot;contentPackNamespace&quot;)
+	private String contentPackNamespace;
+
+	@JsonProperty(&quot;contentPackName&quot;)
+	private String contentPackName;
+
+	@JsonProperty(&quot;recipients&quot;)
+	private RecipientsDTO recipients;
+
+	@JsonProperty(&quot;stats&quot;)
+	private StatsDTO stats;
+
+	@JsonProperty(&quot;ownerUuid&quot;)
+	private String ownerUuid;
+
+	@JsonProperty(&quot;ownerName&quot;)
+	private String ownerName;
+
+	@JsonProperty(&quot;query&quot;)
+	private QueryDTO query;
+
+	@JsonProperty(&quot;id&quot;)
+	public String getId() {
+<span class="nc" id="L85">		return id;</span>
+	}
+
+	@JsonProperty(&quot;id&quot;)
+	public void setId(String id) {
+<span class="nc" id="L90">		this.id = id;</span>
+<span class="nc" id="L91">	}</span>
+
+	@JsonProperty(&quot;enabled&quot;)
+	public boolean isEnabled() {
+<span class="nc" id="L95">		return enabled;</span>
+	}
+
+	@JsonProperty(&quot;enabled&quot;)
+	public void setEnabled(boolean enabled) {
+<span class="nc" id="L100">		this.enabled = enabled;</span>
+<span class="nc" id="L101">	}</span>
+
+	@JsonProperty(&quot;type&quot;)
+	public String getType() {
+<span class="nc" id="L105">		return type;</span>
+	}
+
+	@JsonProperty(&quot;type&quot;)
+	public void setType(String type) {
+<span class="nc" id="L110">		this.type = type;</span>
+<span class="nc" id="L111">	}</span>
+
+	@JsonProperty(&quot;name&quot;)
+	public String getName() {
+<span class="nc" id="L115">		return name;</span>
+	}
+
+	@JsonProperty(&quot;name&quot;)
+	public void setName(String name) {
+<span class="nc" id="L120">		this.name = name;</span>
+<span class="nc" id="L121">	}</span>
+
+	@JsonProperty(&quot;hitCount&quot;)
+	public long getHitCount() {
+<span class="nc" id="L125">		return hitCount;</span>
+	}
+
+	@JsonProperty(&quot;hitCount&quot;)
+	public void setHitCount(long hitCount) {
+<span class="nc" id="L130">		this.hitCount = hitCount;</span>
+<span class="nc" id="L131">	}</span>
+
+	@JsonProperty(&quot;searchPeriod&quot;)
+	public long getSearchPeriod() {
+<span class="nc" id="L135">		return searchPeriod;</span>
+	}
+
+	@JsonProperty(&quot;searchPeriod&quot;)
+	public void setSearchPeriod(long searchPeriod) {
+<span class="nc" id="L140">		this.searchPeriod = searchPeriod;</span>
+<span class="nc" id="L141">	}</span>
+
+	@JsonProperty(&quot;searchInterval&quot;)
+	public long getSearchInterval() {
+<span class="nc" id="L145">		return searchInterval;</span>
+	}
+
+	@JsonProperty(&quot;searchInterval&quot;)
+	public void setSearchInterval(long searchInterval) {
+<span class="nc" id="L150">		this.searchInterval = searchInterval;</span>
+<span class="nc" id="L151">	}</span>
+
+	@JsonProperty(&quot;info&quot;)
+	public String getInfo() {
+<span class="nc" id="L155">		return info;</span>
+	}
+
+	@JsonProperty(&quot;info&quot;)
+	public void setInfo(String info) {
+<span class="nc" id="L160">		this.info = info;</span>
+<span class="nc" id="L161">	}</span>
+
+	@JsonProperty(&quot;recipients&quot;)
+	public RecipientsDTO getRecipients() {
+<span class="nc" id="L165">		return recipients;</span>
+	}
+
+	@JsonProperty(&quot;recipients&quot;)
+	public void setRecipients(RecipientsDTO recipients) {
+<span class="nc" id="L170">		this.recipients = recipients;</span>
+<span class="nc" id="L171">	}</span>
+
+	@JsonProperty(&quot;stats&quot;)
+	public StatsDTO getStats() {
+<span class="nc" id="L175">		return stats;</span>
+	}
+
+	@JsonProperty(&quot;stats&quot;)
+	public void setStats(StatsDTO stats) {
+<span class="nc" id="L180">		this.stats = stats;</span>
+<span class="nc" id="L181">	}</span>
+
+	@JsonProperty(&quot;ownerUuid&quot;)
+	public String getOwnerUuid() {
+<span class="nc" id="L185">		return ownerUuid;</span>
+	}
+
+	@JsonProperty(&quot;ownerUuid&quot;)
+	public void setOwnerUuid(String ownerUuid) {
+<span class="nc" id="L190">		this.ownerUuid = ownerUuid;</span>
+<span class="nc" id="L191">	}</span>
+
+	@JsonProperty(&quot;query&quot;)
+	public QueryDTO getQuery() {
+<span class="nc" id="L195">		return query;</span>
+	}
+
+	@JsonProperty(&quot;query&quot;)
+	public void setQuery(QueryDTO query) {
+<span class="nc" id="L200">		this.query = query;</span>
+<span class="nc" id="L201">	}</span>
+
+	@JsonProperty(&quot;hitOperator&quot;)
+	public String getHitOperator() {
+<span class="nc" id="L205">		return hitOperator;</span>
+	}
+
+	@JsonProperty(&quot;hitOperator&quot;)
+	public void setHitOperator(String hitOperator) {
+<span class="nc" id="L210">		this.hitOperator = hitOperator;</span>
+<span class="nc" id="L211">	}</span>
+	@JsonProperty(&quot;ownerName&quot;)
+	public String getOwnerName() {
+<span class="nc" id="L214">		return ownerName;</span>
+	}
+	@JsonProperty(&quot;ownerName&quot;)
+	public void setOwnerName(String ownerName) {
+<span class="nc" id="L218">		this.ownerName = ownerName;</span>
+<span class="nc" id="L219">	}</span>
+	@JsonProperty(&quot;contentPackNamespace&quot;)
+	public String getContentPackNamespace() {
+<span class="nc" id="L222">		return contentPackNamespace;</span>
+	}
+	@JsonProperty(&quot;contentPackNamespace&quot;)
+	public void setContentPackNamespace(String contentPackNamespace) {
+<span class="nc" id="L226">		this.contentPackNamespace = contentPackNamespace;</span>
+<span class="nc" id="L227">	}</span>
+
+	@JsonProperty(&quot;contentPackName&quot;)
+	public String getContentPackName() {
+<span class="nc" id="L231">		return contentPackName;</span>
+	}
+	@JsonProperty(&quot;contentPackName&quot;)
+	public void setContentPackName(String contentPackName) {
+<span class="nc" id="L235">		this.contentPackName = contentPackName;</span>
+<span class="nc" id="L236">	}</span>
+	@JsonProperty(&quot;recommendation&quot;)
+	public String getRecommendation() {
+<span class="nc" id="L239">		return recommendation;</span>
+	}
+	@JsonProperty(&quot;recommendation&quot;)
+	public void setRecommendation(String recommendation) {
+<span class="nc" id="L243">		this.recommendation = recommendation;</span>
+<span class="nc" id="L244">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

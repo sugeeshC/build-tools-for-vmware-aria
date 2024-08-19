@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GenericPackageStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact</a> &gt; <span class="el_source">GenericPackageStore.java</span></div><h1>GenericPackageStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.PackageContent;
+import com.vmware.pscoe.iac.artifact.model.PackageContent.Content;
+import com.vmware.pscoe.iac.artifact.model.PackageDescriptor;
+import com.vmware.pscoe.iac.artifact.model.Version;
+
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.http.HttpStatus;
+
+<span class="fc" id="L38">public abstract class GenericPackageStore&lt;T extends PackageDescriptor&gt; implements PackageStore&lt;T&gt; {</span>
+<span class="fc" id="L39">    private final Logger logger = LoggerFactory.getLogger(this.getClass());</span>
+    protected static final String WILDCARD_MATCH_SYMBOL = &quot;*&quot;;
+
+    private Version productVersion;
+
+    protected abstract Package deletePackage(Package pkg, boolean withContent, boolean dryrun);
+
+    protected abstract PackageContent getPackageContent(Package pkg);
+
+    protected abstract void deleteContent(Content content, boolean dryrun);
+
+    protected Logger getLogger() {
+<span class="nc" id="L51">        return logger;</span>
+    }
+
+    protected void validateFilesystem(List&lt;Package&gt; packages) {
+<span class="fc" id="L55">        packages.stream().forEach(pkg -&gt; {</span>
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">            if (!new File(pkg.getFilesystemPath()).exists()) {</span>
+<span class="nc" id="L57">                throw new RuntimeException(&quot;Cannot find package &quot; + pkg.getFilesystemPath());</span>
+            }
+<span class="fc" id="L59">        });</span>
+<span class="fc" id="L60">    }</span>
+
+    protected void vlidateServer(List&lt;Package&gt; packages) {
+<span class="nc" id="L63">        List&lt;Package&gt; srvPackages = this.getPackages();</span>
+
+<span class="nc" id="L65">        packages.stream().forEach(pkg -&gt; {</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">            if (!srvPackages.contains(pkg)) {</span>
+<span class="nc" id="L67">                throw new RuntimeException(&quot;Cannot find package &quot; + pkg.getFQName() + &quot; on server.&quot;);</span>
+            }
+<span class="nc" id="L69">        });</span>
+<span class="nc" id="L70">    }</span>
+
+    @Override
+    public List&lt;Package&gt; deleteAllPackages(List&lt;Package&gt; packages, boolean lastVersion, boolean oldVersions,
+            boolean dryrun) {
+<span class="nc" id="L75">        this.validateFilesystem(packages);</span>
+
+<span class="nc" id="L77">        List&lt;Package&gt; deleted = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">        for (Package pkg : packages) {</span>
+<span class="nc" id="L79">            deleted.addAll(this.deletePackage(pkg, lastVersion, oldVersions, dryrun));</span>
+<span class="nc" id="L80">        }</span>
+
+<span class="nc" id="L82">        return deleted;</span>
+    }
+
+    @Override
+    public Version getProductVersion() {
+<span class="nc" id="L87">        return this.productVersion;</span>
+    }
+
+    public void setProductVersion(Version productVersion) {
+<span class="nc" id="L91">        this.productVersion = productVersion;</span>
+<span class="nc" id="L92">    }</span>
+
+    @Override
+    public List&lt;Package&gt; deletePackage(Package vroPackage, boolean lastVersion, boolean oldVersions, boolean dryrun) {
+<span class="nc" id="L96">        logger.info(&quot;Cleaning up server package '{}' versions LATEST={}, OLDER={} DRYRUN={}&quot;, vroPackage.getName(),</span>
+<span class="nc" id="L97">                lastVersion, oldVersions, dryrun);</span>
+
+<span class="nc" id="L99">        List&lt;Package&gt; deleted = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L101" title="All 4 branches missed.">        if (!lastVersion &amp;&amp; !oldVersions) {</span>
+<span class="nc" id="L102">            logger.info(&quot;Nothing to do.&quot;);</span>
+<span class="nc" id="L103">            return deleted;</span>
+        }
+
+        // Get all package versions
+<span class="nc" id="L107">        List&lt;Package&gt; serverPackages = this.getPackages().stream().filter(p -&gt; p.getName().equals(vroPackage.getName()))</span>
+<span class="nc" id="L108">                .collect(Collectors.toList());</span>
+
+<span class="nc" id="L110">        Collections.sort(serverPackages);</span>
+
+<span class="nc" id="L112">        LinkedList&lt;Package&gt; all = new LinkedList(serverPackages);</span>
+
+<span class="nc bnc" id="L114" title="All 2 branches missed.">        for (Package p : all) {</span>
+<span class="nc" id="L115">            logger.info(&quot;Found package '{}' on server.&quot;, p.getFQName());</span>
+<span class="nc" id="L116">        }</span>
+
+<span class="nc bnc" id="L118" title="All 4 branches missed.">        if (all.size() == 0 || !all.contains(vroPackage)) {</span>
+<span class="nc" id="L119">            logger.info(&quot;Nothing to do. There is no package '{}' available on the server.&quot;, vroPackage.getFQName());</span>
+<span class="nc" id="L120">            return deleted;</span>
+        }
+
+<span class="nc" id="L123">        Package latest = all.pollLast();</span>
+
+<span class="nc bnc" id="L125" title="All 2 branches missed.">        if (!latest.equals(vroPackage)) {</span>
+<span class="nc" id="L126">            logger.error(&quot;Not supported operation. Server contains higher version of package {} than the provided {}.&quot;,</span>
+                    latest, vroPackage);
+<span class="nc" id="L128">            return deleted;</span>
+        }
+
+<span class="nc bnc" id="L131" title="All 4 branches missed.">        if (lastVersion &amp;&amp; oldVersions) {</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">            for (Package p : all) {</span>
+<span class="nc" id="L133">                logger.info(&quot;Removing package version '{}' with its content.&quot;, p.getFQName());</span>
+<span class="nc" id="L134">                deleted.add(this.deletePackage(p, true, dryrun));</span>
+<span class="nc" id="L135">            }</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">        } else if (lastVersion) {</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">            if (all.size() == 0) {</span>
+<span class="nc" id="L138">                logger.info(&quot;Removing package version '{}' with its content.&quot;, vroPackage.getFQName());</span>
+<span class="nc" id="L139">                deleted.add(this.deletePackage(latest, true, dryrun));</span>
+            } else {
+<span class="nc" id="L141">                Package previous = all.pollLast();</span>
+<span class="nc" id="L142">                logger.warn(&quot;Package version '{}' and its content will be cleaned up against previous version '{}'&quot;,</span>
+                        latest, previous);
+<span class="nc" id="L144">                deleted.add(deletePackageVersion(previous, latest, dryrun));</span>
+<span class="nc" id="L145">            }</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">        } else if (oldVersions) {</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">            for (Package p : all) {</span>
+<span class="nc" id="L148">                deletePackageVersion(latest, p, dryrun);</span>
+<span class="nc" id="L149">                deleted.add(p);</span>
+<span class="nc" id="L150">            }</span>
+        }
+<span class="nc" id="L152">        return deleted;</span>
+    }
+
+    protected boolean isPackageAssetMatching(String matchExpression, String assetName) {
+<span class="fc" id="L156">        String pattern = matchExpression;</span>
+<span class="fc" id="L157">        boolean startsWith = pattern.startsWith(WILDCARD_MATCH_SYMBOL);</span>
+<span class="fc" id="L158">        boolean endsWith = pattern.endsWith(WILDCARD_MATCH_SYMBOL);</span>
+<span class="fc" id="L159">        boolean containsWildcard = pattern.contains(WILDCARD_MATCH_SYMBOL);</span>
+
+<span class="pc bpc" id="L161" title="1 of 2 branches missed.">        if (startsWith) {</span>
+<span class="nc" id="L162">            pattern = &quot;.*&quot; + pattern;</span>
+        }
+<span class="pc bpc" id="L164" title="1 of 2 branches missed.">        if (endsWith) {</span>
+<span class="nc" id="L165">            pattern = pattern + &quot;.*&quot;;</span>
+        }
+<span class="pc bpc" id="L167" title="1 of 2 branches missed.">        if (containsWildcard) {</span>
+<span class="nc" id="L168">            pattern = pattern.replace(WILDCARD_MATCH_SYMBOL, &quot;.*&quot;);</span>
+<span class="nc" id="L169">            pattern = &quot;.*&quot; + pattern + &quot;.*&quot;;</span>
+        }
+
+<span class="fc" id="L172">        return Pattern.compile(pattern).matcher(assetName).matches();</span>
+    }
+
+    private Package deletePackageVersion(Package lastPackage, Package toBeRemovedPackage, boolean dryrun) {
+<span class="nc" id="L176">        PackageContent latest = this.getPackageContent(lastPackage);</span>
+
+        try {
+<span class="nc" id="L179">            PackageContent toBeRemoved = this.getPackageContent(toBeRemovedPackage);</span>
+
+<span class="nc" id="L181">            List&lt;Content&gt; contentToBeRemoved = new ArrayList&lt;Content&gt;();</span>
+<span class="nc" id="L182">            contentToBeRemoved.addAll(toBeRemoved.getContent());</span>
+<span class="nc" id="L183">            contentToBeRemoved.removeAll(latest.getContent());</span>
+
+<span class="nc" id="L185">            logger.info(&quot;Deleting content of package '{}' ...&quot;, toBeRemovedPackage.getFQName());</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">            for (Content c : contentToBeRemoved) {</span>
+<span class="nc" id="L187">                logger.info(&quot;Deleting content '{}'&quot;, c);</span>
+                try {
+<span class="nc" id="L189">                    this.deleteContent(c, dryrun);</span>
+<span class="nc" id="L190">                } catch (Exception e) {</span>
+<span class="nc" id="L191">                    logger.warn(&quot;Could not delete content '&quot; + c.toString() + &quot;'&quot;, e);</span>
+<span class="nc" id="L192">                }</span>
+<span class="nc" id="L193">            }</span>
+<span class="nc" id="L194">            logger.info(&quot;Deleting package '{}' ...&quot;, toBeRemovedPackage.getFQName());</span>
+<span class="nc" id="L195">            this.deletePackage(toBeRemovedPackage, false, dryrun);</span>
+<span class="nc" id="L196">        } catch (HttpClientErrorException e) {</span>
+<span class="nc bnc" id="L197" title="All 2 branches missed.">            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {</span>
+                // alaredy deleted - ignore cleanup, re-throw error otherwise
+            } else {
+<span class="nc" id="L200">                throw e;</span>
+            }
+<span class="nc" id="L202">        }</span>
+
+<span class="nc" id="L204">        return toBeRemovedPackage;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

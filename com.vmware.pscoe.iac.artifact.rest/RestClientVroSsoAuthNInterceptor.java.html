@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RestClientVroSsoAuthNInterceptor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest</a> &gt; <span class="el_source">RestClientVroSsoAuthNInterceptor.java</span></div><h1>RestClientVroSsoAuthNInterceptor.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.rest;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVro;
+import com.vmware.pscoe.iac.artifact.rest.auth.VraSsoAuth;
+import com.vmware.pscoe.iac.artifact.rest.auth.VraSsoAuth.SsoToken;
+import org.springframework.http.HttpRequest;
+import org.springframework.http.client.ClientHttpRequestExecution;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.web.client.RestTemplate;
+
+import java.io.IOException;
+
+public class RestClientVroSsoAuthNInterceptor extends RestClientRequestInterceptor&lt;ConfigurationVro&gt; {
+    private final VraSsoAuth ssoAuth;
+    private SsoToken token;
+    private static final String SSO_REGISTRY_URL = &quot;/component-registry/endpoints/types/sso&quot;;
+    private static final String AUTHORIZATION_SERVICE_URL_VRA_8 = &quot;/csp/gateway/am/api/login&quot;;
+	private static final String AUTHORIZATION_SERVICE_URL_VRA_CLOUD = &quot;/csp/gateway/am/api/auth/api-tokens/authorize&quot;;
+    private static final String SAAS_URL = &quot;/SAAS/t/&quot;;
+    private static final String VERSION_URL= &quot;vco/api/about&quot;;
+
+    protected RestClientVroSsoAuthNInterceptor(ConfigurationVro configuration, RestTemplate restTemplate) {
+<span class="nc" id="L38">        super(configuration, restTemplate);</span>
+
+<span class="nc" id="L40">        this.ssoAuth = new VraSsoAuth(configuration, restTemplate);</span>
+<span class="nc" id="L41">    }</span>
+
+    @Override
+    public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) {
+        try {
+            // blacklisted paths should not be intercepted in order to avoid interception loops
+<span class="nc bnc" id="L47" title="All 2 branches missed.">            if (!isRequestPathInBlacklist(request.getURI().getPath())) {</span>
+<span class="nc bnc" id="L48" title="All 4 branches missed.">                this.token = this.token != null &amp;&amp; !this.token.isExpired() ? this.token : this.ssoAuth.acquireToken();</span>
+<span class="nc" id="L49">                request.getHeaders().add(&quot;Authorization&quot;, this.token.getTokenType() + &quot; &quot; + this.token.getValue());</span>
+            }
+
+<span class="nc" id="L52">            return execution.execute(request, body);</span>
+<span class="nc" id="L53">        } catch (IOException e) {</span>
+<span class="nc" id="L54">            throw new RuntimeException(e);</span>
+        }
+    }
+
+    private boolean isRequestPathInBlacklist(String requestPath) {
+<span class="nc bnc" id="L59" title="All 6 branches missed.">        return requestPath.contains(SSO_REGISTRY_URL) || requestPath.contains(SAAS_URL) || requestPath.contains(VERSION_URL)</span>
+<span class="nc bnc" id="L60" title="All 4 branches missed.">                || requestPath.contains(AUTHORIZATION_SERVICE_URL_VRA_8) || requestPath.contains(AUTHORIZATION_SERVICE_URL_VRA_CLOUD);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,1859 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VropsPackageStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact</a> &gt; <span class="el_source">VropsPackageStore.java</span></div><h1>VropsPackageStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.io.FileFilter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.filefilter.DirectoryFileFilter;
+import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.jcraft.jsch.JSchException;
+import com.vmware.pscoe.iac.artifact.cli.CliManagerVrops;
+import com.vmware.pscoe.iac.artifact.cli.ZipUtilities;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationException;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.PackageContent;
+import com.vmware.pscoe.iac.artifact.model.PackageContent.Content;
+import com.vmware.pscoe.iac.artifact.model.Version;
+import com.vmware.pscoe.iac.artifact.model.vrops.VropsPackageDescriptor;
+import com.vmware.pscoe.iac.artifact.model.vrops.VropsPackageMemberType;
+import com.vmware.pscoe.iac.artifact.rest.RestClientVrops;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.AlertDefinitionDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.AuthGroupDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.CustomGroupDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.PolicyDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.RecommendationDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.ReportDefinitionDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.SupermetricDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.SymptomDefinitionDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.ViewDefinitionDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.AuthUserDTO;
+
+/**
+ * This is the class that abstracts the operations for working with vROps
+ * packages. In this context importing a package means importing a package file
+ * into the vROps server. Exporting a package means exporting from the vROps
+ * server into a file on the (local) file system. Each package is represented as
+ * instance of {@link Package} class. That class contains some metadata about
+ * the package, as well as a link ({@link Package#getFilesystemPath()}) to the
+ * (local) file on the file system that contains the actual package content.
+ * That is a path to a file.
+ * 
+ * @see Package
+ * @see Package#getFilesystemPath()
+ * @see #importAllPackages(List, boolean, boolean)
+ * @see #importPackage(Package, boolean, boolean)
+ * @see #exportAllPackages(List, boolean)
+ * @see #exportPackage(Package, File, boolean)
+ */
+public final class VropsPackageStore extends GenericPackageStore&lt;VropsPackageDescriptor&gt; {
+	/**
+	 * Variable for logging.
+	 */
+<span class="fc" id="L106">    private final Logger logger = LoggerFactory.getLogger(VropsPackageStore.class);</span>
+	/**
+	 * The vRO rest client.
+	 */
+	private RestClientVrops restClient;
+	/**
+	 * Constant for policy metadata file name.
+	 */
+    private static final String POLICY_METADATA_FILENAME = &quot;policiesMetadata.vrops.json&quot;;
+	/**
+	 * Sharing Dashboards file name.
+	 */
+	private static final String DASHBOARD_SHARE_METADATA_FILENAME = &quot;metadata/dashboardSharingMetadata.vrops.json&quot;;
+	/**
+	 * Activating Dashboards using users file name.
+	 */
+	private static final String DASHBOARD_USER_ACTIVATE_METADATA_FILENAME = &quot;metadata/dashboardUserActivationMetadata.vrops.json&quot;;
+	/**
+	 * Activating Dashboards using groups file name.
+	 */
+	private static final String DASHBOARD_GROUP_ACTIVATE_METADATA_FILENAME = &quot;metadata/dashboardGroupActivationMetadata.vrops.json&quot;;
+	/**
+	 * Action constant.
+	 */
+    private static final String ACTION_SHARE = &quot;share&quot;;
+	/**
+	 * Constant for action unshare.
+	 */
+    private static final String ACTION_UNSHARE = &quot;unshare&quot;;
+	/**
+	 * Constant for action activate.
+	 */
+    private static final String ACTION_ACTIVATE = &quot;activate&quot;;
+	/**
+	 * Constant for action deactivate.
+	 */
+	private static final String ACTION_DEACTIVATE = &quot;deactivate&quot;;
+	/**
+	 * Content yaml file name.
+	 */
+	private static final String CONTENT_YAML_FILE_NAME = &quot;content.yaml&quot;;
+	/**
+	 * CLI Manager.
+	 */
+    private CliManagerVrops cliManager;
+	/**
+	 * Variable for temp dir.
+	 */
+    private final File tempDir;
+	/**
+	 * Variable for temp vROPS export dir.
+	 */
+    private final File tempVropsExportDir;
+	/**
+	 * Variable for temp vROPS import dir.
+	 */
+    private final File tempVropsImportDir;
+
+	/**
+	 *
+	 * @param vropsCliManager vROPS cli manager
+	 * @param vropsTempDir vROPS temp dir
+	 */
+<span class="fc" id="L169">	public VropsPackageStore(final CliManagerVrops vropsCliManager, final File vropsTempDir) {</span>
+<span class="fc" id="L170">        this.cliManager = vropsCliManager;</span>
+<span class="fc" id="L171">        this.tempDir = vropsTempDir;</span>
+<span class="fc" id="L172">        tempVropsExportDir = new File(this.tempDir, &quot;vrops-export&quot;);</span>
+<span class="fc" id="L173">        tempVropsImportDir = new File(this.tempDir, &quot;vrops-import&quot;);</span>
+<span class="fc" id="L174">    }</span>
+
+	/**
+	 * Constructor.
+	 * @param cliManager CLI Manager
+	 */
+	public VropsPackageStore(final CliManagerVrops cliManager) {
+<span class="fc" id="L181">        this(cliManager, createTempDirectory());</span>
+<span class="fc" id="L182">    }</span>
+
+	/**
+	 * Constructor.
+	 * @param cliManager CLI Manager
+	 * @param restClientVrops vROPs REST client
+	 */
+	public VropsPackageStore(final CliManagerVrops cliManager, final RestClientVrops restClientVrops) {
+<span class="fc" id="L190">        this(cliManager);</span>
+<span class="fc" id="L191">        this.restClient = restClientVrops;</span>
+<span class="fc" id="L192">    }</span>
+
+	/**
+	 * Constructor.
+	 * @param cliManager CLI Manager
+	 * @param restClientVrops REST Client for vROPs
+	 * @param productVersion Product version
+	 */
+	public VropsPackageStore(final CliManagerVrops cliManager, final RestClientVrops restClientVrops, final Version productVersion) {
+<span class="nc" id="L201">        this(cliManager);</span>
+<span class="nc" id="L202">        this.restClient = restClientVrops;</span>
+<span class="nc" id="L203">        super.setProductVersion(productVersion);</span>
+<span class="nc" id="L204">    }</span>
+
+	/**
+	 * Constructor.
+	 * @param cliManager CLI Manager
+	 * @param restClientVrops REST Client for vROPs
+	 * @param tempDir temporary DIR
+	 */
+<span class="fc" id="L212">    public VropsPackageStore(final CliManagerVrops cliManager, final RestClientVrops restClientVrops, final File tempDir) {</span>
+<span class="fc" id="L213">        this.cliManager = cliManager;</span>
+<span class="fc" id="L214">        this.restClient = restClientVrops;</span>
+<span class="fc" id="L215">        this.tempDir = tempDir;</span>
+<span class="fc" id="L216">        tempVropsExportDir = new File(this.tempDir, &quot;vrops-export&quot;);</span>
+<span class="fc" id="L217">        tempVropsImportDir = new File(this.tempDir, &quot;vrops-import&quot;);</span>
+<span class="fc" id="L218">    }</span>
+
+    private static File createTempDirectory() {
+        try {
+<span class="fc" id="L222">            return Files.createTempDirectory(&quot;iac-vrops-imp-&quot;).toFile();</span>
+<span class="nc" id="L223">        } catch (IOException ioe) {</span>
+<span class="nc" id="L224">            throw new RuntimeException(&quot;Cannot create temp directory.&quot;);</span>
+        }
+    }
+
+	/**
+	 * Gets the vROPS packages.
+	 * @return the extracted packages
+	 */
+    @Override
+    public List&lt;Package&gt; getPackages() {
+<span class="nc" id="L234">		throw new NotImplementedException(&quot;Not implemented&quot;);</span>
+    }
+
+	/**
+	 * Exports all packages.
+	 * @param packages the packages to export
+	 * @param dryrun whether it should be dry run
+	 * @return the exported packages
+	 */
+    @Override
+    public List&lt;Package&gt; exportAllPackages(final List&lt;Package&gt; packages, final boolean dryrun) {
+<span class="nc bnc" id="L245" title="All 2 branches missed.">        if (packages == null) {</span>
+<span class="nc" id="L246">            return Collections.emptyList();</span>
+        }
+<span class="nc bnc" id="L248" title="All 2 branches missed.">        for (Package pkg : packages) {</span>
+<span class="nc" id="L249">            Package exportedPkg = exportPackage(pkg, new File(pkg.getFilesystemPath()), dryrun);</span>
+<span class="nc" id="L250">            logger.info(&quot;Exported package {}&quot;, exportedPkg.getName());</span>
+<span class="nc" id="L251">        }</span>
+
+<span class="nc" id="L253">        return packages;</span>
+    }
+
+	/**
+	 * Imports all packages.
+	 * @param pkg the packages to import
+	 * @param dryrun whether it should be dry run
+	 * @param enableBackup whether it should back up the packages on import
+	 * @return the imported package
+	 */
+	@Override
+	public List&lt;Package&gt; importAllPackages(final List&lt;Package&gt; pkg, final boolean dryrun, final boolean enableBackup) {
+<span class="fc" id="L265">		return this.importAllPackages(pkg, dryrun, false,  enableBackup);</span>
+	}
+
+	/**
+     * Implement the push use case, so push the packages that are packed in the local project ot the remote vROps server and if we are not ia a dryrun mode, then
+     * effectively import it into vROps.
+     * @param packages Locally available packages.
+     * @param dryrun   Just test the whole process without actually import the packages in vROps.
+	 * @param mergePackages Whether to merge the packages
+	 * @param enableBackup Whether to enable backup
+     * @return The list of pushed packages. The actual package objects may be different, for example the file content they are associated with may be different file on
+     * the file system.
+     */
+    @Override
+    public List&lt;Package&gt; importAllPackages(final List&lt;Package&gt; packages, final boolean dryrun, final boolean mergePackages, final boolean enableBackup) {
+<span class="fc" id="L280">        validateFilesystem(packages);</span>
+<span class="fc" id="L281">        List&lt;Package&gt; sourceEndpointPackages = packages;</span>
+
+<span class="pc bpc" id="L283" title="1 of 2 branches missed.">        if (sourceEndpointPackages.isEmpty()) {</span>
+<span class="nc" id="L284">            return new ArrayList&lt;&gt;();</span>
+        }
+
+<span class="fc" id="L287">        List&lt;Package&gt; importedPackages = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L288" title="All 2 branches covered.">        for (Package pkg : sourceEndpointPackages) {</span>
+<span class="fc" id="L289">            importedPackages.add(importPackage(pkg, dryrun, mergePackages));</span>
+<span class="fc" id="L290">        }</span>
+
+<span class="fc" id="L292">        return importedPackages;</span>
+    }
+
+    /**
+     * Implement the pull use case, so pull all of the packages described in the {@code vropsPackageDescriptor} (constructed from content.yaml).
+     * @param vropsPackage vropsPackage
+     * @param vropsPackageDescriptor vropsPackageDescriptor
+     * @param dryrun dryrun
+     * @return package
+     */
+    @Override
+    public Package exportPackage(final Package vropsPackage, final VropsPackageDescriptor vropsPackageDescriptor, final boolean dryrun) {
+<span class="fc" id="L304">        logger.info(String.format(PackageStore.PACKAGE_EXPORT, vropsPackage));</span>
+
+<span class="pc bpc" id="L306" title="1 of 2 branches missed.">        if (!Files.exists(tempVropsExportDir.toPath())) {</span>
+<span class="fc" id="L307">            tempVropsExportDir.mkdir();</span>
+        }
+
+<span class="fc" id="L310">        final List&lt;String&gt; viewNames = vropsPackageDescriptor.getView();</span>
+<span class="pc bpc" id="L311" title="1 of 2 branches missed.">        if (viewNames != null) {</span>
+<span class="fc" id="L312">            exportViews(vropsPackage, viewNames);</span>
+        } else {
+<span class="nc" id="L314">            logger.info(&quot;No views found in content.yaml&quot;);</span>
+        }
+
+<span class="fc" id="L317">        final List&lt;String&gt; dashboardNames = vropsPackageDescriptor.getDashboard();</span>
+<span class="pc bpc" id="L318" title="1 of 2 branches missed.">        if (dashboardNames != null) {</span>
+<span class="nc" id="L319">            exportDashboards(vropsPackage, dashboardNames);</span>
+        } else {
+<span class="fc" id="L321">            logger.info(&quot;No dashboards found in content.yaml&quot;);</span>
+        }
+
+<span class="fc" id="L324">        final List&lt;String&gt; reportNames = vropsPackageDescriptor.getReport();</span>
+<span class="pc bpc" id="L325" title="1 of 2 branches missed.">        if (reportNames != null) {</span>
+<span class="nc" id="L326">            this.exportReports(vropsPackage, reportNames);</span>
+        } else {
+<span class="fc" id="L328">            logger.info(&quot;No reports found in content.yaml&quot;);</span>
+        }
+
+<span class="fc" id="L331">        final List&lt;String&gt; alertDefinitions = vropsPackageDescriptor.getAlertDefinition();</span>
+<span class="pc bpc" id="L332" title="1 of 2 branches missed.">        if (alertDefinitions != null) {</span>
+<span class="nc" id="L333">            exportDefinitions(VropsPackageMemberType.ALERT_DEFINITION, alertDefinitions);</span>
+        } else {
+<span class="fc" id="L335">            logger.info(&quot;No alert definitions found in content.yaml&quot;);</span>
+        }
+
+<span class="fc" id="L338">        final List&lt;String&gt; symptomDefinitions = vropsPackageDescriptor.getSymptomDefinition();</span>
+<span class="pc bpc" id="L339" title="1 of 2 branches missed.">        if (symptomDefinitions != null) {</span>
+<span class="nc" id="L340">            exportDefinitions(VropsPackageMemberType.SYMPTOM_DEFINITION, symptomDefinitions);</span>
+        } else {
+<span class="fc" id="L342">            logger.info(&quot;No symptom definitions found in content.yaml&quot;);</span>
+        }
+
+<span class="fc" id="L345">        final List&lt;String&gt; recommendations = vropsPackageDescriptor.getRecommendation();</span>
+<span class="pc bpc" id="L346" title="1 of 2 branches missed.">        if (recommendations != null) {</span>
+<span class="nc" id="L347">            exportDefinitions(VropsPackageMemberType.RECOMMENDATION, recommendations);</span>
+        } else {
+<span class="fc" id="L349">            logger.info(&quot;No recommendations found in content.yaml&quot;);</span>
+        }
+
+<span class="fc" id="L352">        final List&lt;String&gt; policies = vropsPackageDescriptor.getPolicy();</span>
+<span class="pc bpc" id="L353" title="1 of 2 branches missed.">        if (policies != null) {</span>
+<span class="nc" id="L354">            exportPolicies(vropsPackage, policies);</span>
+        } else {
+<span class="fc" id="L356">            logger.info(&quot;No policies found in content.yaml&quot;);</span>
+        }
+
+<span class="fc" id="L359">        final List&lt;String&gt; customGroupNames = vropsPackageDescriptor.getCustomGroup();</span>
+<span class="pc bpc" id="L360" title="1 of 2 branches missed.">        if (customGroupNames != null) {</span>
+<span class="nc" id="L361">            exportCustomGroups(vropsPackage, customGroupNames);</span>
+        } else {
+<span class="fc" id="L363">            logger.info(&quot;No custom group configurations found in content.yaml&quot;);</span>
+        }
+
+<span class="fc" id="L366">        final List&lt;String&gt; superMetricNames = vropsPackageDescriptor.getSuperMetric();</span>
+<span class="pc bpc" id="L367" title="1 of 2 branches missed.">        if (superMetricNames != null) {</span>
+<span class="nc" id="L368">            exportSuperMetrics(vropsPackage, superMetricNames);</span>
+        } else {
+<span class="fc" id="L370">            logger.info(&quot;No super metrics found in content.yaml&quot;);</span>
+        }
+
+<span class="fc" id="L373">        final List&lt;String&gt; metricConfigNames = vropsPackageDescriptor.getMetricConfig();</span>
+<span class="pc bpc" id="L374" title="1 of 2 branches missed.">        if (metricConfigNames != null) {</span>
+<span class="nc" id="L375">            exportMetricConfigs(vropsPackage, metricConfigNames);</span>
+        } else {
+<span class="fc" id="L377">            logger.info(&quot;No metric configurations found in content.yaml&quot;);</span>
+        }
+
+        try {
+<span class="pc bpc" id="L381" title="1 of 2 branches missed.">            if (!dryrun) {</span>
+<span class="fc" id="L382">                File destDir = new File(vropsPackage.getFilesystemPath());</span>
+<span class="fc" id="L383">                PackageManager.copyContents(tempVropsExportDir, destDir);</span>
+            }
+<span class="nc" id="L385">        } catch (IOException ioe) {</span>
+<span class="nc" id="L386">            throw new RuntimeException(String.format(&quot;Cannot copy content of downloaded and extracted package from temp dir %s to actual project dir %s : %s&quot;,</span>
+<span class="nc" id="L387">                    tempVropsExportDir.getAbsolutePath(), vropsPackage.getFilesystemPath(), ioe.getMessage()));</span>
+        } finally {
+            try {
+<span class="fc" id="L390">                PackageManager.cleanup(tempVropsExportDir);</span>
+<span class="fc" id="L391">                PackageManager.cleanup(tempDir);</span>
+<span class="nc" id="L392">            } catch (IOException ioe) {</span>
+                // Ignored (for now).
+<span class="fc" id="L394">            }</span>
+        }
+
+<span class="fc" id="L397">        return vropsPackage;</span>
+    }
+
+	/**
+     * Export views from vROPs.
+     * @param vropsPackage Package to export views to.
+     * @param viewNames   List of views to be exported.
+     * @throws RuntimeException if there are no views on vROPs server or the export fails.
+     */
+    private void exportViews(final Package vropsPackage, final List&lt;String&gt; viewNames) {
+<span class="fc" id="L407">        ViewDefinitionDTO allViewDefinitions = restClient.getAllViewDefinitions();</span>
+<span class="pc bpc" id="L408" title="1 of 2 branches missed.">        if (allViewDefinitions.getViewDefinitions().isEmpty()) {</span>
+<span class="nc" id="L409">            throw new RuntimeException(&quot;No views are available on vROPS server&quot;);</span>
+        }
+<span class="fc" id="L411">        List&lt;String&gt; filteredViews = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L412" title="All 2 branches covered.">        for (ViewDefinitionDTO.ViewDefinition view : allViewDefinitions.getViewDefinitions()) {</span>
+<span class="pc bpc" id="L413" title="1 of 2 branches missed.">            if (viewNames.stream().anyMatch(name -&gt; this.isPackageAssetMatching(name, view.getName()))) {</span>
+<span class="fc" id="L414">                filteredViews.add(view.getName());</span>
+            }
+<span class="fc" id="L416">        }</span>
+
+<span class="fc" id="L418">        File viewsDir = new File(tempVropsExportDir, &quot;views&quot;);</span>
+<span class="fc" id="L419">        viewsDir.mkdir();</span>
+<span class="fc" id="L420">        logger.info(&quot;Created views temporary directory {}&quot;, viewsDir.getAbsolutePath());</span>
+        try {
+<span class="fc" id="L422">            cliManager.connect();</span>
+<span class="fc" id="L423">            filteredViews.forEach(view -&gt; copyViewToFilesystem(view, viewsDir));</span>
+<span class="nc" id="L424">        } catch (JSchException e) {</span>
+<span class="nc" id="L425">            String message = &quot;Unable to export views in package '%s', error in connection to '%s'. '%s' : '%s' Use command '%s' for troubleshooting&quot;;</span>
+<span class="nc" id="L426">            message = String.format(message, vropsPackage.getFQName(), cliManager, e.getClass().getName(), e.getMessage(), cliManager.toSshComand());</span>
+<span class="nc" id="L427">            logger.error(message);</span>
+<span class="nc" id="L428">            throw new RuntimeException(message, e);</span>
+        } finally {
+<span class="fc" id="L430">            cliManager.close();</span>
+        }
+<span class="fc" id="L432">    }</span>
+
+	/**
+     * Export super metrics from vROPs.
+     * @param vropsPackage Package to export super metrics to.
+     * @param superMetricNames   List of super metrics to be exported.
+     * @throws RuntimeException if there are no super metrics on vROPs server or the export fails.
+     */
+    private void exportSuperMetrics(final Package vropsPackage, final List&lt;String&gt; superMetricNames) {
+<span class="nc" id="L441">        SupermetricDTO allSupermetrics = restClient.getAllSupermetrics();</span>
+<span class="nc bnc" id="L442" title="All 2 branches missed.">        if (allSupermetrics.getSuperMetrics().isEmpty()) {</span>
+<span class="nc" id="L443">            throw new RuntimeException(&quot;No supermetrics are available on vROPS server&quot;);</span>
+        }
+<span class="nc" id="L445">        List&lt;String&gt; filteredSupermetrics = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L446" title="All 2 branches missed.">        for (SupermetricDTO.SuperMetric supermetric : allSupermetrics.getSuperMetrics()) {</span>
+<span class="nc bnc" id="L447" title="All 2 branches missed.">            if (superMetricNames.stream().anyMatch(name -&gt; this.isPackageAssetMatching(name, supermetric.getName()))) {</span>
+<span class="nc" id="L448">                filteredSupermetrics.add(supermetric.getName());</span>
+            }
+<span class="nc" id="L450">        }</span>
+
+<span class="nc" id="L452">        File superMetricsDir = new File(this.tempVropsExportDir, &quot;supermetrics&quot;);</span>
+<span class="nc bnc" id="L453" title="All 2 branches missed.">        if (!superMetricsDir.exists()) {</span>
+<span class="nc" id="L454">            logger.info(&quot;Created supermetrics temporary directory {}&quot;, superMetricsDir.getAbsolutePath());</span>
+<span class="nc" id="L455">            superMetricsDir.mkdir();</span>
+        }
+        try {
+<span class="nc" id="L458">            cliManager.connect();</span>
+<span class="nc" id="L459">            filteredSupermetrics.forEach(superMetric -&gt; this.copySuperMetricToFilesystem(superMetric, superMetricsDir));</span>
+<span class="nc" id="L460">        } catch (JSchException e) {</span>
+<span class="nc" id="L461">            String message = &quot;Unable to export super metrics in package '%s', error in connection to '%s'. '%s' : '%s' Use command '%s' for troubleshooting&quot;;</span>
+<span class="nc" id="L462">            message = String.format(message, vropsPackage.getFQName(), cliManager, e.getClass().getName(), e.getMessage(), cliManager.toSshComand());</span>
+<span class="nc" id="L463">            logger.error(message);</span>
+<span class="nc" id="L464">            throw new RuntimeException(message, e);</span>
+        } finally {
+<span class="nc" id="L466">            cliManager.close();</span>
+        }
+<span class="nc" id="L468">    }</span>
+
+	/**
+     * Export metrics configs from vROPs.
+     * @param vropsPackage Package to export metric configs to.
+     * @param metricConfigNames List of metric configs to be exported.
+     * @throws RuntimeException If the the export fails.
+     */
+    private void exportMetricConfigs(final Package vropsPackage, final List&lt;String&gt; metricConfigNames) {
+<span class="nc" id="L477">        File metricConfigsDir = new File(this.tempVropsExportDir, &quot;metricconfigs&quot;);</span>
+<span class="nc bnc" id="L478" title="All 2 branches missed.">        if (!metricConfigsDir.exists()) {</span>
+<span class="nc" id="L479">            logger.info(&quot;Created metric config temporary directory {}&quot;, metricConfigsDir.getAbsolutePath());</span>
+<span class="nc" id="L480">            metricConfigsDir.mkdir();</span>
+        }
+
+        try {
+<span class="nc" id="L484">            cliManager.connect();</span>
+<span class="nc bnc" id="L485" title="All 2 branches missed.">            for (String metricConfigName : metricConfigNames) {</span>
+<span class="nc bnc" id="L486" title="All 2 branches missed.">                if (metricConfigName.contains(WILDCARD_MATCH_SYMBOL)) {</span>
+<span class="nc" id="L487">                    logger.warn(&quot;Unable to export metric configs with pattern '{}' as vROPs metric config export does not support regex&quot;, metricConfigName);</span>
+                } else {
+                    // Could be stored with or without extension in vROps, so search for both
+<span class="nc" id="L490">                    this.copyMetricConfigToFilesystem(metricConfigName, metricConfigsDir);</span>
+<span class="nc" id="L491">                    this.copyMetricConfigToFilesystem(metricConfigName + &quot;.xml&quot;, metricConfigsDir);</span>
+                }
+<span class="nc" id="L493">            }</span>
+<span class="nc" id="L494">        } catch (JSchException e) {</span>
+<span class="nc" id="L495">            String message = &quot;Unable to export metric config in package '%s', error in connection to '%s'. '%s' : '%s' Use command '%s' for troubleshooting&quot;;</span>
+<span class="nc" id="L496">            message = String.format(message, vropsPackage.getFQName(), cliManager, e.getClass().getName(), e.getMessage(), cliManager.toSshComand());</span>
+<span class="nc" id="L497">            logger.error(message);</span>
+<span class="nc" id="L498">            throw new RuntimeException(message, e);</span>
+        } finally {
+<span class="nc" id="L500">            cliManager.close();</span>
+        }
+<span class="nc" id="L502">    }</span>
+
+	/**
+     * Copy the exported views from vROPs to the local file system.
+     * @param view view to be copied.
+     * @param dir directory where the view to be copied.
+     * @throws RuntimeException If the the copy fails.
+     */
+    private void copyViewToFilesystem(final String view, final File dir) {
+        try {
+<span class="fc" id="L512">            File viewDir = new File(tempDir, &quot;iac-view-&quot; + UUID.randomUUID().toString() + &quot;-&quot; + System.currentTimeMillis());</span>
+<span class="fc" id="L513">            viewDir.mkdirs();</span>
+<span class="fc" id="L514">            cliManager.exportView(view, viewDir);</span>
+<span class="fc" id="L515">            File zip = new File(viewDir, view + &quot;.zip&quot;);</span>
+<span class="fc" id="L516">            ZipUtilities.unzip(zip, viewDir);</span>
+            
+<span class="fc" id="L518">            File content = new File(viewDir, &quot;content.xml&quot;);</span>
+<span class="fc" id="L519">            moveFile(content, new File(dir, view + &quot;.xml&quot;));</span>
+<span class="fc" id="L520">            zip.delete();</span>
+<span class="fc" id="L521">            mergeLocalizationResources(new File(viewDir, &quot;resources&quot;), new File(dir, &quot;resources&quot;));</span>
+<span class="nc" id="L522">        } catch (IOException | JSchException e) {</span>
+<span class="nc" id="L523">            String message = &quot;Unable to pull view '%s' from remote vROps location '%s' to local filesystem '%s' : '%s'&quot;;</span>
+<span class="nc" id="L524">            message = String.format(message, view, cliManager, e.getClass().getName(), e.getMessage());</span>
+<span class="nc" id="L525">            logger.error(message);</span>
+<span class="nc" id="L526">            throw new RuntimeException(message, e);</span>
+<span class="fc" id="L527">        }</span>
+<span class="fc" id="L528">    }</span>
+
+	/**
+     * Copy the exported super metric from vROPs to the local file system.
+     * @param superMetric super metric to be copied.
+     * @param dir directory where the view to be copied.
+     * @throws RuntimeException If the the copy fails.
+     */
+    private void copySuperMetricToFilesystem(final String superMetric, final File dir) {
+        try {
+<span class="nc" id="L538">            File superMetricDir = new File(this.tempDir, &quot;iac-supermetric-&quot; + UUID.randomUUID().toString() + &quot;-&quot; + System.currentTimeMillis());</span>
+<span class="nc" id="L539">            superMetricDir.mkdirs();</span>
+<span class="nc" id="L540">            this.cliManager.exportSuperMetric(superMetric, superMetricDir);</span>
+<span class="nc" id="L541">            File content = new File(superMetricDir,  superMetric + &quot;.json&quot;);</span>
+<span class="nc" id="L542">            moveFile(content, new File(dir, superMetric + &quot;.json&quot;));</span>
+<span class="nc" id="L543">            mergeLocalizationResources(new File(superMetricDir, &quot;resources&quot;), new File(dir, &quot;resources&quot;));</span>
+<span class="nc" id="L544">        } catch (JSchException | IOException e) {</span>
+<span class="nc" id="L545">            String message = &quot;Unable to pull super metric '%s' from remote vROps location '%s' to local filesystem '%s' : '%s'&quot;;</span>
+<span class="nc" id="L546">            message = String.format(message, superMetric, cliManager, e.getClass().getName(), e.getMessage());</span>
+<span class="nc" id="L547">            logger.error(message);</span>
+<span class="nc" id="L548">            throw new RuntimeException(message, e);</span>
+<span class="nc" id="L549">        }</span>
+<span class="nc" id="L550">    }</span>
+
+	/**
+     * Copy the exported metric config from vROPs to the local file system.
+     * @param metricConfig metric config to be copied.
+     * @param dir directory where the view to be copied.
+     * @throws RuntimeException If the the copy fails.
+     */
+    private void copyMetricConfigToFilesystem(final String metricConfig, final File dir) {
+        try {
+<span class="nc" id="L560">            File metricConfigsDir = new File(this.tempDir, &quot;iac-metricconfig-&quot; + UUID.randomUUID().toString() + &quot;-&quot; + System.currentTimeMillis());</span>
+<span class="nc" id="L561">            metricConfigsDir.mkdirs();</span>
+
+<span class="nc" id="L563">            this.cliManager.exportMetricConfig(metricConfig, metricConfigsDir);</span>
+<span class="nc" id="L564">            File content = new File(metricConfigsDir,  metricConfig);</span>
+<span class="nc bnc" id="L565" title="All 2 branches missed.">            if (content.exists()) {</span>
+<span class="nc" id="L566">                moveFile(content, new File(dir, metricConfig));</span>
+            }
+            
+<span class="nc" id="L569">        } catch (JSchException | IOException e) {</span>
+<span class="nc" id="L570">            String message = &quot;Unable to pull metric config '%s' from remote vROps location '%s' to local filesystem '%s' : '%s'&quot;;</span>
+<span class="nc" id="L571">            message = String.format(message, metricConfig, cliManager, e.getClass().getName(), e.getMessage());</span>
+<span class="nc" id="L572">            logger.error(message);</span>
+<span class="nc" id="L573">            throw new RuntimeException(message, e);</span>
+<span class="nc" id="L574">        }</span>
+<span class="nc" id="L575">    }</span>
+
+	/**
+     * Export dashboards from vROPs.
+     * @param vropsPackage Package to export dashboards to.
+     * @param dashboardNames   List of dashboards to be exported.
+     * @throws RuntimeException if the export fails.
+     */
+    private void exportDashboards(final Package vropsPackage, final List&lt;String&gt; dashboardNames) {
+<span class="nc" id="L584">        File dashboardsDir = new File(tempVropsExportDir, &quot;dashboards&quot;);</span>
+<span class="nc" id="L585">        logger.info(&quot;Created dashboard temporary directory {} &quot;, dashboardsDir.getAbsolutePath());</span>
+<span class="nc" id="L586">        dashboardsDir.mkdir();</span>
+        try {
+<span class="nc" id="L588">            cliManager.connect();</span>
+<span class="nc bnc" id="L589" title="All 2 branches missed.">            for (String dashboardName : dashboardNames) {</span>
+<span class="nc bnc" id="L590" title="All 2 branches missed.">                if (dashboardName.contains(WILDCARD_MATCH_SYMBOL)) {</span>
+<span class="nc" id="L591">                    logger.warn(&quot;Unable to export dashboards with pattern '{}' as vROPs dashboard export does not support regex&quot;, dashboardName);</span>
+                } else {
+<span class="nc" id="L593">                    copyDashboardToFilesystem(dashboardName, dashboardsDir);</span>
+                }
+<span class="nc" id="L595">            }</span>
+            // store an initial dashboard metadata file with current dashboards
+<span class="nc" id="L597">            storeDashboardSharingMetadata(dashboardsDir, dashboardNames);</span>
+            // store an initial dashboard activation file per users with current dashboards
+<span class="nc" id="L599">            storeDashboardActivationMetadata(dashboardsDir, dashboardNames, false);</span>
+            // store an initial dashboard activation file per groups with current dashboards
+<span class="nc" id="L601">            storeDashboardActivationMetadata(dashboardsDir, dashboardNames, true);</span>
+<span class="nc" id="L602">        } catch (JSchException e) {</span>
+<span class="nc" id="L603">            String message = &quot;Unable to pull dashboards '%s' from remote vROPs location to local package '%s' : '%s' : '%s' Use command '%s' for troubleshooting remote SSH connection&quot;;</span>
+<span class="nc" id="L604">            message = String.format(message, String.join(&quot;, &quot;, dashboardNames), vropsPackage.getFQName(), e.getClass().getName(), e.getMessage(),</span>
+<span class="nc" id="L605">                    cliManager.toSshComand());</span>
+<span class="nc" id="L606">            logger.error(message);</span>
+<span class="nc" id="L607">            throw new RuntimeException(message, e);</span>
+        } finally {
+<span class="nc" id="L609">            cliManager.close();</span>
+        }
+<span class="nc" id="L611">    }</span>
+
+	/**
+     * Export reports from vROPs.
+     * @param vropsPackage Package to export reports to.
+     * @param reportNames   List of reports to be exported.
+     * @throws RuntimeException if there are no reports on the server or the export fails.
+     */
+    private void exportReports(final Package vropsPackage, final List&lt;String&gt; reportNames) {
+<span class="nc" id="L620">        ReportDefinitionDTO allReportDefinitions = restClient.getAllReportDefinitions();</span>
+<span class="nc bnc" id="L621" title="All 2 branches missed.">        if (allReportDefinitions.getReportDefinitions().isEmpty()) {</span>
+<span class="nc" id="L622">            throw new RuntimeException(&quot;No reports are available on vROPS server&quot;);</span>
+        }
+<span class="nc" id="L624">        List&lt;String&gt; filteredReports = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L625" title="All 2 branches missed.">        for (ReportDefinitionDTO.ReportDefinition report : allReportDefinitions.getReportDefinitions()) {</span>
+<span class="nc bnc" id="L626" title="All 2 branches missed.">            if (reportNames.stream().anyMatch(name -&gt; this.isPackageAssetMatching(name, report.getName()))) {</span>
+<span class="nc" id="L627">                filteredReports.add(report.getName());</span>
+            }
+<span class="nc" id="L629">        }</span>
+
+<span class="nc" id="L631">        File reportsDir = new File(tempVropsExportDir, &quot;reports&quot;);</span>
+<span class="nc" id="L632">        logger.info(&quot;Created report temporaty directory {}&quot;, reportsDir.getAbsolutePath());</span>
+<span class="nc" id="L633">        reportsDir.mkdir();</span>
+        try {
+<span class="nc" id="L635">            cliManager.connect();</span>
+<span class="nc" id="L636">            filteredReports.forEach(report -&gt; copyReportToFilesystem(report, reportsDir));</span>
+<span class="nc" id="L637">        } catch (JSchException e) {</span>
+<span class="nc" id="L638">            String message = &quot;Unable to pull reports '%s' from remote vROPs location to local package '%s' : '%s' : '%s' Use command '%s' for troubleshooting remote SSH connection&quot;;</span>
+<span class="nc" id="L639">            message = String.format(message, String.join(&quot;, &quot;, reportNames), vropsPackage.getFQName(), e.getClass().getName(), e.getMessage(),</span>
+<span class="nc" id="L640">                    cliManager.toSshComand());</span>
+<span class="nc" id="L641">            logger.error(message);</span>
+<span class="nc" id="L642">            throw new RuntimeException(message, e);</span>
+        } finally {
+<span class="nc" id="L644">            cliManager.close();</span>
+        }
+<span class="nc" id="L646">    }</span>
+
+	/**
+     * Import definitions in vROPs. The following definitions are supported: alert definitions, symptom definitions, recommendations.
+     * @param vropsPackage Package to export reports to.
+     * @param tmpDir   Directory where the definitions will be read from.
+     * @throws RuntimeException if the import fails.
+     */
+    private void importDefinitions(final Package vropsPackage, final File tmpDir) throws IOException {
+<span class="fc" id="L655">        StringBuilder messages = new StringBuilder();</span>
+<span class="fc" id="L656">        ObjectMapper mapper = new ObjectMapper();</span>
+<span class="fc" id="L657">        Map&lt;String, Object&gt; dependentDefinitionsMap = new HashMap&lt;&gt;();</span>
+
+<span class="fc" id="L659">        List&lt;File&gt; symptomDefinitionFiles = addDefinitionsToImportList(tmpDir, VropsPackageMemberType.SYMPTOM_DEFINITION);</span>
+<span class="fc" id="L660">        Map&lt;String, Object&gt; symptomDefinitionsMap = new HashMap&lt;&gt;();</span>
+<span class="pc bpc" id="L661" title="1 of 2 branches missed.">        for (File definitionFile : symptomDefinitionFiles) {</span>
+            String defninitionJson;
+            try {
+<span class="nc" id="L664">                defninitionJson = FileUtils.readFileToString(definitionFile, StandardCharsets.UTF_8);</span>
+<span class="nc" id="L665">                SymptomDefinitionDTO.SymptomDefinition symptomDefinition = mapper.readValue(defninitionJson, SymptomDefinitionDTO.SymptomDefinition.class);</span>
+<span class="nc" id="L666">                symptomDefinitionsMap.put(symptomDefinition.getId(), symptomDefinition);</span>
+<span class="nc" id="L667">            } catch (IOException e) {</span>
+<span class="nc" id="L668">                messages.append(String.format(&quot;Error reading %s : %s&quot;, VropsPackageMemberType.SYMPTOM_DEFINITION, e.getMessage()));</span>
+<span class="nc" id="L669">            } catch (Exception e) {</span>
+<span class="nc" id="L670">                messages.append(String.format(&quot;Error parsing %s : %s&quot;, VropsPackageMemberType.SYMPTOM_DEFINITION, e.getMessage()));</span>
+<span class="nc" id="L671">            }</span>
+<span class="nc" id="L672">        }</span>
+<span class="fc" id="L673">        symptomDefinitionsMap.keySet().stream().forEach(item -&gt; {</span>
+<span class="nc" id="L674">            dependentDefinitionsMap.put(item, symptomDefinitionsMap.get(item));</span>
+<span class="nc" id="L675">        });</span>
+<span class="fc" id="L676">		restClient.importDefinitionsInVrops(symptomDefinitionsMap, VropsPackageMemberType.SYMPTOM_DEFINITION, dependentDefinitionsMap);</span>
+
+<span class="fc" id="L678">        List&lt;File&gt; recommendationFiles = addDefinitionsToImportList(tmpDir, VropsPackageMemberType.RECOMMENDATION);</span>
+<span class="fc" id="L679">        Map&lt;String, Object&gt; recommendationsMap = new HashMap&lt;&gt;();</span>
+<span class="pc bpc" id="L680" title="1 of 2 branches missed.">        for (File recommendationFile : recommendationFiles) {</span>
+            String recommendationJson;
+            try {
+<span class="nc" id="L683">                recommendationJson = FileUtils.readFileToString(recommendationFile, StandardCharsets.UTF_8);</span>
+<span class="nc" id="L684">                RecommendationDTO.Recommendation recommendation = mapper.readValue(recommendationJson, RecommendationDTO.Recommendation.class);</span>
+<span class="nc" id="L685">                recommendationsMap.put(recommendation.getId(), recommendation);</span>
+<span class="nc" id="L686">            } catch (IOException e) {</span>
+<span class="nc" id="L687">                messages.append(String.format(&quot;Error reading %s : %s&quot;, VropsPackageMemberType.RECOMMENDATION, e.getMessage()));</span>
+<span class="nc" id="L688">            } catch (Exception e) {</span>
+<span class="nc" id="L689">                messages.append(String.format(&quot;Error parsing %s : %s&quot;, VropsPackageMemberType.RECOMMENDATION, e.getMessage()));</span>
+<span class="nc" id="L690">            }</span>
+<span class="nc" id="L691">        }</span>
+<span class="fc" id="L692">        recommendationsMap.keySet().stream().forEach(item -&gt; {</span>
+<span class="nc" id="L693">            dependentDefinitionsMap.put(item, recommendationsMap.get(item));</span>
+<span class="nc" id="L694">        });</span>
+<span class="fc" id="L695">		restClient.importDefinitionsInVrops(recommendationsMap, VropsPackageMemberType.RECOMMENDATION, dependentDefinitionsMap);</span>
+
+<span class="fc" id="L697">        List&lt;File&gt; alertDefinitionFiles = addDefinitionsToImportList(tmpDir, VropsPackageMemberType.ALERT_DEFINITION);</span>
+<span class="fc" id="L698">        Map&lt;String, Object&gt; alertDefinitionsMap = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L699" title="All 2 branches covered.">        for (File definitionFile : alertDefinitionFiles) {</span>
+            String defninitionJson;
+            try {
+<span class="fc" id="L702">                defninitionJson = FileUtils.readFileToString(definitionFile, StandardCharsets.UTF_8);</span>
+<span class="fc" id="L703">                AlertDefinitionDTO.AlertDefinition alertDefinition = mapper.readValue(defninitionJson, AlertDefinitionDTO.AlertDefinition.class);</span>
+<span class="fc" id="L704">                alertDefinitionsMap.put(alertDefinition.getId(), alertDefinition);</span>
+<span class="nc" id="L705">            } catch (IOException e) {</span>
+<span class="nc" id="L706">                messages.append(String.format(&quot;Error reading %s : %s&quot;, VropsPackageMemberType.ALERT_DEFINITION, e.getMessage()));</span>
+<span class="nc" id="L707">            } catch (Exception e) {</span>
+<span class="nc" id="L708">                messages.append(String.format(&quot;Error parsing %s : %s&quot;, VropsPackageMemberType.ALERT_DEFINITION, e.getMessage()));</span>
+<span class="pc" id="L709">            }</span>
+<span class="fc" id="L710">        }</span>
+<span class="fc" id="L711">        alertDefinitionsMap.keySet().stream().forEach(item -&gt; {</span>
+<span class="fc" id="L712">            dependentDefinitionsMap.put(item, alertDefinitionsMap.get(item));</span>
+<span class="fc" id="L713">        });</span>
+<span class="fc" id="L714">		restClient.importDefinitionsInVrops(alertDefinitionsMap, VropsPackageMemberType.ALERT_DEFINITION, dependentDefinitionsMap);</span>
+
+<span class="pc bpc" id="L716" title="1 of 2 branches missed.">        if (messages.length() &gt; 0) {</span>
+<span class="nc" id="L717">            throw new IOException(messages.toString());</span>
+        }
+<span class="fc" id="L719">    }</span>
+
+	/**
+     * Activate / Deactivate dashboards per user or group, based on the data in the activation metadata file.
+     * @param rootDir Root directory where the dashboards and the metadata files reside.
+     * @param isGroupActivation flag whether group activation is specified.
+     * @throws RuntimeException if the activation / deactivation per user or group fails.
+     */
+	private void manageDashboardActivation(final File rootDir, final boolean isGroupActivation) {
+<span class="fc" id="L728">		Map&lt;String, Map&lt;String, List&lt;String&gt;&gt;&gt; activationMetadata = this.getDashboardActivationMetadata(rootDir, isGroupActivation);</span>
+<span class="pc bpc" id="L729" title="1 of 2 branches missed.">		if (activationMetadata.isEmpty()) {</span>
+<span class="nc" id="L730">			return;</span>
+		}
+<span class="fc" id="L732">		activationMetadata.keySet().forEach(action -&gt; {</span>
+<span class="fc" id="L733">			Map&lt;String, List&lt;String&gt;&gt; activationInfo = activationMetadata.get(action);</span>
+<span class="fc bfc" id="L734" title="All 2 branches covered.">			if (activationInfo.keySet().isEmpty()) {</span>
+<span class="fc" id="L735">				return;</span>
+			}
+<span class="fc bfc" id="L737" title="All 2 branches covered.">			String resourceType = isGroupActivation ? &quot;group&quot; : &quot;user&quot;;</span>
+<span class="fc" id="L738">			activationInfo.keySet().forEach(dashboard -&gt; {</span>
+<span class="fc" id="L739">				List&lt;String&gt; resources = activationInfo.get(dashboard);</span>
+<span class="pc bpc" id="L740" title="1 of 2 branches missed.">				if (resources.isEmpty()) {</span>
+<span class="nc" id="L741">					return;</span>
+				}
+				// check whether all of the users with that dashboard will be activated / deactivated
+				// exist on the target vROPs
+<span class="fc bfc" id="L745" title="All 2 branches covered.">				List&lt;String&gt; missingResources = isGroupActivation ? this.getMissingGroups(resources) : this.getMissingUsers(resources);</span>
+<span class="pc bpc" id="L746" title="2 of 4 branches missed.">				if (missingResources != null &amp;&amp; !missingResources.isEmpty()) {</span>
+<span class="nc" id="L747">					throw new RuntimeException(String.format(&quot;Unable to %s dashboard '%s' as resourcee of type %s '%s' do not exists on target vROPs&quot;, action,</span>
+<span class="nc" id="L748">							dashboard, resourceType, String.join(&quot;, &quot;, missingResources.toArray(new String[0]))));</span>
+				}
+<span class="pc bpc" id="L750" title="2 of 3 branches missed.">				switch (action) {</span>
+					case ACTION_ACTIVATE: {
+<span class="fc" id="L752">						logger.info(&quot;Activating dashboard: '{}' for resource of type {}: '{}'&quot;, dashboard, resourceType, String.join(&quot;, &quot;, resources));</span>
+<span class="fc" id="L753">						this.cliManager.activateDashboard(dashboard, resources, isGroupActivation);</span>
+<span class="fc" id="L754">						break;</span>
+					}
+					case ACTION_DEACTIVATE: {
+<span class="nc" id="L757">						logger.info(&quot;Deactivating dashboard: '{}' for resource of type {}: '{}'&quot;, dashboard, resourceType, String.join(&quot;, &quot;, resources));</span>
+<span class="nc" id="L758">						this.cliManager.deactivateDashboard(dashboard, resources, isGroupActivation);</span>
+<span class="nc" id="L759">						break;</span>
+					}
+					default: {
+<span class="nc" id="L762">						logger.warn(&quot;Invalid action: '{}' for resource type {}, supported actions 'share, unshare'&quot;, action, resourceType);</span>
+					}
+				}
+<span class="fc" id="L765">			});</span>
+<span class="fc" id="L766">		});</span>
+<span class="fc" id="L767">	}</span>
+
+	/**
+     * Share / un-share dashboards based on the dashboard sharing metadata file.
+     * @param rootDir Root directory where the dashboards and the metadata file reside.
+     * @throws RuntimeException if the sharing / unsharing per user or group fails.
+     */
+    private void manageDashboardSharing(final File rootDir) {
+<span class="fc" id="L775">        Map&lt;String, Map&lt;String, List&lt;String&gt;&gt;&gt; sharingMetadata = this.getDashboardSharingMetadata(rootDir);</span>
+<span class="pc bpc" id="L776" title="1 of 2 branches missed.">		if (sharingMetadata.isEmpty()) {</span>
+<span class="nc" id="L777">			return;</span>
+		}
+<span class="fc" id="L779">        sharingMetadata.keySet().forEach(action -&gt; {</span>
+<span class="fc" id="L780">            Map&lt;String, List&lt;String&gt;&gt; shareInfo = sharingMetadata.get(action);</span>
+<span class="fc bfc" id="L781" title="All 2 branches covered.">            if (shareInfo.keySet().isEmpty()) {</span>
+<span class="fc" id="L782">                return;</span>
+            }
+<span class="fc" id="L784">            shareInfo.keySet().forEach(dashboard -&gt; {</span>
+<span class="fc" id="L785">                List&lt;String&gt; groups = shareInfo.get(dashboard);</span>
+<span class="pc bpc" id="L786" title="1 of 2 branches missed.">                if (groups.isEmpty()) {</span>
+<span class="nc" id="L787">                    return;</span>
+                }
+                // check whether all of the groups with that dashboard will be shared/unshared
+                // exist on the target vROPs
+<span class="fc" id="L791">                List&lt;String&gt; missingGroups = this.getMissingGroups(groups);</span>
+<span class="pc bpc" id="L792" title="2 of 4 branches missed.">                if (missingGroups != null &amp;&amp; !missingGroups.isEmpty()) {</span>
+<span class="nc" id="L793">                    throw new RuntimeException(String.format(&quot;Unable to %s dashboard '%s' as resources of type group '%s' do not exists on target vROPs&quot;,</span>
+<span class="nc" id="L794">                        action, dashboard, String.join(&quot;, &quot;, missingGroups.toArray(new String[0]))));</span>
+                }
+<span class="pc bpc" id="L796" title="2 of 3 branches missed.">                switch (action) {</span>
+                    case ACTION_SHARE: {
+<span class="fc" id="L798">                        logger.info(&quot;Sharing dashboard: '{}' with resources of type group: '{}'&quot;, dashboard, String.join(&quot;, &quot;, groups));</span>
+<span class="fc" id="L799">                        this.cliManager.shareDashboard(dashboard, groups.toArray(new String[0]));</span>
+<span class="fc" id="L800">                        break;</span>
+                    }
+                    case ACTION_UNSHARE: {
+<span class="nc" id="L803">                        logger.info(&quot;Unsharing dashboard: '{}' resources of type group: '{}'&quot;, dashboard, String.join(&quot;, &quot;, groups));</span>
+<span class="nc" id="L804">                        this.cliManager.unshareDashboard(dashboard, groups.toArray(new String[0]));</span>
+<span class="nc" id="L805">                        break;</span>
+                    }
+                    default: {
+<span class="nc" id="L808">                        logger.warn(&quot;Invalid action: '{}', supported actions 'share, unshare'&quot;, action);</span>
+                    }
+                }
+<span class="fc" id="L811">            });</span>
+<span class="fc" id="L812">        });</span>
+<span class="fc" id="L813">    }</span>
+
+	/**
+     * Return the missing groups for dashboard sharing / unsharing / activation / deactivation.
+     * @param groups List of groups to be checked whether they are present on vROPs server.
+     * @return list of missing groups.
+     */
+    private List&lt;String&gt; getMissingGroups(final List&lt;String&gt; groups) {
+<span class="fc" id="L821">        List&lt;AuthGroupDTO&gt; foundGroups = this.restClient.findAuthGroupsByNames(groups);</span>
+<span class="pc bpc" id="L822" title="2 of 4 branches missed.">        if (foundGroups == null || foundGroups.isEmpty()) {</span>
+<span class="nc" id="L823">            return groups;</span>
+        }
+
+<span class="fc" id="L826">        return groups.stream().filter(group -&gt; foundGroups.stream().noneMatch(t -&gt; t.getDisplayName().equals(group))).collect(Collectors.toList());</span>
+    }
+
+	/**
+     * Return the missing users for dashboard sharing / unsharing / activation / deactivation.
+     * @param users List of users to be checked whether they are present on vROPs server.
+     * @return list of missing users.
+     */
+    private List&lt;String&gt; getMissingUsers(final List&lt;String&gt; users) {
+<span class="fc" id="L835">        List&lt;AuthUserDTO&gt; foundUsers = this.restClient.findAuthUsersByNames(users);</span>
+<span class="pc bpc" id="L836" title="2 of 4 branches missed.">        if (foundUsers == null || foundUsers.isEmpty()) {</span>
+<span class="nc" id="L837">            return users;</span>
+        }
+
+<span class="fc" id="L840">        return users.stream().filter(user -&gt; foundUsers.stream().noneMatch(t -&gt; t.getUsername().equals(user))).collect(Collectors.toList());</span>
+    }
+
+	/**
+	 * Gets policy metadata.
+	 * @param rootDir
+	 * @return policy metadata
+	 */
+    @SuppressWarnings(&quot;unchecked&quot;)
+    private Map&lt;String, String&gt; getPolicyMetadata(final File rootDir) {
+<span class="nc" id="L850">        File policiesDir = new File(rootDir.getPath(), &quot;policies&quot;);</span>
+<span class="nc bnc" id="L851" title="All 2 branches missed.">        if (!policiesDir.exists()) {</span>
+<span class="nc" id="L852">            return Collections.emptyMap();</span>
+        }
+<span class="nc" id="L854">        String policiesMetdata = &quot;&quot;;</span>
+<span class="nc" id="L855">        String policiesMetdataFileName = &quot;&quot;;</span>
+        try {
+<span class="nc" id="L857">            logger.info(&quot;Reading policy metadata file '{}'&quot;, POLICY_METADATA_FILENAME);</span>
+<span class="nc" id="L858">            File policiesMetadataFile = new File(policiesDir, POLICY_METADATA_FILENAME);</span>
+<span class="nc" id="L859">            policiesMetdataFileName = policiesMetadataFile.getName();</span>
+<span class="nc" id="L860">            policiesMetdata = FileUtils.readFileToString(policiesMetadataFile, StandardCharsets.UTF_8);</span>
+<span class="nc" id="L861">        } catch (IOException e) {</span>
+<span class="nc" id="L862">            logger.warn(&quot;An error occurred reading file {} : {}&quot;, policiesMetdataFileName, e.getMessage());</span>
+
+<span class="nc" id="L864">            return Collections.emptyMap();</span>
+<span class="nc" id="L865">        }</span>
+        try {
+<span class="nc" id="L867">            return new ObjectMapper().readValue(policiesMetdata, HashMap.class);</span>
+<span class="nc" id="L868">        } catch (JsonProcessingException e) {</span>
+<span class="nc" id="L869">            logger.warn(&quot;An error occurred parsing metadata file {} : {}&quot;, policiesMetdataFileName, e.getMessage());</span>
+
+<span class="nc" id="L871">            return Collections.emptyMap();</span>
+        }
+    }
+
+	/**
+	 * Gets dashboard sharing metadata.
+	 * @param rootDir root directory of the dashboard sharing metadata file.
+	 * @return the dashboard sharing metadata hashmap.
+	 */
+    @SuppressWarnings(&quot;unchecked&quot;)
+    private Map&lt;String, Map&lt;String, List&lt;String&gt;&gt;&gt; getDashboardSharingMetadata(final File rootDir) {
+        // get dashboard sharing metadata
+<span class="fc" id="L883">        File dashboardsDir = new File(rootDir.getPath(), &quot;dashboards&quot;);</span>
+<span class="pc bpc" id="L884" title="1 of 2 branches missed.">        if (!dashboardsDir.exists()) {</span>
+<span class="nc" id="L885">            return Collections.emptyMap();</span>
+        }
+<span class="fc" id="L887">        String dashboardSharingMetadata = &quot;&quot;;</span>
+<span class="fc" id="L888">        String dashboardSharingMetadataFileName = &quot;&quot;;</span>
+        try {
+<span class="fc" id="L890">            File dashboardShareMetadataFile = new File(dashboardsDir, DASHBOARD_SHARE_METADATA_FILENAME);</span>
+<span class="pc bpc" id="L891" title="1 of 2 branches missed.">            if (!dashboardShareMetadataFile.exists()) {</span>
+<span class="nc" id="L892">                return Collections.emptyMap();</span>
+            }
+<span class="fc" id="L894">            logger.info(&quot;Reading dashboard sharing metadata file '{}'&quot;, DASHBOARD_SHARE_METADATA_FILENAME);</span>
+<span class="fc" id="L895">            dashboardSharingMetadataFileName = dashboardShareMetadataFile.getName();</span>
+<span class="fc" id="L896">            dashboardSharingMetadata = FileUtils.readFileToString(dashboardShareMetadataFile, StandardCharsets.UTF_8);</span>
+<span class="nc" id="L897">        } catch (IOException e) {</span>
+<span class="nc" id="L898">            throw new RuntimeException(String.format(&quot;An error occurred reading file '%s'&quot;, dashboardSharingMetadataFileName), e);</span>
+<span class="fc" id="L899">        }</span>
+        try {
+<span class="fc" id="L901">            return new ObjectMapper().readValue(dashboardSharingMetadata, HashMap.class);</span>
+<span class="nc" id="L902">        } catch (JsonProcessingException e) {</span>
+<span class="nc" id="L903">            throw new RuntimeException(String.format(&quot;An error occurred parsing file '%s'&quot;, dashboardSharingMetadataFileName), e);</span>
+        }
+    }
+
+	/**
+	 * Gets dashboard activation metadata.
+	 * @param rootDir root directory of the dashboard activation metadata file.
+	 * @param isGroupActivation return the group activation metadata.
+	 * @return the dashboard activation metadata hashmap.
+	 */
+    @SuppressWarnings(&quot;unchecked&quot;)
+    private Map&lt;String, Map&lt;String, List&lt;String&gt;&gt;&gt; getDashboardActivationMetadata(final File rootDir, final boolean isGroupActivation) {
+        // get dashboard activation metadata
+<span class="fc" id="L916">        File dashboardsDir = new File(rootDir.getPath(), &quot;dashboards&quot;);</span>
+<span class="pc bpc" id="L917" title="1 of 2 branches missed.">        if (!dashboardsDir.exists()) {</span>
+<span class="nc" id="L918">            return Collections.emptyMap();</span>
+        }
+<span class="fc" id="L920">        String dashboardActivationMetadata = &quot;&quot;;</span>
+<span class="fc bfc" id="L921" title="All 2 branches covered.">        String fileName = isGroupActivation ? DASHBOARD_GROUP_ACTIVATE_METADATA_FILENAME : DASHBOARD_USER_ACTIVATE_METADATA_FILENAME;</span>
+<span class="fc bfc" id="L922" title="All 2 branches covered.">        String resourceType = isGroupActivation ? &quot;group&quot; : &quot;user&quot;;</span>
+        try {
+<span class="fc" id="L924">            File dashboardActivationMetadataFile = new File(dashboardsDir, fileName);</span>
+<span class="pc bpc" id="L925" title="1 of 2 branches missed.">            if (!dashboardActivationMetadataFile.exists()) {</span>
+<span class="nc" id="L926">                return Collections.emptyMap();</span>
+            }
+<span class="fc" id="L928">            logger.info(&quot;Reading dashboard sharing metadata file '{}' for resource type {}&quot;, fileName, resourceType);</span>
+<span class="fc" id="L929">            dashboardActivationMetadata = FileUtils.readFileToString(dashboardActivationMetadataFile, StandardCharsets.UTF_8);</span>
+<span class="nc" id="L930">        } catch (IOException e) {</span>
+<span class="nc" id="L931">            throw new RuntimeException(String.format(&quot;An error occurred reading file '%s' for resource type %s&quot;, fileName, resourceType), e);</span>
+<span class="fc" id="L932">        }</span>
+        try {
+<span class="fc" id="L934">            return new ObjectMapper().readValue(dashboardActivationMetadata, HashMap.class);</span>
+<span class="nc" id="L935">        } catch (JsonProcessingException e) {</span>
+<span class="nc" id="L936">            throw new RuntimeException(String.format(&quot;An error occurred parsing file '%s' for resource type %s&quot;, fileName, resourceType), e);</span>
+        }
+    }
+
+	/**
+	 * Store the policy metadata file.
+	 * @param rootDir root directory where to store policy metadata file.
+	 * @param policyMetadata hashmap with policy meta data.
+	 */
+    private void storePolicyMetadata(final File rootDir, final Map&lt;String, String&gt; policyMetadata) {
+        // generate policy metadata file
+<span class="nc" id="L947">        File policyMetadataFile = new File(rootDir, POLICY_METADATA_FILENAME);</span>
+<span class="nc" id="L948">        String policyMetadataContent = &quot;&quot;;</span>
+        try {
+<span class="nc" id="L950">            policyMetadataContent = this.serializeObject(policyMetadata);</span>
+<span class="nc bnc" id="L951" title="All 2 branches missed.">            policyMetadataContent = policyMetadataContent == null ? &quot;&quot; : policyMetadataContent;</span>
+<span class="nc" id="L952">            Files.write(policyMetadataFile.toPath(), policyMetadataContent.getBytes(), StandardOpenOption.CREATE_NEW);</span>
+<span class="nc" id="L953">        } catch (JsonProcessingException e) {</span>
+<span class="nc" id="L954">            String message = String.format(&quot;Error generating policy metadata file %s : %s&quot;, policyMetadataFile.getName(), e.getMessage());</span>
+<span class="nc" id="L955">            logger.error(message);</span>
+
+<span class="nc" id="L957">            throw new RuntimeException(message, e);</span>
+<span class="nc" id="L958">        } catch (IOException e) {</span>
+<span class="nc" id="L959">            String message = String.format(&quot;Error exporting policy metadata file %s : %s&quot;, policyMetadataFile.getName(), e.getMessage());</span>
+<span class="nc" id="L960">            logger.error(message);</span>
+
+<span class="nc" id="L962">            throw new RuntimeException(message, e);</span>
+<span class="nc" id="L963">        }</span>
+<span class="nc" id="L964">    }</span>
+
+	/**
+	 * Store the dashboard sharing metadata file.
+	 * @param rootDir root directory where to store the dashboard sharing metadata file.
+	 * @param dashboards list of dashboards to be put in the file.
+	 */
+    private void storeDashboardSharingMetadata(final File rootDir, final List&lt;String&gt; dashboards) {
+        // generate dashboard sharing metadata file
+<span class="nc" id="L973">        File dashboardShareMetadataFile = new File(rootDir, DASHBOARD_SHARE_METADATA_FILENAME);</span>
+        // if file exist return here and do not generate sample contents
+<span class="nc bnc" id="L975" title="All 2 branches missed.">        if (dashboardShareMetadataFile.exists()) {</span>
+<span class="nc" id="L976">            return;</span>
+        }
+<span class="nc" id="L978">        String dashboardShareMetadataContent = &quot;&quot;;</span>
+        try {
+<span class="nc" id="L980">            Map&lt;String, List&lt;String&gt;&gt; dashboardInfo = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L981">            dashboards.forEach(item -&gt; dashboardInfo.put(item, new ArrayList&lt;&gt;()));</span>
+
+<span class="nc" id="L983">            Map&lt;String, Map&lt;String, List&lt;String&gt;&gt;&gt; metadata = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L984">            metadata.put(ACTION_SHARE, dashboardInfo);</span>
+<span class="nc" id="L985">            metadata.put(ACTION_UNSHARE, dashboardInfo);</span>
+
+<span class="nc" id="L987">            dashboardShareMetadataContent = this.serializeObject(metadata);</span>
+<span class="nc bnc" id="L988" title="All 2 branches missed.">            dashboardShareMetadataContent = dashboardShareMetadataContent == null ? &quot;&quot; : dashboardShareMetadataContent;</span>
+<span class="nc" id="L989">			logger.debug(&quot;Creating parent folders...&quot;);</span>
+<span class="nc" id="L990">			dashboardShareMetadataFile.getParentFile().mkdirs();</span>
+<span class="nc" id="L991">			logger.info(&quot;Generating dashboard sharing metadata file '{}'&quot;, DASHBOARD_SHARE_METADATA_FILENAME);</span>
+<span class="nc" id="L992">            Files.write(dashboardShareMetadataFile.toPath(), dashboardShareMetadataContent.getBytes(), StandardOpenOption.CREATE_NEW);</span>
+<span class="nc" id="L993">        } catch (JsonProcessingException e) {</span>
+<span class="nc" id="L994">            String message = String.format(&quot;Error generating dashboard sharing metadata file '%s' : %s&quot;, DASHBOARD_SHARE_METADATA_FILENAME, e.getMessage());</span>
+<span class="nc" id="L995">            logger.warn(message);</span>
+<span class="nc" id="L996">        } catch (IOException e) {</span>
+<span class="nc" id="L997">            String message = String.format(&quot;Error exporting dashboard sharing metadata file '%s' : %s&quot;, DASHBOARD_SHARE_METADATA_FILENAME, e.getMessage());</span>
+<span class="nc" id="L998">            logger.warn(message);</span>
+<span class="nc" id="L999">        }</span>
+<span class="nc" id="L1000">    }</span>
+
+	/**
+	 * Store the dashboard activation / deactivation metadata file.
+	 * @param rootDir root directory where to store the dashboard activation / deactivation metadata file.
+	 * @param dashboards list of dashboards to be put in the file.
+	 * @param isGroupActivation flag whether the metadata is for group activation / deactivation.
+	 */
+    private void storeDashboardActivationMetadata(final File rootDir, final List&lt;String&gt; dashboards, final boolean isGroupActivation) {
+        // generate dashboard activation metadata file
+<span class="nc bnc" id="L1010" title="All 2 branches missed.">        String fileName = isGroupActivation ? DASHBOARD_GROUP_ACTIVATE_METADATA_FILENAME : DASHBOARD_USER_ACTIVATE_METADATA_FILENAME;</span>
+<span class="nc" id="L1011">        File dashboardActivationMetadataFile = new File(rootDir, fileName);</span>
+        // if file exist return here and do not generate sample contents
+<span class="nc bnc" id="L1013" title="All 2 branches missed.">        if (dashboardActivationMetadataFile.exists()) {</span>
+<span class="nc" id="L1014">            return;</span>
+        }
+<span class="nc bnc" id="L1016" title="All 2 branches missed.">        String resourceType = isGroupActivation ? &quot;group&quot; : &quot;user&quot;;</span>
+<span class="nc" id="L1017">        String dashboardActivationMetadataContent = &quot;&quot;;</span>
+        try {
+<span class="nc" id="L1019">            Map&lt;String, List&lt;String&gt;&gt; dashboardInfo = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L1020">            dashboards.forEach(item -&gt; dashboardInfo.put(item, new ArrayList&lt;&gt;()));</span>
+
+<span class="nc" id="L1022">            Map&lt;String, Map&lt;String, List&lt;String&gt;&gt;&gt; metadata = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L1023">            metadata.put(ACTION_ACTIVATE, dashboardInfo);</span>
+<span class="nc" id="L1024">            metadata.put(ACTION_DEACTIVATE, dashboardInfo);</span>
+
+<span class="nc" id="L1026">            dashboardActivationMetadataContent = this.serializeObject(metadata);</span>
+<span class="nc bnc" id="L1027" title="All 2 branches missed.">            dashboardActivationMetadataContent = dashboardActivationMetadataContent == null ? &quot;&quot; : dashboardActivationMetadataContent;</span>
+<span class="nc" id="L1028">			logger.debug(&quot;Creating parent folders...&quot;);</span>
+<span class="nc" id="L1029">			dashboardActivationMetadataFile.getParentFile().mkdirs();</span>
+<span class="nc" id="L1030">			logger.info(&quot;Generating dashboard activation metadata file '{}'&quot;, DASHBOARD_SHARE_METADATA_FILENAME);</span>
+<span class="nc" id="L1031">            Files.write(dashboardActivationMetadataFile.toPath(), dashboardActivationMetadataContent.getBytes(), StandardOpenOption.CREATE_NEW);</span>
+<span class="nc" id="L1032">        } catch (JsonProcessingException e) {</span>
+<span class="nc" id="L1033">            String message = String.format(&quot;Error generating dashboard activation metadata file '%s' for resource of type %s: %s&quot;, fileName, resourceType, e.getMessage());</span>
+<span class="nc" id="L1034">            logger.warn(message, e);</span>
+<span class="nc" id="L1035">        } catch (IOException e) {</span>
+<span class="nc" id="L1036">            String message = String.format(&quot;Error exporting dashboard activation metadata file '%s' for resource of type %s : %s&quot;, fileName, resourceType, e.getMessage());</span>
+<span class="nc" id="L1037">            logger.warn(message, e);</span>
+<span class="nc" id="L1038">        }</span>
+<span class="nc" id="L1039">    }</span>
+
+	/**
+	 * Import custom groups to vROPs server.
+	 * @param vropsPackage package to read the custom groups from.
+	 * @param tmpDir temporary directory where to unwrap custom groups to.
+	 */
+    private void importCustomGroups(final Package vropsPackage, final File tmpDir) {
+<span class="fc" id="L1047">        File customGroupsDir = new File(tmpDir.getPath(), &quot;custom_groups&quot;);</span>
+<span class="pc bpc" id="L1048" title="1 of 2 branches missed.">        if (!customGroupsDir.exists()) {</span>
+<span class="fc" id="L1049">            return;</span>
+        }
+        // get policy metadata in order to assign correct policy to the custom group
+<span class="nc" id="L1052">        final Map&lt;String, String&gt; policyMetadataMap = getPolicyMetadata(tmpDir);</span>
+
+<span class="nc" id="L1054">        StringBuilder messages = new StringBuilder();</span>
+<span class="nc bnc" id="L1055" title="All 2 branches missed.">        for (File customGroupFile : FileUtils.listFiles(customGroupsDir, new String[] {&quot;json&quot;}, false)) {</span>
+<span class="nc" id="L1056">            String customGroup = FilenameUtils.removeExtension(customGroupFile.getName());</span>
+            try {
+<span class="nc" id="L1058">                logger.info(&quot;Importing custom group: '{}'&quot;, customGroup);</span>
+<span class="nc" id="L1059">                String customGroupPayload = readCustomGroupFile(customGroupFile);</span>
+<span class="nc" id="L1060">				restClient.importCustomGroupInVrops(customGroup, customGroupPayload, policyMetadataMap);</span>
+<span class="nc" id="L1061">                logger.info(&quot;Imported custom group: '{}'&quot;, customGroup);</span>
+<span class="nc" id="L1062">            } catch (Exception e) {</span>
+<span class="nc" id="L1063">                messages.append(String.format(&quot;The custom group '%s' could not be imported : %s %n&quot;, customGroup, e.getMessage()));</span>
+<span class="nc" id="L1064">            }</span>
+<span class="nc" id="L1065">        }</span>
+
+<span class="nc bnc" id="L1067" title="All 2 branches missed.">        if (messages.length() &gt; 0) {</span>
+<span class="nc" id="L1068">            throw new RuntimeException(messages.toString());</span>
+        }
+<span class="nc" id="L1070">    }</span>
+
+	/**
+	 * Read custom group file.
+	 * @param customGroupFile JSON file to read from.
+	 * @return string with JSON data read from file.
+	 * @throws IOException if the file cannot be read.
+	 */
+    private String readCustomGroupFile(final File customGroupFile) throws IOException {
+        try {
+<span class="nc" id="L1080">            return FileUtils.readFileToString(customGroupFile, StandardCharsets.UTF_8);</span>
+<span class="nc" id="L1081">        } catch (IOException e) {</span>
+<span class="nc" id="L1082">            throw new IOException(String.format(&quot;An error occurred reading file %s : %s %n&quot;, customGroupFile.getName(), e.getMessage()));</span>
+		}
+    }
+
+	/**
+	 * Import policies to vROPs.
+	 * @param vropsPackage package to read policies from.
+	 * @param tmpDir temporary dir where to unwrap polices to.
+	 * @throws RuntimeException if the polices cannot be imported.
+	 */
+    private void importPolicies(final Package vropsPackage, final File tmpDir) {
+<span class="fc" id="L1093">        File policiesDir = new File(tmpDir.getPath(), &quot;policies&quot;);</span>
+<span class="pc bpc" id="L1094" title="1 of 2 branches missed.">        if (!policiesDir.exists()) {</span>
+<span class="fc" id="L1095">            return;</span>
+        }
+
+<span class="nc" id="L1098">        StringBuilder messages = new StringBuilder();</span>
+<span class="nc bnc" id="L1099" title="All 2 branches missed.">        for (File policy : FileUtils.listFiles(policiesDir, new String[] {&quot;zip&quot;}, Boolean.FALSE)) {</span>
+<span class="nc" id="L1100">            String policyName = FilenameUtils.removeExtension(policy.getName());</span>
+            try {
+<span class="nc" id="L1102">                logger.info(&quot;Importing policy: '{}'&quot;, policyName);</span>
+<span class="nc" id="L1103">				restClient.importPolicyFromZip(policyName, policy, Boolean.TRUE);</span>
+<span class="nc" id="L1104">                logger.info(&quot;Imported policy: '{}'&quot;, policyName);</span>
+<span class="nc" id="L1105">            } catch (Exception e) {</span>
+<span class="nc" id="L1106">                String message = String.format(&quot;The policy '%s' could not be imported : '%s'&quot;, policyName, e.getMessage());</span>
+<span class="nc" id="L1107">                logger.error(message);</span>
+<span class="nc" id="L1108">                messages.append(message);</span>
+<span class="nc" id="L1109">            }</span>
+<span class="nc" id="L1110">        }</span>
+
+<span class="nc bnc" id="L1112" title="All 2 branches missed.">        if (messages.length() &gt; 0) {</span>
+<span class="nc" id="L1113">            throw new RuntimeException(messages.toString());</span>
+        }
+<span class="nc" id="L1115">    }</span>
+
+	/**
+	 * Set the default policy in vROPs. Note it will not do anything if:
+     * 1. vROPs version is below 8.12 (as it is not supported by the vROPS API).
+     * 2. No default policy is set in the content.yaml file.
+	 * @param vropsPackage package to read policies from.
+	 * @param tmpDir temporary directory where the content.yaml file resides.
+	 * @throws RuntimeException if the default policy cannot be set.
+	 */
+    private void setDefaultPolicy(final Package vropsPackage, final File tmpDir) {
+<span class="pc bpc" id="L1126" title="1 of 2 branches missed.">        if (!tmpDir.exists()) {</span>
+<span class="nc" id="L1127">            return;</span>
+        }
+<span class="fc" id="L1129">        File contentYamlFile = new File(tmpDir, CONTENT_YAML_FILE_NAME);</span>
+<span class="fc" id="L1130">        VropsPackageDescriptor descriptor = this.parseContentYamlFile(contentYamlFile);</span>
+
+<span class="pc bpc" id="L1132" title="2 of 4 branches missed.">        if (descriptor.getDefaultPolicy() == null || descriptor.getDefaultPolicy().isEmpty()) {</span>
+<span class="nc" id="L1133">            return;</span>
+        }
+<span class="pc bpc" id="L1135" title="1 of 2 branches missed.">        if (StringUtils.isEmpty(descriptor.getDefaultPolicy())) {</span>
+<span class="nc" id="L1136">            return;</span>
+        }
+        try {
+<span class="fc" id="L1139">            restClient.setDefaultPolicy(descriptor.getDefaultPolicy());</span>
+<span class="nc" id="L1140">        } catch (Exception e) {</span>
+<span class="nc" id="L1141">            throw new RuntimeException(e);</span>
+<span class="fc" id="L1142">        }</span>
+<span class="fc" id="L1143">    }</span>
+
+	/**
+	 * Set the policy priorities. The ordering of the policies in the content.yaml file
+	 * will define policy priorities (first will be with top priority, last with least priority).
+	 * Note it will not do anything if: vROPs version is below 8.17.0.
+	 * (as it is not supported by the vROPS API).
+	 * @param vropsPackage package to read policies from.
+	 * @param tmpDir temporary directory where the content.yaml file resides.
+	 * @throws RuntimeException if the policy priorities cannot be set.
+	 */
+    private void setPolicyPriorities(final Package vropsPackage, final File tmpDir) {
+<span class="pc bpc" id="L1155" title="1 of 2 branches missed.">        if (!tmpDir.exists()) {</span>
+<span class="nc" id="L1156">            return;</span>
+        }
+<span class="fc" id="L1158">        File contentYamlFile = new File(tmpDir, CONTENT_YAML_FILE_NAME);</span>
+<span class="fc" id="L1159">        VropsPackageDescriptor descriptor = this.parseContentYamlFile(contentYamlFile);</span>
+
+<span class="pc bpc" id="L1161" title="2 of 4 branches missed.">        if (descriptor.getPolicy() == null || descriptor.getPolicy().isEmpty()) {</span>
+<span class="nc" id="L1162">            return;</span>
+        }
+        // if the policies contain wild card then skip setting priorities (as the ordering cannot be guaranteed)
+<span class="fc" id="L1165">        boolean hasWildCard = descriptor.getPolicy().stream().allMatch(policy -&gt; policy.endsWith(WILDCARD_MATCH_SYMBOL));</span>
+<span class="pc bpc" id="L1166" title="1 of 2 branches missed.">        if (hasWildCard) {</span>
+<span class="nc" id="L1167">        	return;</span>
+        }
+        try {
+<span class="fc" id="L1170">            restClient.setPolicyPriorities(descriptor.getPolicy());</span>
+<span class="nc" id="L1171">        } catch (Exception e) {</span>
+<span class="nc" id="L1172">            throw new RuntimeException(e);</span>
+<span class="fc" id="L1173">        }</span>
+<span class="fc" id="L1174">    }</span>
+
+	/**
+	 * Parse the content.yaml file.
+	 * @param contentYamlFile content.yaml file handle.
+	 * @return VropsPackageDescriptor POJO with the populated values from the content.yaml file.
+	 * @throws RuntimeException if the content yaml cannot be parsed.
+	 */
+	private VropsPackageDescriptor parseContentYamlFile(final File contentYamlFile) {
+<span class="fc" id="L1183">		ObjectMapper mapper = new ObjectMapper(new YAMLFactory());</span>
+<span class="fc" id="L1184">		mapper.setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE);</span>
+		try {
+<span class="fc" id="L1186">			return mapper.readValue(contentYamlFile, VropsPackageDescriptor.class);</span>
+<span class="nc" id="L1187">		} catch (Exception e) {</span>
+<span class="nc" id="L1188">			throw new RuntimeException(String.format(&quot;Unable to load vROps Package Descriptor ['%s'] : %s&quot;, contentYamlFile.getName(), e.getMessage()));</span>
+		}
+	}
+
+	/**
+	 * Export definitions from vrops (alert definitions, symptom definitions definitions, recommendations).
+	 * @param definitionType definition type to be exported (aler, symptom, recommendation).
+	 * @param definitions list of definitions to be exported.
+	 * @throws RuntimeException if the export fails.
+	 */
+    private void exportDefinitions(final VropsPackageMemberType definitionType, final List&lt;String&gt; definitions) {
+        File definitionsDir;
+        String definitionsSubDir;
+<span class="nc bnc" id="L1201" title="All 4 branches missed.">        switch (definitionType) {</span>
+            case ALERT_DEFINITION: {
+<span class="nc" id="L1203">                definitionsSubDir = &quot;alert_definitions&quot;;</span>
+<span class="nc" id="L1204">                break;</span>
+            }
+            case SYMPTOM_DEFINITION: {
+<span class="nc" id="L1207">                definitionsSubDir = &quot;symptom_definitions&quot;;</span>
+<span class="nc" id="L1208">                break;</span>
+            }
+            case RECOMMENDATION: {
+<span class="nc" id="L1211">                definitionsSubDir = &quot;recommendations&quot;;</span>
+<span class="nc" id="L1212">                break;</span>
+            }
+            default:
+<span class="nc" id="L1215">                throw new RuntimeException(String.format(&quot;Defintion type %s is not supported!&quot;, definitionType));</span>
+        }
+<span class="nc" id="L1217">        definitionsDir = new File(tempVropsExportDir, definitionsSubDir);</span>
+<span class="nc" id="L1218">        definitionsDir.mkdir();</span>
+<span class="nc" id="L1219">        logger.info(&quot;Created directory '{}' for storing '{}'&quot;, definitionsDir.getAbsolutePath(), definitionType);</span>
+
+<span class="nc" id="L1221">        Object allDefinitions = restClient.exportDefinitionsFromVrops(definitionType);</span>
+<span class="nc" id="L1222">        logger.info(&quot;Extracted definitions of type '{}' to '{}'&quot;, definitionType, definitionsDir.getAbsolutePath());</span>
+<span class="nc" id="L1223">        Map&lt;String, String&gt; definitionsJsonMap = this.generateDefinitionsJsonMap(allDefinitions, definitions, definitionType);</span>
+
+<span class="nc" id="L1225">        generateDefinitionsFile(definitionsJsonMap, definitionsDir);</span>
+<span class="nc" id="L1226">    }</span>
+
+	/**
+	 * Generate the definitions JSON mapping.
+	 * @param definitionData the definition data.
+	 * @param definitions list of definitions (alert, symptom or recommendation).
+	 * @param definitionType type of the definition.
+	 * @return Mapping of definition name and data.
+	 */
+    private Map&lt;String, String&gt; generateDefinitionsJsonMap(final Object definitionData, final List&lt;String&gt; definitions, final VropsPackageMemberType definitionType) {
+<span class="nc" id="L1236">        Map&lt;String, String&gt; retVal = new HashMap&lt;&gt;();</span>
+
+<span class="nc bnc" id="L1238" title="All 2 branches missed.">        if (definitionData instanceof AlertDefinitionDTO) {</span>
+<span class="nc bnc" id="L1239" title="All 2 branches missed.">            for (AlertDefinitionDTO.AlertDefinition definition : ((AlertDefinitionDTO) definitionData).getAlertDefinitions()) {</span>
+<span class="nc bnc" id="L1240" title="All 2 branches missed.">                if (definitions.stream().anyMatch(name -&gt; this.isPackageAssetMatching(name, definition.getName()))) {</span>
+<span class="nc" id="L1241">                    String payload = this.serializeObject(definition);</span>
+<span class="nc bnc" id="L1242" title="All 2 branches missed.">                    if (!StringUtils.isEmpty(payload)) {</span>
+<span class="nc" id="L1243">                        retVal.put(definition.getName(), payload);</span>
+<span class="nc" id="L1244">                        logger.info(&quot;Exporting definition '{}' (Type: '{}')&quot;, definition.getName(), definitionType.name());</span>
+                    }
+                }
+<span class="nc" id="L1247">            }</span>
+        }
+<span class="nc bnc" id="L1249" title="All 2 branches missed.">        if (definitionData instanceof SymptomDefinitionDTO) {</span>
+<span class="nc bnc" id="L1250" title="All 2 branches missed.">            for (SymptomDefinitionDTO.SymptomDefinition definition : ((SymptomDefinitionDTO) definitionData).getSymptomDefinitions()) {</span>
+<span class="nc bnc" id="L1251" title="All 2 branches missed.">                if (definitions.stream().anyMatch(name -&gt; this.isPackageAssetMatching(name, definition.getName()))) {</span>
+<span class="nc" id="L1252">                    String payload = this.serializeObject(definition);</span>
+<span class="nc bnc" id="L1253" title="All 2 branches missed.">                    if (!StringUtils.isEmpty(payload)) {</span>
+<span class="nc" id="L1254">                        retVal.put(definition.getName(), payload);</span>
+<span class="nc" id="L1255">                        logger.info(&quot;Exporting definition '{}' (Type: '{}')&quot;, definition.getName(), definitionType.name());</span>
+                    }
+                }
+<span class="nc" id="L1258">            }</span>
+        }
+<span class="nc bnc" id="L1260" title="All 2 branches missed.">        if (definitionData instanceof RecommendationDTO) {</span>
+<span class="nc bnc" id="L1261" title="All 2 branches missed.">            for (RecommendationDTO.Recommendation definition : ((RecommendationDTO) definitionData).getRecommendations()) {</span>
+<span class="nc bnc" id="L1262" title="All 2 branches missed.">                if (definitions.stream().anyMatch(name -&gt; this.isPackageAssetMatching(name, definition.getDescription()))) {</span>
+<span class="nc" id="L1263">                    String payload = this.serializeObject(definition);</span>
+<span class="nc bnc" id="L1264" title="All 2 branches missed.">                    if (!StringUtils.isEmpty(payload)) {</span>
+<span class="nc" id="L1265">                        retVal.put(definition.getDescription(), payload);</span>
+<span class="nc" id="L1266">                        logger.info(&quot;Exporting definition '{}' (Type: '{}')&quot;, definition.getDescription(), definitionType.name());</span>
+                    }
+                }
+<span class="nc" id="L1269">            }</span>
+        }
+
+<span class="nc" id="L1272">        return retVal;</span>
+    }
+
+	/**
+	 * Generate the definition file based on definition data.
+	 * @param definitionJson mapping of the definition JSON data.
+	 * @param dir directory where to put generated file.
+	 * @throws IOException if the writing of the file fails.
+	 */
+    private void generateDefinitionsFile(final Map&lt;String, String&gt; definitionJson, final File dir) {
+<span class="nc bnc" id="L1282" title="All 2 branches missed.">        for (Map.Entry&lt;String, String&gt; definition : definitionJson.entrySet()) {</span>
+<span class="nc" id="L1283">            File definitionFile = new File(dir, definition.getKey() + &quot;.json&quot;);</span>
+            try {
+<span class="nc" id="L1285">                FileUtils.write(definitionFile, definition.getValue(), StandardCharsets.UTF_8);</span>
+<span class="nc" id="L1286">            } catch (IOException e) {</span>
+<span class="nc" id="L1287">                logger.error(&quot;Error generating definitions file file '{}', message {}.&quot;, definitionFile, e.getMessage());</span>
+<span class="nc" id="L1288">            }</span>
+<span class="nc" id="L1289">        }</span>
+<span class="nc" id="L1290">    }</span>
+
+	/**
+	 * Export custom groups from vROPs server.
+	 * @param vropsPackage package where to put the custom groups to.
+	 * @param customGroupNames names of the custom groups to be exported.
+	 * @throws RuntimeException if the export fails.
+	 */
+    private void exportCustomGroups(final Package vropsPackage, final List&lt;String&gt; customGroupNames) {
+<span class="nc" id="L1299">        File customGroupTargetDir = new File(this.tempVropsExportDir, &quot;custom_groups&quot;);</span>
+<span class="nc bnc" id="L1300" title="All 2 branches missed.">        if (!customGroupTargetDir.exists()) {</span>
+<span class="nc" id="L1301">            logger.info(&quot;Created temporary directory {}&quot;, customGroupTargetDir.getAbsolutePath());</span>
+<span class="nc" id="L1302">            customGroupTargetDir.mkdir();</span>
+        }
+
+<span class="nc" id="L1305">        List&lt;CustomGroupDTO.Group&gt; customGroups = restClient.getAllCustomGroups();</span>
+<span class="nc bnc" id="L1306" title="All 4 branches missed.">        if (customGroups == null || customGroups.isEmpty()) {</span>
+<span class="nc" id="L1307">            logger.error(&quot;No custom groups found in vROPs&quot;);</span>
+<span class="nc" id="L1308">            return;</span>
+        }
+        
+<span class="nc" id="L1311">        StringBuilder messages = new StringBuilder();</span>
+<span class="nc bnc" id="L1312" title="All 2 branches missed.">        for (CustomGroupDTO.Group customGroup : customGroups) {</span>
+<span class="nc bnc" id="L1313" title="All 2 branches missed.">            if (customGroupNames.stream().anyMatch(name -&gt; this.isPackageAssetMatching(name, customGroup.getResourceKey().getName()))) {</span>
+<span class="nc" id="L1314">                String payload = this.serializeObject(customGroup);</span>
+<span class="nc bnc" id="L1315" title="All 2 branches missed.">                if (!StringUtils.isEmpty(payload)) {                 </span>
+<span class="nc" id="L1316">                    logger.info(&quot;Exporting custom group '{}'&quot;, customGroup.getResourceKey().getName());</span>
+<span class="nc" id="L1317">                    File customGroupFile = new File(customGroupTargetDir, customGroup.getResourceKey().getName() + &quot;.json&quot;);</span>
+                    try {
+<span class="nc" id="L1319">                        Files.write(customGroupFile.toPath(), payload.getBytes(), StandardOpenOption.CREATE_NEW);</span>
+<span class="nc" id="L1320">                    } catch (IOException e) {</span>
+<span class="nc" id="L1321">                        messages.append(String.format(&quot;Error writing file %s : %s&quot;, customGroupFile.getName(), e.getMessage()));</span>
+<span class="nc" id="L1322">                    }                    </span>
+                }
+            }
+<span class="nc" id="L1325">        }        </span>
+
+<span class="nc bnc" id="L1327" title="All 2 branches missed.">        if (messages.length() &gt; 0) {</span>
+<span class="nc" id="L1328">            throw new RuntimeException(messages.toString());</span>
+        }
+<span class="nc" id="L1330">    }</span>
+
+	/**
+	 * Export policies from vROPs server.
+	 * @param vropsPackage package where to put the exported polices to.
+	 * @param policyEntries names the polices to be exported.
+	 * @throws RuntimeException if the export fails.
+	 */
+    private void exportPolicies(final Package vropsPackage, final List&lt;String&gt; policyEntries) {
+<span class="nc" id="L1339">        File policyDir = new File(tempVropsExportDir, &quot;policies&quot;);</span>
+<span class="nc" id="L1340">        policyDir.mkdir();</span>
+<span class="nc" id="L1341">        logger.info(&quot;Created temp dir for storing policies {}&quot;, policyDir.getAbsolutePath());</span>
+
+<span class="nc" id="L1343">        List&lt;PolicyDTO.Policy&gt; policies = restClient.getAllPolicies();</span>
+<span class="nc" id="L1344">        Map&lt;String, String&gt; policyIdNameMap = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L1345">        StringBuilder messages = new StringBuilder();</span>
+<span class="nc bnc" id="L1346" title="All 2 branches missed.">        for (PolicyDTO.Policy policy : policies) {</span>
+<span class="nc bnc" id="L1347" title="All 2 branches missed.">            if (policyEntries.stream().anyMatch(name -&gt; this.isPackageAssetMatching(name, policy.getName()))) {</span>
+<span class="nc" id="L1348">                policyIdNameMap.put(policy.getId(), policy.getName());</span>
+<span class="nc" id="L1349">                File policyZipFile = new File(policyDir, policy.getName() + &quot;.zip&quot;);</span>
+                try {
+<span class="nc" id="L1351">                    logger.info(&quot;Exporting policy '{}'&quot;, policy.getName());</span>
+<span class="nc" id="L1352">                    PolicyDTO.Policy policyContent = restClient.getPolicyContent(policy);</span>
+<span class="nc" id="L1353">                    Files.write(policyZipFile.toPath(), policyContent.getZipFile(), StandardOpenOption.CREATE_NEW);</span>
+<span class="nc" id="L1354">                    logger.info(&quot;Exported policy '{}'&quot;, policy.getName());</span>
+<span class="nc" id="L1355">                } catch (IOException e) {</span>
+<span class="nc" id="L1356">                    String message = String.format(&quot;Error exporting file %s : %s&quot;, policyZipFile, e.getMessage());</span>
+<span class="nc" id="L1357">                    logger.error(message);</span>
+<span class="nc" id="L1358">                    messages.append(message);</span>
+<span class="nc" id="L1359">                }</span>
+            }
+<span class="nc" id="L1361">        }</span>
+
+<span class="nc bnc" id="L1363" title="All 2 branches missed.">        if (messages.length() &gt; 0) {</span>
+<span class="nc" id="L1364">            throw new RuntimeException(messages.toString());</span>
+        }
+
+        // store policy metadata file (that contains id - name mapping)
+<span class="nc" id="L1368">        storePolicyMetadata(policyDir, policyIdNameMap);</span>
+<span class="nc" id="L1369">    }</span>
+
+	/**
+	 * Copy dashboard contents to the file system.
+	 * @param dashboard dashboard name to be copied.
+	 * @param dir directory where dashboard to be copied to.
+	 * @throws IOException | JSchException if copy fails.
+	 */
+    private void copyDashboardToFilesystem(final String dashboard, final File dir) {
+        try {
+<span class="nc" id="L1379">            File dashboardDir = new File(tempDir, &quot;iac-dash-&quot; + UUID.randomUUID().toString() + &quot;-&quot;</span>
+<span class="nc" id="L1380">                + System.currentTimeMillis());</span>
+<span class="nc" id="L1381">            dashboardDir.mkdirs();</span>
+<span class="nc" id="L1382">            cliManager.exportDashboard(dashboard, dashboardDir);</span>
+<span class="nc" id="L1383">            File zip = new File(dashboardDir, dashboard + &quot;.zip&quot;);</span>
+<span class="nc" id="L1384">            ZipUtilities.unzip(zip, dashboardDir);</span>
+
+<span class="nc" id="L1386">            File subdir = new File(dashboardDir, &quot;dashboard&quot;);</span>
+<span class="nc" id="L1387">            File content = new File(subdir,  &quot;dashboard.json&quot;);</span>
+
+<span class="nc" id="L1389">            moveFile(content, new File(dir, dashboard + &quot;.json&quot;));</span>
+
+<span class="nc" id="L1391">            zip.delete();</span>
+<span class="nc" id="L1392">            mergeLocalizationResources(new File(subdir, &quot;resources&quot;), new File(dir, &quot;resources&quot;));</span>
+<span class="nc" id="L1393">        } catch (IOException | JSchException e) {</span>
+<span class="nc" id="L1394">            String message = String.format(&quot;Unable to pull dashboard '%s' from remote vROps location '%s' to local filesystem dir '%s' : %s : %s&quot;, dashboard,</span>
+<span class="nc" id="L1395">                    cliManager, dir.getAbsolutePath(), e.getClass().getName(), e.getMessage());</span>
+<span class="nc" id="L1396">            logger.error(message);</span>
+<span class="nc" id="L1397">            logger.debug(message, e);</span>
+<span class="nc" id="L1398">            throw new RuntimeException(message, e);</span>
+<span class="nc" id="L1399">        }</span>
+<span class="nc" id="L1400">    }</span>
+
+	/**
+	 * Copy report contents to the file system.
+	 * @param report report name to be copied.
+	 * @param dir directory where report to be copied to.
+	 * @throws IOException | JSchException if copy fails.
+	 */
+    private void copyReportToFilesystem(final String report, final File dir) {
+        try {
+<span class="nc" id="L1410">            File reportDir = new File(tempDir, &quot;iac-dash-&quot; + UUID.randomUUID().toString() + &quot;-&quot;</span>
+<span class="nc" id="L1411">                + System.currentTimeMillis());</span>
+            
+<span class="nc" id="L1413">            reportDir.mkdirs();</span>
+<span class="nc" id="L1414">            cliManager.exportReport(report, reportDir);</span>
+<span class="nc" id="L1415">            File zip = new File(reportDir, report + &quot;.zip&quot;);</span>
+<span class="nc" id="L1416">            File contentDir = new File(reportDir, report);</span>
+
+<span class="nc" id="L1418">            ZipUtilities.unzip(zip, contentDir);</span>
+<span class="nc" id="L1419">            File content = new File(reportDir,  &quot;content.xml&quot;);</span>
+<span class="nc" id="L1420">            content.renameTo(new File(contentDir, report));</span>
+<span class="nc" id="L1421">            FileUtils.copyDirectory(contentDir, new File(dir, report));</span>
+
+<span class="nc" id="L1423">            zip.delete();</span>
+<span class="nc" id="L1424">        } catch (IOException | JSchException e) {</span>
+<span class="nc" id="L1425">            String message = String.format(&quot;Unable to pull report '%s' from remote vROps location '%s' to local filesystem dir '%s' : %s : %s&quot;, report,</span>
+<span class="nc" id="L1426">                    cliManager, dir.getAbsolutePath(), e.getClass().getName(), e.getMessage());</span>
+<span class="nc" id="L1427">            logger.error(message);</span>
+<span class="nc" id="L1428">            logger.debug(message, e);</span>
+<span class="nc" id="L1429">            throw new RuntimeException(message, e);</span>
+<span class="nc" id="L1430">        }</span>
+<span class="nc" id="L1431">    }</span>
+
+	/**
+	 * Exports a package.
+	 * @param pkg the package to export
+	 * @param dryrun whether it should be a dry run
+	 * @return the exported package
+	 */
+    @Override
+    public Package exportPackage(final Package pkg, final boolean dryrun) {
+<span class="nc" id="L1441">        throw new NotImplementedException(&quot;Not implemented&quot;);</span>
+    }
+
+	/**
+	 * Exports a package.
+	 * @param pkg the package to export
+	 * @param exportDescriptor the descriptor of the package to export
+	 * @param dryrun whether it should be dry run
+	 * @return the exported package
+	 */
+    @Override
+    public Package exportPackage(final Package pkg, final File exportDescriptor, final boolean dryrun) {
+<span class="nc" id="L1453">        VropsPackageDescriptor vropsPackageDescriptor = VropsPackageDescriptor.getInstance(exportDescriptor);</span>
+
+<span class="nc" id="L1455">        return this.exportPackage(pkg, vropsPackageDescriptor, dryrun);</span>
+    }
+
+	/**
+	 * Imports a package.
+	 * @param pkg the package to import
+	 * @param dryrun whether it should be dry run
+	 * @param mergePackages whether to merge the packages
+	 * @return the imported package
+	 */
+    @Override
+    public Package importPackage(final Package pkg, final boolean dryrun, final boolean mergePackages) {
+<span class="fc" id="L1467">        logger.info(String.format(PackageStore.PACKAGE_IMPORT, pkg));</span>
+
+<span class="pc bpc" id="L1469" title="1 of 2 branches missed.">        if (!Files.exists(tempVropsImportDir.toPath())) {</span>
+<span class="fc" id="L1470">            tempVropsImportDir.mkdir();</span>
+        }
+
+<span class="fc" id="L1473">        File tmpDir = new File(tempVropsImportDir, &quot;import-&quot; + pkg.getType() + &quot;-&quot;</span>
+<span class="pc bpc" id="L1474" title="1 of 2 branches missed.">                + (pkg.getId() == null ? &quot;0&quot; : pkg.getId())</span>
+<span class="fc" id="L1475">                + &quot;-&quot; + UUID.randomUUID().toString() + &quot;-&quot; + System.currentTimeMillis());</span>
+<span class="fc" id="L1476">        logger.info(&quot;Created temporary directory {}&quot;, tmpDir.getAbsolutePath());</span>
+
+        try {
+<span class="fc" id="L1479">            new PackageManager(pkg).unpack(tmpDir);</span>
+            
+<span class="fc" id="L1481">            addViewToImportList(pkg, tmpDir);</span>
+<span class="fc" id="L1482">            addDashboardToImportList(pkg, tmpDir);</span>
+<span class="fc" id="L1483">            addReportToImportList(pkg, tmpDir);</span>
+<span class="fc" id="L1484">            addSuperMetricToImportList(pkg, tmpDir);</span>
+<span class="fc" id="L1485">            addMetricConfigToImportList(pkg, tmpDir);</span>
+            
+<span class="pc bpc" id="L1487" title="1 of 2 branches missed.">            if (cliManager.hasAnyCommands()) {</span>
+<span class="fc" id="L1488">                cliManager.connect();</span>
+<span class="fc" id="L1489">                cliManager.importFilesToVrops();</span>
+            }
+            
+<span class="fc" id="L1492">            importDefinitions(pkg, tmpDir);</span>
+<span class="fc" id="L1493">            importPolicies(pkg, tmpDir);</span>
+<span class="fc" id="L1494">            importCustomGroups(pkg, tmpDir);</span>
+            // manage dashboard sharing per groups
+<span class="fc" id="L1496">            manageDashboardSharing(tmpDir);            </span>
+            // manage dashboard activation per groups
+<span class="fc" id="L1498">            manageDashboardActivation(tmpDir, true);</span>
+            // manage dashboard activation per users
+<span class="fc" id="L1500">            manageDashboardActivation(tmpDir, false);</span>
+            // set default policy after importing policies
+<span class="fc" id="L1502">            setDefaultPolicy(pkg, tmpDir);</span>
+            // set policy priorities
+<span class="fc" id="L1504">            setPolicyPriorities(pkg, tmpDir);</span>
+<span class="nc" id="L1505">        } catch (IOException | JSchException | ConfigurationException e) {</span>
+<span class="nc" id="L1506">            String message = String.format(&quot;Unable to push package '%s' to vROps Server '%s' : %s : %s&quot;, pkg.getFQName(), cliManager, e.getClass().getName(),</span>
+<span class="nc" id="L1507">                    e.getMessage());</span>
+<span class="nc" id="L1508">            logger.error(message);</span>
+<span class="nc" id="L1509">            logger.debug(message, e);</span>
+<span class="nc" id="L1510">            throw new RuntimeException(message, e);</span>
+        } finally {
+<span class="fc" id="L1512">            cliManager.cleanup();</span>
+<span class="fc" id="L1513">            cliManager.close();</span>
+            try {
+<span class="pc bpc" id="L1515" title="1 of 2 branches missed.">                if (tmpDir.exists()) {</span>
+<span class="fc" id="L1516">                    FileUtils.deleteDirectory(tmpDir);</span>
+                }
+<span class="nc" id="L1518">            } catch (IOException ioe) {</span>
+<span class="nc" id="L1519">                String message = String.format(&quot;Cannot delete temporary directory '%s' : %s , leaving it there&quot;, tmpDir.getAbsolutePath(), ioe.getMessage());</span>
+<span class="nc" id="L1520">                logger.warn(message);</span>
+<span class="nc" id="L1521">                logger.debug(message, ioe);</span>
+<span class="fc" id="L1522">            }</span>
+        }
+		
+<span class="fc" id="L1525">        return pkg;</span>
+    }
+
+    @Override
+    protected Package deletePackage(final Package pkg, final boolean withContent, final boolean dryrun) {
+<span class="nc" id="L1530">        throw new NotImplementedException(&quot;Not implemented&quot;);</span>
+    }
+
+    @SuppressWarnings(&quot;rawtypes&quot;)
+	@Override
+    protected PackageContent getPackageContent(final Package pkg) {
+<span class="nc" id="L1536">        throw new NotImplementedException(&quot;Not implemented&quot;);</span>
+    }
+
+    @SuppressWarnings(&quot;rawtypes&quot;)
+    @Override
+    protected void deleteContent(final Content content, final boolean dryrun) {
+<span class="nc" id="L1542">        throw new NotImplementedException(&quot;Not implemented&quot;);</span>
+    }
+
+    private void addViewToImportList(final Package pkg, final File tmp) throws IOException, ConfigurationException {
+<span class="fc" id="L1546">        File viewsFolder = new File(tmp.getPath(), &quot;views&quot;);</span>
+<span class="pc bpc" id="L1547" title="1 of 2 branches missed.">        if (!viewsFolder.exists()) {</span>
+<span class="nc" id="L1548">            return;</span>
+        }
+<span class="fc bfc" id="L1550" title="All 2 branches covered.">        for (File view : FileUtils.listFiles(viewsFolder, new String[] {&quot;xml&quot;}, false)) {</span>
+<span class="fc" id="L1551">            File viewZip = createViewZip(view);</span>
+<span class="fc" id="L1552">            cliManager.addViewToImportList(viewZip);</span>
+<span class="fc" id="L1553">        }</span>
+<span class="fc" id="L1554">    }</span>
+
+    private List&lt;File&gt; addDefinitionsToImportList(final File tmpDir, final VropsPackageMemberType definitionType) {
+<span class="fc" id="L1557">        List&lt;File&gt; definitions = new ArrayList&lt;&gt;();</span>
+        String definitionsSubDir;
+<span class="pc bpc" id="L1559" title="1 of 4 branches missed.">        switch (definitionType) {</span>
+            case ALERT_DEFINITION: {
+<span class="fc" id="L1561">                definitionsSubDir = &quot;alert_definitions&quot;;</span>
+<span class="fc" id="L1562">                break;</span>
+            }
+            case SYMPTOM_DEFINITION: {
+<span class="fc" id="L1565">                definitionsSubDir = &quot;symptom_definitions&quot;;</span>
+<span class="fc" id="L1566">                break;</span>
+            }
+            case RECOMMENDATION: {
+<span class="fc" id="L1569">                definitionsSubDir = &quot;recommendations&quot;;</span>
+<span class="fc" id="L1570">                break;</span>
+            }
+            default:
+<span class="nc" id="L1573">                throw new RuntimeException(String.format(&quot;Definition type %s is not supported!&quot;, definitionType.name()));</span>
+        }
+<span class="fc" id="L1575">        File definitionsDir = new File(tmpDir.getPath(), definitionsSubDir);</span>
+<span class="fc bfc" id="L1576" title="All 2 branches covered.">        if (!definitionsDir.exists()) {</span>
+<span class="fc" id="L1577">            return definitions;</span>
+        }
+<span class="fc" id="L1579">        FileUtils.listFiles(definitionsDir, new String[] {&quot;json&quot;}, false).stream().forEach(definitions::add);</span>
+        
+<span class="fc" id="L1581">        return definitions;</span>
+    }
+
+    private void addDashboardToImportList(final Package pkg, final File tmp) throws IOException {
+<span class="fc" id="L1585">        File dashboardsFolder = new File(tmp.getPath(), &quot;dashboards&quot;);</span>
+<span class="pc bpc" id="L1586" title="1 of 2 branches missed.">        if (!dashboardsFolder.exists()) {</span>
+<span class="nc" id="L1587">            return;</span>
+        }
+<span class="pc bpc" id="L1589" title="1 of 2 branches missed.">        for (File dashboard : FileUtils.listFiles(dashboardsFolder, new String[] {&quot;json&quot;}, false)) {</span>
+            // skip dashboard sharing metadata file
+<span class="nc bnc" id="L1591" title="All 2 branches missed.">            if (dashboard.getName().contains(DASHBOARD_SHARE_METADATA_FILENAME)) {</span>
+<span class="nc" id="L1592">                continue;</span>
+            }
+<span class="nc" id="L1594">            File dashboardZip = createDashboardZip(dashboard);</span>
+<span class="nc" id="L1595">            cliManager.addDashboardToImportList(dashboardZip);</span>
+<span class="nc" id="L1596">        }</span>
+<span class="fc" id="L1597">    }</span>
+
+    private void addReportToImportList(final Package pkg, final File tmp) throws IOException {
+<span class="fc" id="L1600">        File reportsFolder = new File(tmp.getPath(), &quot;reports&quot;);</span>
+<span class="pc bpc" id="L1601" title="1 of 2 branches missed.">        if (reportsFolder.exists()) {</span>
+<span class="nc" id="L1602">            File[] subdirs = reportsFolder.listFiles((FileFilter) DirectoryFileFilter.DIRECTORY);</span>
+<span class="nc bnc" id="L1603" title="All 2 branches missed.">            for (File dir : subdirs) {</span>
+<span class="nc" id="L1604">                File reportZip = createReportZip(dir);</span>
+<span class="nc" id="L1605">                cliManager.addReportToImportList(reportZip);</span>
+            }
+		}
+<span class="fc" id="L1608">    }</span>
+
+    private void addSuperMetricToImportList(final Package pkg, final File tmp) throws IOException {
+<span class="fc" id="L1611">        File superMetricsFolder = new File(tmp.getPath(), &quot;supermetrics&quot;);</span>
+<span class="pc bpc" id="L1612" title="1 of 2 branches missed.">        if (!superMetricsFolder.exists()) {</span>
+<span class="fc" id="L1613">            return;</span>
+        }
+<span class="nc bnc" id="L1615" title="All 2 branches missed.">        for (File superMetric : FileUtils.listFiles(superMetricsFolder, new String[] {&quot;json&quot;}, false)) {</span>
+<span class="nc" id="L1616">            this.cliManager.addSuperMetricsToImportList(superMetric);</span>
+<span class="nc" id="L1617">        }</span>
+<span class="nc" id="L1618">    }</span>
+
+    private void addMetricConfigToImportList(final Package pkg, final File tmp) throws IOException {
+<span class="fc" id="L1621">        File metricConfigsFolder = new File(tmp.getPath(), &quot;metricconfigs&quot;);</span>
+<span class="pc bpc" id="L1622" title="1 of 2 branches missed.">        if (!metricConfigsFolder.exists()) {</span>
+<span class="fc" id="L1623">            return;</span>
+        }
+<span class="nc bnc" id="L1625" title="All 2 branches missed.">        for (File metricConfig : FileUtils.listFiles(metricConfigsFolder, null, false)) {</span>
+<span class="nc" id="L1626">            this.cliManager.addMetricConfigsToImportList(metricConfig);</span>
+<span class="nc" id="L1627">        }</span>
+<span class="nc" id="L1628">    }</span>
+
+    private void mergeLocalizationResources(final File srcDir, final File destDir) {
+<span class="pc bpc" id="L1631" title="1 of 2 branches missed.">        if (!srcDir.exists()) {</span>
+<span class="nc" id="L1632">            return;</span>
+        }
+<span class="pc bpc" id="L1634" title="1 of 2 branches missed.">        if (!srcDir.canRead()) {</span>
+<span class="nc" id="L1635">            getLogger().warn(&quot;Cannot copy content of directory \&quot;&quot; + srcDir.getAbsolutePath() + &quot;\&quot; to \&quot;&quot; + destDir.getAbsolutePath()</span>
+                    + &quot;\&quot;. Source directory is not readable. Skipping dir.&quot;);
+<span class="nc" id="L1637">            return;</span>
+        }
+<span class="fc" id="L1639">        destDir.mkdirs();</span>
+<span class="pc bpc" id="L1640" title="2 of 4 branches missed.">        if (!destDir.exists() || !destDir.canWrite()) {</span>
+<span class="nc" id="L1641">            getLogger().warn(&quot;Cannot copy content of directory \&quot;&quot; + srcDir.getAbsolutePath() + &quot;\&quot; to \&quot;&quot; + destDir.getAbsolutePath()</span>
+                    + &quot;\&quot;. Destination directory cannot be created or is not writable. Skipping dir.&quot;);
+<span class="nc" id="L1643">            return;</span>
+        }
+
+<span class="fc" id="L1646">        File[] resources = srcDir.listFiles();</span>
+<span class="fc bfc" id="L1647" title="All 2 branches covered.">        for (File resource : resources) {</span>
+<span class="fc" id="L1648">            File destFile = new File(destDir, resource.getName());</span>
+<span class="fc" id="L1649">            boolean append = destFile.exists();</span>
+<span class="fc" id="L1650">            try (OutputStream os = new FileOutputStream(destFile, append)) {</span>
+<span class="fc" id="L1651">                byte[] all = Files.readAllBytes(resource.toPath());</span>
+<span class="fc" id="L1652">                os.write(all);</span>
+<span class="pc bpc" id="L1653" title="1 of 2 branches missed.">                if (all[all.length - 1] != (byte) '\n') {</span>
+<span class="nc" id="L1654">                    os.write('\n');</span>
+                }
+<span class="nc" id="L1656">            } catch (IOException ioe) {</span>
+<span class="nc" id="L1657">              getLogger().warn(&quot;Error merging content of \&quot;&quot; + resource.getAbsolutePath() + &quot;\&quot; to \&quot;&quot; + destFile.getAbsolutePath() + &quot;\&quot; : &quot; + ioe.getLocalizedMessage()</span>
+                      + &quot;; Continuing with other resource files if any.&quot;);
+<span class="fc" id="L1659">            }</span>
+        }
+<span class="fc" id="L1661">    }</span>
+
+    private static void moveFile(final File source, final File dest) throws IOException {
+<span class="pc bpc" id="L1664" title="1 of 2 branches missed.">        if (!source.exists()) {</span>
+<span class="nc" id="L1665">            throw new IOException(&quot;Source file \&quot;&quot; + source.getAbsolutePath() + &quot;\&quot; does not exist. Cannot move/rename it to \&quot;&quot; + dest.getAbsolutePath() + &quot;\&quot;.&quot;);</span>
+        }
+<span class="fc" id="L1667">        boolean success = source.renameTo(dest);</span>
+<span class="pc bpc" id="L1668" title="1 of 2 branches missed.">        if (!success) {</span>
+<span class="nc" id="L1669">            FileUtils.copyFile(source, dest);</span>
+<span class="nc" id="L1670">            source.delete();</span>
+        }
+<span class="fc" id="L1672">    }</span>
+
+    private File createViewZip(final File view) throws ConfigurationException, IOException {
+<span class="fc" id="L1675">        String name = FilenameUtils.removeExtension(view.getName());</span>
+<span class="fc" id="L1676">        logger.info(&quot;View: {}&quot;, name);</span>
+<span class="fc" id="L1677">        File viewZip = new File(view.getParent(), name + &quot;.zip&quot;);</span>
+        try (
+<span class="fc" id="L1679">                FileOutputStream fos = new FileOutputStream(viewZip);</span>
+<span class="fc" id="L1680">                ZipOutputStream zipOut = new ZipOutputStream(fos);) {</span>
+<span class="fc" id="L1681">            ZipEntry contentZipEntry = new ZipEntry(&quot;content.xml&quot;);</span>
+<span class="fc" id="L1682">            zipOut.putNextEntry(contentZipEntry);</span>
+<span class="fc" id="L1683">            String id = getViewId(view);</span>
+<span class="fc" id="L1684">            fileCopyAndCloseInput(view, zipOut);</span>
+<span class="fc" id="L1685">            boolean success = view.delete();</span>
+<span class="pc bpc" id="L1686" title="1 of 2 branches missed.">            if (!success) {</span>
+<span class="nc" id="L1687">                logger.warn(&quot;Error deleting view file '{}'. Leaving file there.&quot;, view.getAbsolutePath());</span>
+            }
+
+<span class="fc" id="L1690">            File resourcesDir = new File(view.getParent(), &quot;resources&quot;);</span>
+<span class="pc bpc" id="L1691" title="1 of 2 branches missed.">            if (resourcesDir.exists()) {</span>
+<span class="fc bfc" id="L1692" title="All 2 branches covered.">                for (File propfile : FileUtils.listFiles(resourcesDir, new String[] {&quot;properties&quot;}, false)) {</span>
+<span class="fc" id="L1693">                    ZipEntry propEntry = new ZipEntry(&quot;resources/&quot; + propfile.getName());</span>
+<span class="fc" id="L1694">                    zipOut.putNextEntry(propEntry);</span>
+<span class="fc" id="L1695">                    fileCopyFiltering(propfile, &quot;view.&quot; + id, zipOut);</span>
+<span class="fc" id="L1696">                }</span>
+            }
+        }
+
+<span class="fc" id="L1700">        return viewZip;</span>
+    }
+
+    private File createDashboardZip(final File dashboard) throws IOException {
+<span class="nc" id="L1704">        logger.info(&quot;Dashboard absolute path: {}&quot;, dashboard.getAbsolutePath());</span>
+<span class="nc" id="L1705">        String name = FilenameUtils.removeExtension(dashboard.getName());</span>
+<span class="nc" id="L1706">        logger.info(&quot;Dashboard name {}&quot;, name);</span>
+<span class="nc" id="L1707">        File dashboardZip = new File(dashboard.getParent(),  name + &quot;.zip&quot;);</span>
+        try (
+<span class="nc" id="L1709">                FileOutputStream fos = new FileOutputStream(dashboardZip);</span>
+<span class="nc" id="L1710">                ZipOutputStream zipOut = new ZipOutputStream(fos);) {</span>
+<span class="nc" id="L1711">            ZipEntry contentZipEntry = new ZipEntry(&quot;dashboard/dashboard.json&quot;);</span>
+<span class="nc" id="L1712">            zipOut.putNextEntry(contentZipEntry);</span>
+<span class="nc" id="L1713">            fileCopyAndCloseInput(dashboard, zipOut);</span>
+<span class="nc" id="L1714">            boolean success = dashboard.delete();</span>
+<span class="nc bnc" id="L1715" title="All 2 branches missed.">            if (!success) {</span>
+<span class="nc" id="L1716">                logger.warn(&quot;Error deleting dashboard file '{}'. Leaving file there.&quot;, dashboard.getAbsolutePath());</span>
+            }
+
+<span class="nc" id="L1719">            File resourcesDir = new File(dashboard.getParent(), &quot;resources&quot;);</span>
+<span class="nc bnc" id="L1720" title="All 2 branches missed.">            if (resourcesDir.exists()) {</span>
+<span class="nc" id="L1721">                logger.info(&quot;Resources directory: {}&quot;, resourcesDir.getAbsolutePath());</span>
+<span class="nc bnc" id="L1722" title="All 2 branches missed.">                for (File propfile : FileUtils.listFiles(resourcesDir, new String[]{&quot;properties&quot;}, false)) {</span>
+<span class="nc" id="L1723">                    ZipEntry propEntry = new ZipEntry(&quot;dashboard/resources/&quot; + propfile.getName());</span>
+<span class="nc" id="L1724">                    zipOut.putNextEntry(propEntry);</span>
+<span class="nc" id="L1725">                    fileCopyFiltering(propfile, name, zipOut);</span>
+<span class="nc" id="L1726">                }</span>
+            }
+        }
+
+<span class="nc" id="L1730">        return dashboardZip;</span>
+    }
+
+    private File createReportZip(final File report) throws IOException {
+<span class="nc" id="L1734">        logger.info(&quot;Report absolute path: {}&quot;, report.getAbsolutePath());</span>
+<span class="nc" id="L1735">        String name = FilenameUtils.removeExtension(report.getName());</span>
+<span class="nc" id="L1736">        logger.info(&quot;Report name {} &quot;, name);</span>
+<span class="nc" id="L1737">        File reportZip = new File(report.getParent(),  name + &quot;.zip&quot;);</span>
+        try (
+<span class="nc" id="L1739">                FileOutputStream fos = new FileOutputStream(reportZip);</span>
+<span class="nc" id="L1740">                ZipOutputStream zipOut = new ZipOutputStream(fos);) {</span>
+<span class="nc" id="L1741">            ZipEntry contentZipEntry = new ZipEntry(&quot;content.xml&quot;);</span>
+<span class="nc" id="L1742">            zipOut.putNextEntry(contentZipEntry);</span>
+<span class="nc" id="L1743">            fileCopyAndCloseInput(new File(report, &quot;content.xml&quot;), zipOut);</span>
+<span class="nc" id="L1744">            boolean success = report.delete();</span>
+<span class="nc bnc" id="L1745" title="All 2 branches missed.">            if (!success) {</span>
+<span class="nc" id="L1746">                logger.warn(&quot;Error deleting dashboard file '{}'. Leaving file there.&quot;, report.getAbsolutePath());</span>
+            }
+
+<span class="nc" id="L1749">            File resourcesDir = new File(report, &quot;resources&quot;);</span>
+<span class="nc bnc" id="L1750" title="All 2 branches missed.">            if (resourcesDir.exists()) {</span>
+<span class="nc" id="L1751">                logger.info(&quot;Resources directory: {}&quot;, resourcesDir.getAbsolutePath());</span>
+<span class="nc bnc" id="L1752" title="All 2 branches missed.">                for (File resource : FileUtils.listFiles(resourcesDir, new String[]{&quot;properties&quot;}, false)) {</span>
+<span class="nc" id="L1753">                    ZipEntry propEntry = new ZipEntry(&quot;resources/&quot; + resource.getName());</span>
+<span class="nc" id="L1754">                    zipOut.putNextEntry(propEntry);</span>
+<span class="nc" id="L1755">                    fileCopyFiltering(resource, name, zipOut);</span>
+<span class="nc" id="L1756">                }</span>
+            }
+        }
+
+<span class="nc" id="L1760">        return reportZip;</span>
+    }
+
+    private static int fileCopyAndCloseInput(final File in, final OutputStream out) throws IOException {
+<span class="fc" id="L1764">        try (FileInputStream is = new FileInputStream(in)) {</span>
+<span class="fc" id="L1765">            return IOUtils.copy(is, out);</span>
+        }
+    }
+
+    private String serializeObject(final Object object) {
+<span class="nc" id="L1770">        ObjectMapper mapper = new ObjectMapper();</span>
+<span class="nc" id="L1771">        mapper.enable(SerializationFeature.INDENT_OUTPUT);</span>
+        try {
+<span class="nc" id="L1773">            return mapper.writeValueAsString(object);</span>
+<span class="nc" id="L1774">        } catch (Exception e) {</span>
+<span class="nc" id="L1775">            logger.warn(String.format(&quot;Error serializing %s : %s&quot;, object.toString(), e.getMessage()));</span>
+        }
+
+<span class="nc" id="L1778">        return null;</span>
+    }
+
+	/**
+	 *
+	 * @param propFile Properties file
+	 * @param prefix Properties prefix
+	 * @param out Output stream
+	 * @throws IOException throws IO exception if input stream not available
+	 */
+    public static void fileCopyFiltering(final File propFile, final String prefix, final OutputStream out) throws IOException {
+<span class="fc" id="L1789">        Properties filtered  = new Properties();</span>
+<span class="fc" id="L1790">        Properties props = new Properties();</span>
+<span class="fc" id="L1791">        try (InputStream in = new FileInputStream(propFile);) {</span>
+<span class="fc" id="L1792">            props.load(in);</span>
+<span class="fc" id="L1793">            props.forEach((key, value) -&gt;  {</span>
+<span class="pc bpc" id="L1794" title="1 of 2 branches missed.">				if ((&quot;&quot; + key).startsWith(prefix)) {</span>
+<span class="fc" id="L1795">					filtered.setProperty(&quot;&quot; + key, &quot;&quot; + value);</span>
+				}
+<span class="fc" id="L1797">            });</span>
+        }
+
+<span class="fc" id="L1800">        filtered.store(out, null);</span>
+<span class="fc" id="L1801">    }</span>
+
+	/**
+	 *
+	 * @param view View file
+	 * @return Returns View ID
+	 * @throws ConfigurationException throws configuration exception incase of parsing error
+	 * @throws IOException throws IO exception if input stream not available
+	 */
+    public static String getViewId(final File view) throws ConfigurationException, IOException {
+<span class="fc" id="L1811">        DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();</span>
+<span class="fc" id="L1812">        DocumentBuilder dBuilder = null;</span>
+<span class="fc" id="L1813">        Document doc = null;</span>
+        try {
+<span class="fc" id="L1815">            dBuilder = dbFactory.newDocumentBuilder();</span>
+<span class="fc" id="L1816">            doc = dBuilder.parse(view);</span>
+<span class="nc" id="L1817">        } catch (ParserConfigurationException e) {</span>
+<span class="nc" id="L1818">            throw new ConfigurationException(&quot;The view file \&quot;&quot; + view.getAbsolutePath() + &quot;\&quot; cannot be parsed as XML file because of serious configuration error &quot;</span>
+<span class="nc" id="L1819">                    + e.getLocalizedMessage(), e);</span>
+<span class="nc" id="L1820">        } catch (SAXException e) {</span>
+<span class="nc" id="L1821">            throw new ConfigurationException(&quot;The view file \&quot;&quot; + view.getAbsolutePath() + &quot;\&quot; has invalid format. It is not a correct XML file. &quot;</span>
+<span class="nc" id="L1822">                    + e.getLocalizedMessage(), e);</span>
+<span class="fc" id="L1823">        }</span>
+<span class="fc" id="L1824">        Element root = doc.getDocumentElement();</span>
+<span class="pc bpc" id="L1825" title="1 of 2 branches missed.">        if (!&quot;Content&quot;.equalsIgnoreCase(root.getNodeName())) {</span>
+<span class="nc" id="L1826">            throw new ConfigurationException(&quot;The view file \&quot;&quot; + view.getAbsolutePath() + &quot;\&quot; is not in the expected format. It is a valid XML file, bu the root &quot;</span>
+<span class="nc" id="L1827">                    + &quot;element is \&quot;&quot; + root.getNodeName() + &quot;\&quot; while the expected one is \&quot;Content\&quot;.&quot;);</span>
+        }
+<span class="fc" id="L1829">        NodeList views = root.getChildNodes();</span>
+<span class="pc bpc" id="L1830" title="1 of 2 branches missed.">        if (views.getLength() == 0) {</span>
+<span class="nc" id="L1831">            throw new ConfigurationException(&quot;The view file \&quot;&quot; + view.getAbsolutePath()</span>
+                    + &quot;\&quot; is not in the expected format. The XML \&quot;Content\&quot; element does not have any children. Exactly one with name \&quot;Views\&quot; is expected.&quot;);
+        }
+<span class="fc" id="L1834">        Node viewsNode = root.getFirstChild();</span>
+<span class="pc bpc" id="L1835" title="2 of 4 branches missed.">        while (viewsNode != null &amp;&amp; &quot;#text&quot;.equalsIgnoreCase(viewsNode.getNodeName())) {</span>
+<span class="nc" id="L1836">            viewsNode = viewsNode.getNextSibling();</span>
+        }
+<span class="pc bpc" id="L1838" title="2 of 4 branches missed.">        if (viewsNode == null || !&quot;Views&quot;.equalsIgnoreCase(viewsNode.getNodeName())) {</span>
+<span class="nc" id="L1839">            throw new ConfigurationException(&quot;The view file \&quot;&quot; + view.getAbsolutePath() + &quot;\&quot; is not in the expected format. First child element under \&quot;Content\&quot; is &quot;</span>
+<span class="nc bnc" id="L1840" title="All 2 branches missed.">                    + (viewsNode == null ? &quot;UNKNOWN&quot; : &quot;\&quot;&quot; + viewsNode.getNodeName() + &quot;\&quot;&quot;) + &quot;, expected: \&quot;Views\&quot;.&quot;);</span>
+        }
+<span class="fc" id="L1842">        Node viewDefNode = viewsNode.getFirstChild();</span>
+<span class="pc bpc" id="L1843" title="2 of 4 branches missed.">        while (viewDefNode != null &amp;&amp; &quot;#text&quot;.equalsIgnoreCase(viewDefNode.getNodeName())) {</span>
+<span class="nc" id="L1844">            viewDefNode = viewDefNode.getNextSibling();</span>
+        }
+<span class="pc bpc" id="L1846" title="2 of 4 branches missed.">        if (viewDefNode == null || !&quot;ViewDef&quot;.equalsIgnoreCase(viewDefNode.getNodeName())) {</span>
+<span class="nc" id="L1847">            throw new ConfigurationException(&quot;The view file \&quot;&quot; + view.getAbsolutePath() + &quot;\&quot; has invalid format. Child node under \&quot;Content\&quot; -&gt; \&quot;Views\&quot; is &quot;</span>
+<span class="nc bnc" id="L1848" title="All 2 branches missed.">                    + (viewDefNode == null ? &quot;NOT PRESENT&quot; : &quot;\&quot;&quot; + viewDefNode + &quot;\&quot;&quot;) + &quot;, expected \&quot;ViewDef\&quot;&quot;);</span>
+        }
+<span class="fc" id="L1850">        NamedNodeMap attributes = viewDefNode.getAttributes();</span>
+<span class="fc" id="L1851">        Node id = attributes.getNamedItem(&quot;id&quot;);</span>
+<span class="pc bpc" id="L1852" title="2 of 4 branches missed.">        if (id == null || id.getNodeValue().trim().length() == 0) {</span>
+<span class="nc" id="L1853">            throw new ConfigurationException(&quot;The view file \&quot;&quot; + view.getAbsolutePath()</span>
+                    + &quot;\&quot; has invalid format. No XML id attribute available for \&quot;Content\&quot; - &gt; \&quot;Views\&quot; -&gt; &quot; + &quot;\&quot;ViewDef\&quot;.&quot;);
+        }
+<span class="fc" id="L1856">        return id.getNodeValue().trim();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

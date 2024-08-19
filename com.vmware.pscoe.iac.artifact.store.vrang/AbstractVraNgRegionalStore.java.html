@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbstractVraNgRegionalStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.vrang</a> &gt; <span class="el_source">AbstractVraNgRegionalStore.java</span></div><h1>AbstractVraNgRegionalStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCloudAccount;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageDescriptor;
+import com.vmware.pscoe.iac.artifact.rest.RestClientVraNg;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Abstract class that unify the way the content is exported for all sub-classes that are based on regional stores
+ * When no item ([]) is given, nothing is exported
+ * When a list of specific items ([item1, itme2]) are given, only the given itmes are exported
+ * When nothing (null) is given, all items from the store are exported
+ */
+<span class="fc" id="L34">public abstract class AbstractVraNgRegionalStore {</span>
+    protected RestClientVraNg restClient;
+    protected Package vraNgPackage;
+    protected VraNgPackageDescriptor vraNgPackageDescriptor;
+    protected Logger logger;
+
+    private void ini(
+		RestClientVraNg restClient,
+		Package vraNgPackage,
+		VraNgPackageDescriptor vraNgPackageDescriptor
+		) {
+<span class="fc" id="L45">			this.restClient = restClient;</span>
+<span class="fc" id="L46">			this.vraNgPackage = vraNgPackage;</span>
+<span class="fc" id="L47">			this.vraNgPackageDescriptor = vraNgPackageDescriptor;</span>
+<span class="fc" id="L48">		}</span>
+
+	public void init(
+		RestClientVraNg restClient,
+		Package vraNgPackage,
+		VraNgPackageDescriptor vraNgPackageDescriptor
+		) {
+<span class="fc" id="L55">			this.ini(restClient, vraNgPackage, vraNgPackageDescriptor);</span>
+<span class="fc" id="L56">			this.logger = LoggerFactory.getLogger(this.getClass());</span>
+<span class="fc" id="L57">		}</span>
+
+	public void init(
+		RestClientVraNg restClient,
+		Package vraNgPackage,
+		VraNgPackageDescriptor vraNgPackageDescriptor,
+		Logger logger
+		) {
+<span class="nc" id="L65">			this.ini(restClient, vraNgPackage, vraNgPackageDescriptor);</span>
+<span class="nc" id="L66">			this.logger = logger;</span>
+<span class="nc" id="L67">		}</span>
+
+	/**
+	 * The main export method. It unifies the way the vRA NG Regional Stores are exported.
+	 * When no item ([]) is given, nothing is exported
+	 * When a list of specific items ([item1, itme2]) are given, only the given itmes are exported
+	 * When nothing (null) is given, all items from the store within the given region are exported
+	 * 
+	 * In Sub-classes the abstract methods getItemListFromDescriptor, exportStoreContent should be overwritten
+	 * @param cloudAccounts list of cloud accounts
+	 */
+	public void exportContent( List&lt;VraNgCloudAccount&gt; cloudAccounts ) {
+<span class="fc" id="L79">		List&lt;String&gt; itemNames	= this.getItemListFromDescriptor();</span>
+<span class="fc" id="L80">		List&lt;String&gt; cloudAccountNames = cloudAccounts.stream().map(VraNgCloudAccount::getName).collect(Collectors.toList());</span>
+
+<span class="fc" id="L82">		logger.info( &quot;Currently exporting regional content from: {}&quot;, this.getClass().getSimpleName() );</span>
+
+<span class="fc bfc" id="L84" title="All 2 branches covered.">		if ( itemNames == null ) {</span>
+<span class="fc" id="L85">			logger.info( &quot;Nothing/null passed exporting everything from cloud accounts {}&quot;, cloudAccountNames );</span>
+<span class="fc" id="L86">			this.exportStoreContent( cloudAccounts );</span>
+
+		}
+<span class="fc bfc" id="L89" title="All 2 branches covered.">		else if ( ! itemNames.isEmpty() ) {</span>
+<span class="fc" id="L90">			logger.info( &quot;Items: {}. Exporting items part of cloud accounts {}&quot;, itemNames, cloudAccountNames);</span>
+<span class="fc" id="L91">			this.exportStoreContent( cloudAccounts, itemNames );</span>
+		}
+		else {
+<span class="fc" id="L94">			logger.info( &quot;Empty array is passed, not exporting anything&quot; );</span>
+		}
+<span class="fc" id="L96">	}</span>
+
+	/**
+	 * Used to fetch the store's data from the package descriptor
+	 *
+	 * @return list of items
+	 */
+	protected abstract List&lt;String&gt; getItemListFromDescriptor();
+
+	/**
+	 * Called when the List returned from getItemListFromDescriptor is empty
+	 * @param cloudAccounts list of cloud accounts
+	 */
+	protected abstract void exportStoreContent( List&lt;VraNgCloudAccount&gt; cloudAccounts );
+
+	/**
+	 * Called when the List returned from getItemListFromDescriptor is not empty
+	 * @param cloudAccounts list of cloud accounts
+	 * @param itemNames list of names
+	 */
+	protected abstract void exportStoreContent( List&lt;VraNgCloudAccount&gt; cloudAccounts, List&lt;String&gt; itemNames );
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SshClient.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.ssh</a> &gt; <span class="el_source">SshClient.java</span></div><h1>SshClient.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.ssh;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
+
+import com.jcraft.jsch.Channel;
+import com.jcraft.jsch.ChannelExec;
+import com.jcraft.jsch.ChannelSftp;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
+import com.jcraft.jsch.SftpATTRS;
+import com.jcraft.jsch.SftpException;
+
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class SshClient {
+    private static final int CONNECT_TIMEOUT = 30000;
+    private static final int INPUT_BUFFER_SIZE = 1024;
+    private static final int THREAD_SLEEP_TIME = 1000;
+    private static final String FILE_EXISTS_MESSAGE = &quot;File exists&quot;;
+    private static final String STRICT_HOST_CHECK = &quot;no&quot;;
+    private static final String CHANNEL_TYPE_EXEC = &quot;exec&quot;;
+    private static final String CHANNEL_TYPE_SFTP = &quot;sftp&quot;;
+
+<span class="nc" id="L49">    private static final Logger logger = LoggerFactory.getLogger(SshClient.class);</span>
+
+    private SshClient() {
+    }
+
+    public static Session createSession(String user, String password, String host, int port) {
+<span class="nc" id="L55">        Session session = null;</span>
+        try {
+<span class="nc" id="L57">            JSch jsch = new JSch();</span>
+
+<span class="nc" id="L59">            Properties config = new Properties();</span>
+<span class="nc" id="L60">            config.put(&quot;StrictHostKeyChecking&quot;, STRICT_HOST_CHECK);</span>
+
+<span class="nc" id="L62">            session = jsch.getSession(user, host, port);</span>
+<span class="nc" id="L63">            session.setPassword(password);</span>
+<span class="nc" id="L64">            session.setConfig(config);</span>
+<span class="nc" id="L65">        } catch (JSchException e) {</span>
+<span class="nc" id="L66">            String message = &quot;JSch: Failed to create SSH Session with user '{}' at host '{}' on port '{}': {}.&quot;</span>
+                    + &quot;Troubleshooting hint: try to execute 'ssh {}@{} -p {}' or check vROPs properties in maven settings.xml&quot;;
+<span class="nc" id="L68">            logger.error(message, user, host, port, e.getMessage(), user, host, port);</span>
+<span class="nc" id="L69">        }</span>
+
+<span class="nc" id="L71">        return session;</span>
+    }
+
+    public static List&lt;String&gt; execute(Session session, String command) {
+<span class="nc" id="L75">        logger.debug(&quot;Execute | Session is connected: '{}'&quot;, session.isConnected());</span>
+<span class="nc" id="L76">        List&lt;String&gt; output = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L77">        Channel channel = null;</span>
+<span class="nc" id="L78">        InputStream in = null;</span>
+        try {
+<span class="nc" id="L80">            channel = session.openChannel(CHANNEL_TYPE_EXEC);</span>
+<span class="nc" id="L81">            ((ChannelExec) channel).setCommand(command);</span>
+<span class="nc" id="L82">            channel.setInputStream(null);</span>
+
+<span class="nc" id="L84">            final ByteArrayOutputStream errs = new ByteArrayOutputStream();</span>
+<span class="nc" id="L85">            ((ChannelExec) channel).setErrStream(errs);</span>
+<span class="nc" id="L86">            final ByteArrayOutputStream outs = new ByteArrayOutputStream();</span>
+<span class="nc" id="L87">            ((ChannelExec) channel).setOutputStream(outs);</span>
+
+<span class="nc" id="L89">            reconnectChannel(channel);</span>
+<span class="nc" id="L90">            in = channel.getInputStream();</span>
+
+<span class="nc" id="L92">            logger.debug(&quot;Execute | Channel is connected: '{}'&quot;, channel.isConnected());</span>
+<span class="nc" id="L93">            byte[] buffer = new byte[INPUT_BUFFER_SIZE];</span>
+            while (true) {
+<span class="nc bnc" id="L95" title="All 2 branches missed.">                while (in.available() &gt; 0) {</span>
+<span class="nc" id="L96">                    int i = in.read(buffer, 0, INPUT_BUFFER_SIZE);</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">                    if (i &lt; 0) {</span>
+<span class="nc" id="L98">                        break;</span>
+                    }
+<span class="nc" id="L100">                    Arrays.stream(new String(buffer, 0, i).split(&quot;\\r?\\n&quot;)).forEach(line -&gt; output.add(line));</span>
+<span class="nc" id="L101">                }</span>
+
+<span class="nc bnc" id="L103" title="All 2 branches missed.">                if (channel.isClosed()) {</span>
+<span class="nc" id="L104">                    break;</span>
+                }
+                try {
+<span class="nc" id="L107">                    Thread.sleep(THREAD_SLEEP_TIME);</span>
+<span class="nc" id="L108">                } catch (InterruptedException ee) {</span>
+<span class="nc" id="L109">                    logger.warn(&quot;Sleep interrupted: {}.&quot;, ee.getMessage());</span>
+<span class="nc" id="L110">                }</span>
+            }
+
+<span class="nc" id="L113">            output.add(new String(outs.toByteArray()));</span>
+<span class="nc" id="L114">            output.add(new String(errs.toByteArray()));</span>
+<span class="nc" id="L115">        } catch (Exception e) {</span>
+<span class="nc" id="L116">            logger.error(&quot;SSH: Failed to execute remote command: '{}' : '{}' : {}&quot;, command, e.getClass().getName(), e.getMessage());</span>
+        } finally {
+<span class="nc bnc" id="L118" title="All 2 branches missed.">            if (in != null) {</span>
+                try {
+<span class="nc" id="L120">                    in.close();</span>
+<span class="nc" id="L121">                } catch (IOException ioe) {</span>
+<span class="nc" id="L122">                    logger.warn(&quot;SSH: Failed to close reading from stdout for command '{}'. {}. Ignoring this error&quot;, command, ioe.getMessage());</span>
+<span class="nc" id="L123">                }</span>
+            }
+<span class="nc bnc" id="L125" title="All 2 branches missed.">            if (channel != null) {</span>
+<span class="nc" id="L126">                channel.disconnect();</span>
+            }
+        }
+
+<span class="nc" id="L130">        return output;</span>
+    }
+
+    public static void copyLocalToRemote(Session session, List&lt;File&gt; fileList, String dest) throws JSchException, SftpException {
+<span class="nc" id="L134">        final ChannelSftp sftpChannel = (ChannelSftp) session.openChannel(CHANNEL_TYPE_SFTP);</span>
+        try {
+<span class="nc" id="L136">            reconnectChannel(sftpChannel);</span>
+<span class="nc" id="L137">            logger.info(&quot;Destination path: '{}'&quot;, dest);</span>
+<span class="nc" id="L138">            createDirectory(sftpChannel, dest, false);</span>
+<span class="nc" id="L139">            sftpChannel.cd(dest);</span>
+<span class="nc" id="L140">            fileList.forEach(file -&gt; {</span>
+<span class="nc" id="L141">                String destinationFile = dest + &quot;/&quot; + file.getName();</span>
+<span class="nc" id="L142">                logger.info(&quot;Copy file with path '{}' to '{}'&quot;, file.getAbsolutePath(), destinationFile);</span>
+                try {
+<span class="nc" id="L144">                    sftpChannel.put(file.getAbsolutePath(), destinationFile);</span>
+<span class="nc" id="L145">                } catch (SftpException e) {</span>
+<span class="nc" id="L146">                    logger.error(&quot;Failed to put file '{}' as remote file '{}' via SFTP session: {}&quot;, file.getAbsolutePath(), destinationFile, e.getMessage());</span>
+<span class="nc" id="L147">                }</span>
+<span class="nc" id="L148">            });</span>
+        } finally {
+<span class="nc bnc" id="L150" title="All 2 branches missed.">            if (sftpChannel != null) {</span>
+<span class="nc" id="L151">                sftpChannel.disconnect();</span>
+            }
+        }
+<span class="nc" id="L154">    }</span>
+
+    public static void copyRemoteToLocal(Session session, List&lt;String&gt; remoteFiles, File localDir) throws JSchException {
+<span class="nc" id="L157">        ChannelSftp sftpChannel = (ChannelSftp) session.openChannel(CHANNEL_TYPE_SFTP);</span>
+        try {
+<span class="nc" id="L159">            reconnectChannel(sftpChannel);</span>
+<span class="nc" id="L160">            remoteFiles.forEach(remoteFile -&gt; {</span>
+                try {
+<span class="nc" id="L162">                    logger.info(&quot;Copying file '{}' to '{}'&quot;, remoteFile, localDir.getAbsoluteFile());</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">                    if (isFileExisting(sftpChannel, remoteFile)) {</span>
+<span class="nc" id="L164">                        sftpChannel.get(remoteFile, localDir.getAbsolutePath());</span>
+                    } else {
+<span class="nc" id="L166">                        logger.warn(&quot;Unable to get remote file '{}' as it does not exist&quot;, remoteFile);</span>
+                    }
+<span class="nc" id="L168">                } catch (SftpException e) {</span>
+<span class="nc" id="L169">                    logger.error(&quot;Failed to get remote file '{}' into local directory '{}' via SFTP session: {}&quot;, remoteFile, localDir.getAbsolutePath(),</span>
+<span class="nc" id="L170">                            e.getMessage());</span>
+<span class="nc" id="L171">                }</span>
+<span class="nc" id="L172">            });</span>
+        } finally {
+<span class="nc bnc" id="L174" title="All 2 branches missed.">            if (sftpChannel != null) {</span>
+<span class="nc" id="L175">                sftpChannel.disconnect();</span>
+            }
+        }
+<span class="nc" id="L178">    }</span>
+
+    public static void createDirectory(ChannelSftp sftpChannel, String directory, boolean forceDisconnect) {
+<span class="nc bnc" id="L181" title="All 2 branches missed.">        if (sftpChannel == null) {</span>
+<span class="nc" id="L182">            logger.error(&quot;Unable to open SFTP channel&quot;);</span>
+<span class="nc" id="L183">            return;</span>
+        }
+        try {
+<span class="nc" id="L186">            reconnectChannel(sftpChannel);</span>
+<span class="nc" id="L187">            StringBuilder path = new StringBuilder();</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">            for (String item : directory.split(&quot;/&quot;)) {</span>
+<span class="nc bnc" id="L189" title="All 2 branches missed.">                if (!StringUtils.isEmpty(item)) {</span>
+<span class="nc" id="L190">                    path.append(&quot;/&quot; + item);</span>
+<span class="nc bnc" id="L191" title="All 2 branches missed.">                    if (!isFileExisting(sftpChannel, path.toString())) {</span>
+<span class="nc" id="L192">                        sftpChannel.mkdir(path.toString());</span>
+                    }
+                }
+            }
+<span class="nc" id="L196">        } catch (Exception e) {</span>
+<span class="nc" id="L197">            String message = e.getMessage();</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">            if (!message.contains(FILE_EXISTS_MESSAGE)) {</span>
+<span class="nc" id="L199">                logger.error(&quot;Failed to create directory '{}', {}&quot;, directory, e.getMessage());</span>
+            }
+        } finally {
+<span class="nc bnc" id="L202" title="All 2 branches missed.">            if (forceDisconnect) {</span>
+<span class="nc" id="L203">                sftpChannel.disconnect();</span>
+            }
+        }
+<span class="nc" id="L206">    }</span>
+
+    private static boolean isFileExisting(ChannelSftp channel, String file) {
+        try {
+<span class="nc" id="L210">            reconnectChannel(channel);</span>
+<span class="nc" id="L211">            SftpATTRS fileStat = channel.stat(file);</span>
+<span class="nc bnc" id="L212" title="All 4 branches missed.">            return (fileStat != null &amp;&amp; fileStat.getATime() &gt; 0);</span>
+<span class="nc" id="L213">        } catch (SftpException e) {</span>
+<span class="nc" id="L214">            return false;</span>
+        }
+    }
+
+    private static void reconnectChannel(Channel channel) {
+<span class="nc bnc" id="L219" title="All 4 branches missed.">        if (channel != null &amp;&amp; !channel.isConnected()) {</span>
+            try {
+<span class="nc bnc" id="L221" title="All 4 branches missed.">                if (channel.getSession() != null &amp;&amp; !channel.getSession().isConnected()) {</span>
+<span class="nc" id="L222">                    channel.getSession().connect(CONNECT_TIMEOUT);</span>
+                }
+<span class="nc" id="L224">                channel.connect(CONNECT_TIMEOUT);</span>
+<span class="nc" id="L225">            } catch (JSchException e) {</span>
+<span class="nc" id="L226">                logger.error(&quot;Unable to reconnect channel '{}' : {}&quot;, channel.getClass().getName(), e.getMessage());</span>
+<span class="nc" id="L227">            }</span>
+        }
+<span class="nc" id="L229">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

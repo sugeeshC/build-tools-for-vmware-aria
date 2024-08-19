@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PackageContent.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model</a> &gt; <span class="el_source">PackageContent.java</span></div><h1>PackageContent.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.util.Collections;
+import java.util.List;
+
+public abstract class PackageContent&lt;T extends PackageContent.ContentType&gt; {
+    
+    public interface ContentType {}
+
+    public static class Content&lt;T&gt; {
+        
+        private final T type;
+        private final String id, name;
+        
+<span class="nc" id="L30">        public Content(T type, String id, String name) {</span>
+<span class="nc" id="L31">            this.type = type;</span>
+<span class="nc" id="L32">            this.id = id;</span>
+<span class="nc" id="L33">            this.name = name;</span>
+<span class="nc" id="L34">        }</span>
+        
+        public T getType() {
+<span class="nc" id="L37">            return type;</span>
+        }
+
+        public String getId() {
+<span class="nc" id="L41">            return id;</span>
+        }
+
+        public String getName() {
+<span class="nc" id="L45">            return name;</span>
+        }
+        
+        @SuppressWarnings(&quot;rawtypes&quot;)
+        @Override
+        public boolean equals(Object obj) {
+<span class="nc bnc" id="L51" title="All 4 branches missed.">            if (obj == null || !this.getClass().equals(obj.getClass())) {</span>
+<span class="nc" id="L52">                return false;</span>
+            }
+<span class="nc" id="L54">            Content a = this, b = (Content)obj;</span>
+<span class="nc bnc" id="L55" title="All 6 branches missed.">            return a.type.equals(b.type) &amp;&amp; a.id.equalsIgnoreCase(b.id) &amp;&amp; a.name.equalsIgnoreCase(b.name);</span>
+        }
+        
+        @Override
+        public String toString() {
+<span class="nc" id="L60">            return String.format(&quot;Type: %s Id: %s Name: %s&quot;, this.type, this.id, this.name);</span>
+        }
+    }
+    
+    private final List&lt;Content&lt;T&gt;&gt; content;
+
+<span class="nc" id="L66">    protected PackageContent(List&lt;Content&lt;T&gt;&gt; content) {</span>
+<span class="nc" id="L67">        this.content = Collections.unmodifiableList(content);</span>
+<span class="nc" id="L68">    }</span>
+
+    public List&lt;Content&lt;T&gt;&gt; getContent() {
+<span class="nc" id="L71">        return content;</span>
+    }
+    
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

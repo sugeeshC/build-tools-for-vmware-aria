@@ -1,0 +1,394 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WorkflowParameters.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.vro</a> &gt; <span class="el_source">WorkflowParameters.java</span></div><h1>WorkflowParameters.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model.vro;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.text.StringEscapeUtils;
+
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.google.gson.annotations.SerializedName;
+
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({ &quot;parameters&quot; })
+<span class="fc" id="L37">public class WorkflowParameters implements Serializable {</span>
+    private static final long serialVersionUID = 2431190111433401419L;
+
+<span class="fc" id="L40">    @JsonProperty(&quot;parameters&quot;)</span>
+    private List&lt;Parameter&gt; parameters = new ArrayList&lt;&gt;();
+
+<span class="fc" id="L43">    @JsonIgnore</span>
+    private transient Map&lt;java.lang.String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+    @JsonProperty(&quot;parameters&quot;)
+    public List&lt;Parameter&gt; getParameters() {
+<span class="nc" id="L48">        return parameters;</span>
+    }
+
+    @JsonProperty(&quot;parameters&quot;)
+    public void setParameters(List&lt;Parameter&gt; parameters) {
+<span class="fc" id="L53">        this.parameters = parameters;</span>
+<span class="fc" id="L54">    }</span>
+
+    @JsonAnyGetter
+    public Map&lt;java.lang.String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L58">        return this.additionalProperties;</span>
+    }
+
+    @JsonAnySetter
+    public void setAdditionalProperty(java.lang.String name, Object value) {
+<span class="nc" id="L63">        this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L64">    }</span>
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;name&quot;, &quot;scope&quot;, &quot;type&quot;, &quot;value&quot; })
+<span class="fc" id="L68">    public static class Parameter implements Serializable {</span>
+        private static final long serialVersionUID = 3962662620392140309L;
+
+        @JsonProperty(&quot;name&quot;)
+        private java.lang.String name;
+
+        @JsonProperty(&quot;scope&quot;)
+        private java.lang.String scope;
+
+        @JsonProperty(&quot;type&quot;)
+        private java.lang.String type;
+
+        @JsonProperty(&quot;value&quot;)
+        private WorkflowParameterValue value;
+
+<span class="fc" id="L83">        @JsonIgnore</span>
+        private transient Map&lt;java.lang.String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;name&quot;)
+        public java.lang.String getName() {
+<span class="nc" id="L88">            return name;</span>
+        }
+
+        @JsonProperty(&quot;name&quot;)
+        public void setName(java.lang.String name) {
+<span class="fc" id="L93">            this.name = name;</span>
+<span class="fc" id="L94">        }</span>
+
+        @JsonProperty(&quot;scope&quot;)
+        public java.lang.String getScope() {
+<span class="nc" id="L98">            return scope;</span>
+        }
+
+        @JsonProperty(&quot;scope&quot;)
+        public void setScope(java.lang.String scope) {
+<span class="fc" id="L103">            this.scope = scope;</span>
+<span class="fc" id="L104">        }</span>
+
+        @JsonProperty(&quot;type&quot;)
+        public java.lang.String getType() {
+<span class="nc" id="L108">            return type;</span>
+        }
+
+        @JsonProperty(&quot;type&quot;)
+        public void setType(java.lang.String type) {
+<span class="fc" id="L113">            this.type = type;</span>
+<span class="fc" id="L114">        }</span>
+
+        @JsonProperty(&quot;value&quot;)
+        public WorkflowParameterValue getValue() {
+<span class="nc" id="L118">            return value;</span>
+        }
+
+        @JsonProperty(&quot;value&quot;)
+        public void setValue(WorkflowParameterValue value) {
+<span class="fc" id="L123">            this.value = value;</span>
+<span class="fc" id="L124">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;java.lang.String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L128">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperty(java.lang.String name, Object value) {
+<span class="nc" id="L133">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L134">        }</span>
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;value&quot; })
+<span class="fc" id="L139">    public static class String implements Serializable {</span>
+        private static final long serialVersionUID = 7995918737791424350L;
+
+        @JsonProperty(&quot;value&quot;)
+        private java.lang.String value;
+
+<span class="fc" id="L145">        @JsonIgnore</span>
+        private transient Map&lt;java.lang.String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;value&quot;)
+        public java.lang.String getValue() {
+<span class="nc" id="L150">            return value;</span>
+        }
+
+        @JsonProperty(&quot;value&quot;)
+        public void setValue(java.lang.String value) {
+<span class="fc" id="L155">            this.value = StringEscapeUtils.unescapeJson(value);</span>
+<span class="fc" id="L156">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;java.lang.String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L160">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperty(java.lang.String name, Object value) {
+<span class="nc" id="L165">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L166">        }</span>
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;value&quot; })
+<span class="fc" id="L171">    public static class Number implements Serializable {</span>
+        private static final long serialVersionUID = 7775118737791424297L;
+
+        @JsonProperty(&quot;value&quot;)
+        private java.lang.Integer value;
+
+<span class="fc" id="L177">        @JsonIgnore</span>
+        private transient Map&lt;java.lang.String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;value&quot;)
+        public java.lang.Integer getValue() {
+<span class="nc" id="L182">            return value;</span>
+        }
+
+        @JsonProperty(&quot;value&quot;)
+        public void setValue(java.lang.String value) {
+<span class="fc" id="L187">            this.value = Integer.parseInt(value);</span>
+<span class="fc" id="L188">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;java.lang.String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L192">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperty(java.lang.String name, Object value) {
+<span class="nc" id="L197">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L198">        }</span>
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;value&quot; })
+<span class="fc" id="L203">    public static class Bool implements Serializable {</span>
+        private static final long serialVersionUID = 7975771737791423937L;
+
+        @JsonProperty(&quot;value&quot;)
+        private java.lang.Boolean value;
+
+<span class="fc" id="L209">        @JsonIgnore</span>
+        private transient Map&lt;java.lang.String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;value&quot;)
+        public java.lang.Boolean getValue() {
+<span class="nc" id="L214">            return value;</span>
+        }
+
+        @JsonProperty(&quot;value&quot;)
+        public void setValue(java.lang.String value) {
+<span class="fc" id="L219">            this.value = Boolean.parseBoolean(value);</span>
+<span class="fc" id="L220">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;java.lang.String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L224">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperty(java.lang.String name, Object value) {
+<span class="nc" id="L229">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L230">        }</span>
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;boolean&quot; })
+<span class="fc" id="L235">    public static class BooleanValue implements WorkflowParameterValue {</span>
+        private static final long serialVersionUID = 3239758269209803112L;
+
+        @JsonProperty(&quot;boolean&quot;)
+        @SerializedName(value = &quot;boolean&quot;)
+        private com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.Bool bool;
+
+<span class="fc" id="L242">        @JsonIgnore</span>
+        private transient Map&lt;java.lang.String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;boolean&quot;)
+        public com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.Bool getBoolean() {
+<span class="nc" id="L247">            return bool;</span>
+        }
+
+        @JsonProperty(&quot;boolean&quot;)
+        public void setBoolean(com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.Bool bool) {
+<span class="fc" id="L252">            this.bool = bool;</span>
+<span class="fc" id="L253">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;java.lang.String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L257">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperty(java.lang.String name, Object value) {
+<span class="nc" id="L262">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L263">        }</span>
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;number&quot; })
+<span class="fc" id="L268">    public static class NumberValue implements WorkflowParameterValue {</span>
+        private static final long serialVersionUID = 3534736269209803202L;
+
+        @JsonProperty(&quot;number&quot;)
+        private com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.Number number;
+
+<span class="fc" id="L274">        @JsonIgnore</span>
+        private transient Map&lt;java.lang.String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;number&quot;)
+        public com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.Number getNumber() {
+<span class="nc" id="L279">            return number;</span>
+        }
+
+        @JsonProperty(&quot;number&quot;)
+        public void setNumber(com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.Number number) {
+<span class="fc" id="L284">            this.number = number;</span>
+<span class="fc" id="L285">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;java.lang.String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L289">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperty(java.lang.String name, Object value) {
+<span class="nc" id="L294">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L295">        }</span>
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;string&quot; })
+<span class="fc" id="L300">    public static class StringValue implements WorkflowParameterValue {</span>
+        private static final long serialVersionUID = 8624736269209802096L;
+
+        @JsonProperty(&quot;string&quot;)
+        private com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.String string;
+
+<span class="fc" id="L306">        @JsonIgnore</span>
+        private transient Map&lt;java.lang.String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;string&quot;)
+        public com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.String getString() {
+<span class="nc" id="L311">            return string;</span>
+        }
+
+        @JsonProperty(&quot;string&quot;)
+        public void setString(com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.String string) {
+<span class="fc" id="L316">            this.string = string;</span>
+<span class="fc" id="L317">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;java.lang.String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L321">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperty(java.lang.String name, Object value) {
+<span class="nc" id="L326">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L327">        }</span>
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;array&quot; })
+<span class="fc" id="L332">    public static class ArrayStringValue implements WorkflowParameterValue {</span>
+        private static final long serialVersionUID = 8945736269209803399L;
+
+        @JsonProperty(&quot;array&quot;)
+        private com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.ArrayElements array;
+
+<span class="fc" id="L338">        @JsonIgnore</span>
+        private transient Map&lt;java.lang.String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;array&quot;)
+        public com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.ArrayElements getArray() {
+<span class="nc" id="L343">            return array;</span>
+        }
+
+        @JsonProperty(&quot;array&quot;)
+        public void setArray(com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.ArrayElements array) {
+<span class="fc" id="L348">            this.array = array;</span>
+<span class="fc" id="L349">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;java.lang.String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L353">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperty(java.lang.String name, Object value) {
+<span class="nc" id="L358">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L359">        }</span>
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;elements&quot; })
+<span class="fc" id="L364">    public static class ArrayElements implements Serializable {</span>
+        private static final long serialVersionUID = 8934736269209802297L;
+
+<span class="fc" id="L367">        @JsonProperty(&quot;elements&quot;)</span>
+        private List&lt;com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.StringValue&gt; elements = new ArrayList&lt;&gt;();
+    
+<span class="fc" id="L370">        @JsonIgnore</span>
+        private transient Map&lt;java.lang.String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+    
+        @JsonProperty(&quot;elements&quot;)
+        public List&lt;com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.StringValue&gt; getElements() {
+<span class="nc" id="L375">            return elements;</span>
+        }
+    
+        @JsonProperty(&quot;elements&quot;)
+        public void setElements(List&lt;com.vmware.pscoe.iac.artifact.model.vro.WorkflowParameters.StringValue&gt; elements) {
+<span class="fc" id="L380">            this.elements = elements;</span>
+<span class="fc" id="L381">        }</span>
+    
+        @JsonAnyGetter
+        public Map&lt;java.lang.String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L385">            return this.additionalProperties;</span>
+        }
+    
+        @JsonAnySetter
+        public void setAdditionalProperty(java.lang.String name, Object value) {
+<span class="nc" id="L390">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L391">        }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

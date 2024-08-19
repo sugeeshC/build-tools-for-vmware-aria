@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgIntegration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.vrang</a> &gt; <span class="el_source">VraNgIntegration.java</span></div><h1>VraNgIntegration.java</h1><pre class="source lang-java linenums">
+package com.vmware.pscoe.iac.artifact.model.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({ &quot;name&quot;, &quot;endpointUri&quot;, &quot;endpointConfigurationLink&quot; })
+<span class="fc" id="L32">public class VraNgIntegration implements Serializable {</span>
+    private static final long serialVersionUID = 6323872416192310200L;
+
+    @JsonProperty(&quot;name&quot;)
+    private String name;
+
+    @JsonProperty(&quot;endpointUri&quot;)
+    private String endpointUri;
+
+    @JsonProperty(&quot;endpointConfigurationLink&quot;)
+    private String endpointConfigurationLink;
+
+<span class="fc" id="L44">    @JsonIgnore</span>
+    private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+    @JsonProperty(&quot;name&quot;)
+    public String getName() {
+<span class="fc" id="L49">        return name;</span>
+    }
+
+    @JsonProperty(&quot;name&quot;)
+    public void setName(String name) {
+<span class="fc" id="L54">        this.name = name;</span>
+<span class="fc" id="L55">    }</span>
+
+    @JsonProperty(&quot;endpointUri&quot;)
+    public String getEndpointUri() {
+<span class="nc" id="L59">        return endpointUri;</span>
+    }
+
+    @JsonProperty(&quot;endpointUri&quot;)
+    public void setEndpointUri(String endpointUri) {
+<span class="nc" id="L64">        this.endpointUri = endpointUri;</span>
+<span class="nc" id="L65">    }</span>
+
+    @JsonProperty(&quot;endpointConfigurationLink&quot;)
+    public String getEndpointConfigurationLink() {
+<span class="fc" id="L69">        return endpointConfigurationLink;</span>
+    }
+
+    @JsonProperty(&quot;endpointConfigurationLink&quot;)
+    public void setEndpointConfigurationLink(String endpointConfigurationLink) {
+<span class="fc" id="L74">        this.endpointConfigurationLink = endpointConfigurationLink;</span>
+<span class="fc" id="L75">    }</span>
+
+    @JsonAnyGetter
+    public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L79">        return this.additionalProperties;</span>
+    }
+
+    @JsonAnySetter
+    public void setAdditionalProperty(String name, Object value) {
+<span class="nc" id="L84">        this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L85">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

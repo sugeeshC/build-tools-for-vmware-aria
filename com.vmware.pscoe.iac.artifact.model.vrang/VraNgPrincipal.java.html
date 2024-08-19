@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgPrincipal.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.vrang</a> &gt; <span class="el_source">VraNgPrincipal.java</span></div><h1>VraNgPrincipal.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model.vrang;
+
+/*-
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+public class VraNgPrincipal {
+	/**
+	 * principal type.
+	 */
+	private String type;
+	/**
+	 * principal reference object id.
+	 */
+	private String referenceId;
+
+	/**
+	 * Default constructor.
+	 */
+<span class="fc" id="L31">	public VraNgPrincipal() {</span>
+<span class="fc" id="L32">	}</span>
+
+	/**
+	 * Constructor.
+	 * 
+	 * @param type        type of the principal.
+	 * @param referenceId reference object id of the principal.
+	 */
+<span class="fc" id="L40">	public VraNgPrincipal(String type, String referenceId) {</span>
+<span class="fc" id="L41">		this.type = type;</span>
+<span class="fc" id="L42">		this.referenceId = referenceId;</span>
+<span class="fc" id="L43">	}</span>
+
+	/**
+	 * Get the type of the principal.
+	 * 
+	 * @return item type.
+	 */
+	public String getType() {
+<span class="nc" id="L51">		return type;</span>
+	}
+
+	/**
+	 * Set the type of the principal.
+	 * 
+	 * @param type item type.
+	 */
+	public void setType(String type) {
+<span class="nc" id="L60">		this.type = type;</span>
+<span class="nc" id="L61">	}</span>
+
+	/**
+	 * Get the type reference object id for the principal.
+	 * 
+	 * @return item reference object id.
+	 */
+	public String getReferenceId() {
+<span class="nc" id="L69">		return referenceId;</span>
+	}
+
+	/**
+	 * Set the reference id of the principal.
+	 * 
+	 * @param referenceId item reference object id.
+	 */
+	public void setReferenceId(String referenceId) {
+<span class="nc" id="L78">		this.referenceId = referenceId;</span>
+<span class="nc" id="L79">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

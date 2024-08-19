@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgTypeStoreFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.vrang</a> &gt; <span class="el_source">VraNgTypeStoreFactory.java</span></div><h1>VraNgTypeStoreFactory.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ *
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You
+ * may not use this product except in compliance with the BSD-2 License.
+ *
+ * This product may include a number of subcomponents with separate copyright
+ * notices and license terms. Your use of these subcomponents is subject to the
+ * terms and conditions of the subcomponent's license, as noted in the
+ * LICENSE file.
+ * #L%
+ */
+
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVraNg;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageContent;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageDescriptor;
+import com.vmware.pscoe.iac.artifact.rest.RestClientVraNg;
+
+import static com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageContent.ContentType.APPROVAL_POLICY;
+import static com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageContent.ContentType.BLUEPRINT;
+import static com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageContent.ContentType.CATALOG_ENTITLEMENT;
+import static com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageContent.ContentType.CATALOG_ITEM;
+import static com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageContent.ContentType.CONTENT_SHARING_POLICY;
+import static com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageContent.ContentType.CONTENT_SOURCE;
+import static com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageContent.ContentType.CUSTOM_RESOURCE;
+import static com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageContent.ContentType.DAY2_ACTIONS_POLICY;
+import static com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageContent.ContentType.DEPLOYMENT_LIMIT_POLICY;
+import static com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageContent.ContentType.LEASE_POLICY;
+import static com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageContent.ContentType.PROPERTY_GROUP;
+import static com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageContent.ContentType.REGION_MAPPING;
+import static com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageContent.ContentType.RESOURCE_ACTION;
+import static com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageContent.ContentType.RESOURCE_QUOTA_POLICY;
+import static com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageContent.ContentType.SUBSCRIPTION;
+
+/**
+ * Factory to select and setup the store (handler) and determine the order of
+ * execution.
+ */
+public class VraNgTypeStoreFactory {
+
+	/**
+	 * IMPORT_ORDER.
+	 */
+<span class="fc" id="L53">	private static final VraNgPackageContent.ContentType[] IMPORT_ORDER = {</span>
+			PROPERTY_GROUP,
+			CONTENT_SOURCE,
+			CUSTOM_RESOURCE,
+			RESOURCE_ACTION,
+			BLUEPRINT,
+			SUBSCRIPTION,
+			REGION_MAPPING,
+			CATALOG_ENTITLEMENT,
+			CATALOG_ITEM,
+			CONTENT_SHARING_POLICY,
+			LEASE_POLICY,
+			RESOURCE_QUOTA_POLICY,
+			DAY2_ACTIONS_POLICY,
+			DEPLOYMENT_LIMIT_POLICY,
+			APPROVAL_POLICY
+	};
+
+	/**
+	 * getImportOrder.
+	 * {@link VraNgTypeStoreFactory#IMPORT_ORDER}
+	 *
+	 * @return VraNgPackageContent.ContentType[] IMPORT_ORDER
+	 */
+	public static VraNgPackageContent.ContentType[] getImportOrder() {
+<span class="nc" id="L78">		return IMPORT_ORDER;</span>
+	}
+
+	/**
+	 * EXPORT_ORDER.
+	 */
+<span class="fc" id="L84">	private static final VraNgPackageContent.ContentType[] EXPORT_ORDER = {</span>
+			PROPERTY_GROUP,
+			CONTENT_SOURCE,
+			CUSTOM_RESOURCE,
+			RESOURCE_ACTION,
+			BLUEPRINT,
+			SUBSCRIPTION,
+			REGION_MAPPING,
+			CATALOG_ENTITLEMENT,
+			CATALOG_ITEM,
+			CONTENT_SHARING_POLICY,
+			LEASE_POLICY,
+			RESOURCE_QUOTA_POLICY,
+			DAY2_ACTIONS_POLICY,
+			DEPLOYMENT_LIMIT_POLICY,
+			APPROVAL_POLICY
+	};
+
+	/**
+	 * getExportOrder.
+	 * {@link VraNgTypeStoreFactory#EXPORT_ORDER}
+	 *
+	 * @return VraNgPackageContent.ContentType[] EXPORT_ORDER
+	 */
+	public static VraNgPackageContent.ContentType[] getExportOrder() {
+<span class="nc" id="L109">		return EXPORT_ORDER;</span>
+	}
+
+	/**
+	 * restClient.
+	 */
+	private final RestClientVraNg restClient;
+
+	/**
+	 * vraNgPackage.
+	 */
+	private final Package vraNgPackage;
+
+	/**
+	 * config.
+	 */
+	private final ConfigurationVraNg config;
+
+	/**
+	 * descriptor.
+	 */
+	private final VraNgPackageDescriptor descriptor;
+
+	/**
+	 * Constructor function.
+	 *
+	 * @param restClientNg rest client 
+	 * @param vraPackageNg vra package
+	 * @param configNg vra config
+	 * @param descriptorNg vra descriptor
+	 */
+	protected VraNgTypeStoreFactory(
+			final RestClientVraNg restClientNg,
+			final Package vraPackageNg,
+			final ConfigurationVraNg configNg,
+<span class="fc" id="L144">			final VraNgPackageDescriptor descriptorNg) {</span>
+<span class="fc" id="L145">		this.restClient = restClientNg;</span>
+<span class="fc" id="L146">		this.vraNgPackage = vraPackageNg;</span>
+<span class="fc" id="L147">		this.config = configNg;</span>
+<span class="fc" id="L148">		this.descriptor = descriptorNg;</span>
+<span class="fc" id="L149">	}</span>
+
+	/**
+	 * Factory method to create.
+	 *
+	 * @param restClient rest client
+	 * @param vraNgPackage vra package
+	 * @param config config vra
+	 * @param descriptor package descriptor
+	 * @return VraNgTypeStoreFactory
+	 */
+	public static VraNgTypeStoreFactory withConfig(
+			final RestClientVraNg restClient,
+			final Package vraNgPackage,
+			final ConfigurationVraNg config,
+			final VraNgPackageDescriptor descriptor) {
+<span class="nc" id="L165">		return new VraNgTypeStoreFactory(restClient, vraNgPackage, config, descriptor);</span>
+	}
+
+	/**
+	 * getStoreForType.
+	 *
+	 * @param type VraNgPackageContent.ContentType
+	 * @return IVraNgStore
+	 */
+	public IVraNgStore getStoreForType(
+		final VraNgPackageContent.ContentType type) {
+<span class="fc" id="L176">		AbstractVraNgStore store = VraNgTypeStoreFactory.selectStore(restClient, type);</span>
+<span class="fc" id="L177">		store.init(restClient, vraNgPackage, config, descriptor);</span>
+<span class="fc" id="L178">		return store;</span>
+	}
+
+	/**
+	 * selectStore.
+	 *
+	 * @param restClient
+	 * @param type
+	 * @return AbstractVraNgStore
+	 */
+	private static AbstractVraNgStore selectStore(
+			final RestClientVraNg restClient,
+			final VraNgPackageContent.ContentType type) {
+<span class="pc bpc" id="L191" title="15 of 16 branches missed.">		switch (type) {</span>
+			case CATALOG_ITEM:
+<span class="fc" id="L193">				boolean isVraAbove812 = restClient.getIsVraAbove812();</span>
+<span class="pc bpc" id="L194" title="1 of 2 branches missed.">				return isVraAbove812 ? new VraNgCatalogItemStore812()</span>
+<span class="nc" id="L195">						: new VraNgCatalogItemStore();</span>
+			case CONTENT_SOURCE:
+<span class="nc" id="L197">				return new VraNgContentSourceStore();</span>
+			case PROPERTY_GROUP:
+<span class="nc" id="L199">				return new VraNgPropertyGroupStore();</span>
+			case BLUEPRINT:
+<span class="nc" id="L201">				return new VraNgBlueprintStore();</span>
+			case SUBSCRIPTION:
+<span class="nc" id="L203">				return new VraNgSubscriptionStore();</span>
+			case REGION_MAPPING:
+<span class="nc" id="L205">				return new VraNgRegionalContentStore();</span>
+			case CATALOG_ENTITLEMENT:
+<span class="nc" id="L207">				return new VraNgEntitlementStore();</span>
+			case CUSTOM_RESOURCE:
+<span class="nc" id="L209">				return new VraNgCustomResourceStore();</span>
+			case RESOURCE_ACTION:
+<span class="nc" id="L211">				return new VraNgResourceActionStore();</span>
+			case CONTENT_SHARING_POLICY:
+<span class="nc" id="L213">				return new VraNgContentSharingPolicyStore();</span>
+			case RESOURCE_QUOTA_POLICY:
+<span class="nc" id="L215">				return new VraNgResourceQuotaPolicyStore();</span>
+			case DAY2_ACTIONS_POLICY:
+<span class="nc" id="L217">				return new VraNgDay2ActionsPolicyStore();</span>
+			case LEASE_POLICY:
+<span class="nc" id="L219">				return new VraNgLeasePolicyStore();</span>
+			case DEPLOYMENT_LIMIT_POLICY:
+<span class="nc" id="L221">				return new VraNgDeploymentLimitPolicyStore();</span>
+			case APPROVAL_POLICY:
+<span class="nc" id="L223">				return new VraNgApprovalPolicyStore();</span>
+			default:
+<span class="nc" id="L225">				throw new RuntimeException(&quot;unknown type: &quot; + type);</span>
+		}
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

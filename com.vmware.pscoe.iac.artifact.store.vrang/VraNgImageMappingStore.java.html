@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgImageMappingStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.vrang</a> &gt; <span class="el_source">VraNgImageMappingStore.java</span></div><h1>VraNgImageMappingStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.google.gson.*;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.vrang.*;
+import com.vmware.pscoe.iac.artifact.model.vrang.objectmapping.VraNgCloudRegionProfile;
+import com.vmware.pscoe.iac.artifact.rest.RestClientVraNg;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.vmware.pscoe.iac.artifact.store.vrang.VraNgDirs.DIR_IMAGE_MAPPINGS;
+import static com.vmware.pscoe.iac.artifact.store.vrang.VraNgDirs.DIR_REGIONS;
+
+<span class="fc" id="L39">public class VraNgImageMappingStore extends AbstractVraNgRegionalStore {</span>
+
+<span class="fc" id="L41">    private final Logger logger = LoggerFactory.getLogger(VraNgImageMappingStore.class);</span>
+
+    // =================================================
+    // IMAGE MAPPINGS EXPORT
+    // =================================================
+
+	/**
+	 * Used to fetch the store's data from the package descriptor
+	 *
+	 * @return list of image mappings
+	 */
+	@Override
+	protected List&lt;String&gt; getItemListFromDescriptor() {
+<span class="fc" id="L54">		return this.vraNgPackageDescriptor.getImageMapping();</span>
+	}
+
+	/**
+	 * Called when the List returned from getItemListFromDescriptor is empty
+	 *
+	 * @param cloudAccounts list of cloud accounts
+	 */
+	@Override
+	protected void exportStoreContent(List&lt;VraNgCloudAccount&gt; cloudAccounts) {
+<span class="fc" id="L64">		Map&lt;String, List&lt;VraNgImageMapping&gt;&gt; imagesByRegionId = this.restClient.getAllImageMappingsByRegion();</span>
+
+<span class="fc" id="L66">		cloudAccounts.forEach(cloudAccount -&gt; {</span>
+
+<span class="fc" id="L68">			List&lt;String&gt; regionsInCloudAccount = cloudAccount.getRegionIds()</span>
+<span class="fc" id="L69">				.stream()</span>
+<span class="fc" id="L70">				.filter(imagesByRegionId::containsKey)</span>
+<span class="fc" id="L71">				.collect(Collectors.toList());</span>
+
+<span class="fc" id="L73">			logger.debug(&quot;Exporting image mappings from cloud account {}&quot;, cloudAccount.getName());</span>
+
+<span class="fc" id="L75">			regionsInCloudAccount.forEach(regionId -&gt; {</span>
+
+<span class="fc" id="L77">				String profileDirName = cloudAccount.getName() + &quot;~&quot; + regionId;</span>
+
+<span class="fc" id="L79">				File sourceDir = new File(vraNgPackage.getFilesystemPath());</span>
+<span class="fc" id="L80">				VraNgRegionalContentUtils.createCloudRegionProfileFile(cloudAccount, regionId, sourceDir, profileDirName);</span>
+
+<span class="fc" id="L82">				List&lt;VraNgImageMapping&gt; imageMappings = imagesByRegionId.get(regionId)</span>
+<span class="fc" id="L83">					.stream()</span>
+<span class="fc" id="L84">					.map(this::prepareMappingSerialization)</span>
+<span class="fc" id="L85">					.collect(Collectors.toList());</span>
+
+<span class="fc" id="L87">					logger.info(&quot;Image mappings to export: {}&quot;, </span>
+<span class="fc" id="L88">					imageMappings.stream().map(VraNgImageMapping::getName).collect(Collectors.toList()));</span>
+
+<span class="fc" id="L90">				imageMappings.forEach(imageMapping -&gt;</span>
+<span class="fc" id="L91">					this.exportToFileSystem(sourceDir, profileDirName, imageMapping));</span>
+<span class="fc" id="L92">			});</span>
+<span class="fc" id="L93">		});</span>
+<span class="fc" id="L94">	}</span>
+
+	/**
+	 * Called when the List returned from getItemListFromDescriptor is not empty
+	 *
+	 * @param cloudAccounts list of cloud accounts
+	 * @param imageMappingsToExport list of image mappings
+	 */
+	@Override
+	protected void exportStoreContent(List&lt;VraNgCloudAccount&gt; cloudAccounts, List&lt;String&gt; imageMappingsToExport) {
+<span class="fc" id="L104">		Map&lt;String, List&lt;VraNgImageMapping&gt;&gt; imagesByRegionId = this.restClient.getAllImageMappingsByRegion();</span>
+
+<span class="fc" id="L106">		cloudAccounts.forEach(cloudAccount -&gt; {</span>
+
+<span class="fc" id="L108">			List&lt;String&gt; regionsInCloudAccount = cloudAccount.getRegionIds()</span>
+<span class="fc" id="L109">				.stream()</span>
+<span class="fc" id="L110">				.filter(imagesByRegionId::containsKey)</span>
+<span class="fc" id="L111">				.collect(Collectors.toList());</span>
+
+<span class="fc" id="L113">			logger.debug(&quot;Exporting image mappings from cloud account {}&quot;, cloudAccount.getName());</span>
+
+<span class="fc" id="L115">			regionsInCloudAccount.forEach(regionId -&gt; {</span>
+
+<span class="fc" id="L117">				String profileDirName = cloudAccount.getName() + &quot;~&quot; + regionId;</span>
+
+<span class="fc" id="L119">				File sourceDir = new File(vraNgPackage.getFilesystemPath());</span>
+<span class="fc" id="L120">				VraNgRegionalContentUtils.createCloudRegionProfileFile(cloudAccount, regionId, sourceDir, profileDirName);</span>
+
+<span class="fc" id="L122">				List&lt;VraNgImageMapping&gt; imageMappings = imagesByRegionId.get(regionId)</span>
+<span class="fc" id="L123">					.stream()</span>
+<span class="fc" id="L124">					.filter(im -&gt; imageMappingsToExport.contains(im.getName()))</span>
+<span class="fc" id="L125">					.map(this::prepareMappingSerialization)</span>
+<span class="fc" id="L126">					.collect(Collectors.toList());</span>
+
+<span class="fc" id="L128">				logger.info(&quot;Image mappings to export: {}&quot;, </span>
+<span class="fc" id="L129">					imageMappings.stream().map(VraNgImageMapping::getName).collect(Collectors.toList()));</span>
+
+<span class="fc" id="L131">				imageMappings.forEach(imageMapping -&gt;</span>
+<span class="fc" id="L132">					this.exportToFileSystem(sourceDir, profileDirName, imageMapping));</span>
+<span class="fc" id="L133">			});</span>
+<span class="fc" id="L134">		});</span>
+<span class="fc" id="L135">	}</span>
+
+    /**
+     * Save an image mapping to a JSON file
+     * @param sourceDir source directory
+     * @param profileDirName region directory
+     * @param imageMapping image mapping
+     */
+    private void exportToFileSystem(File sourceDir, String profileDirName, VraNgImageMapping imageMapping) {
+<span class="fc" id="L144">        File imageMappingFile =</span>
+<span class="fc" id="L145">                Paths.get(sourceDir.getPath(), DIR_REGIONS, profileDirName, DIR_IMAGE_MAPPINGS, imageMapping.getName() + &quot;.json&quot;).toFile();</span>
+
+<span class="fc" id="L147">        imageMappingFile.getParentFile().mkdirs();</span>
+
+        try {
+<span class="fc" id="L150">            Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="fc" id="L151">            String imageJson = gson.toJson(gson.fromJson(imageMapping.getJson(), JsonObject.class));</span>
+<span class="fc" id="L152">            logger.info(&quot;Created file {}&quot;, Files.write(Paths.get(imageMappingFile.getPath()), imageJson.getBytes(), StandardOpenOption.CREATE));</span>
+<span class="nc" id="L153">        } catch (IOException e) {</span>
+<span class="nc" id="L154">            logger.error(&quot;Unable to store image mapping {} {}&quot;, imageMapping.getName(), imageMappingFile.getPath());</span>
+<span class="nc" id="L155">            throw new RuntimeException(&quot;Unable to store image mapping.&quot;, e);</span>
+<span class="fc" id="L156">        }</span>
+<span class="fc" id="L157">    }</span>
+
+    /**
+     * Create a new VraNgImageMapping with serializable payload
+     * @param mapping image mapping
+     * @return new VraNgStorageProfile
+     */
+    private VraNgImageMapping prepareMappingSerialization(VraNgImageMapping mapping) {
+
+<span class="fc" id="L166">        JsonElement root = new JsonParser().parse(mapping.getJson());</span>
+<span class="fc" id="L167">        JsonObject ob = root.getAsJsonObject();</span>
+
+<span class="fc" id="L169">        JsonObject cleanedOb = VraNgRegionalContentUtils.cleanJson(ob, null, Arrays.asList(</span>
+                &quot;_links&quot;, &quot;id&quot;, &quot;externalRegionId&quot;
+        ));
+
+<span class="fc" id="L173">        return new VraNgImageMapping(mapping.getName(), cleanedOb.toString());</span>
+
+    }
+
+    // =================================================
+    // IMAGE MAPPINGS IMPORT
+    // =================================================
+
+    /**
+     * Import all image profiles from a package.
+     * @param sourceDirectory temporary directory containing the files
+	 * @param importTags list of tags
+     */
+    public void importContent(File sourceDirectory, List&lt;String&gt; importTags) {
+<span class="nc" id="L187">        File regionsFolder = Paths.get(sourceDirectory.getPath(), DIR_REGIONS).toFile();</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">        if (!regionsFolder.exists()) {</span>
+<span class="nc" id="L189">            logger.debug(&quot;Regions directory does not exist. Skipping import of image profiles...&quot;);</span>
+<span class="nc" id="L190">            return;</span>
+        }
+
+<span class="nc" id="L193">        List&lt;VraNgCloudAccount&gt; cloudAccounts = this.restClient.getCloudAccounts();</span>
+
+<span class="nc" id="L195">        Map&lt;String, List&lt;String&gt;&gt; imageProfilesByRegion = this.restClient.getAllImageProfilesByRegion();</span>
+
+<span class="nc" id="L197">        logger.debug(&quot;Image profiles by region: {}&quot;, imageProfilesByRegion);</span>
+
+        // list all directories in the regions folder
+<span class="nc" id="L200">        Arrays.asList(regionsFolder.listFiles(File::isDirectory)).forEach(regionProfileDir -&gt; {</span>
+            try {
+<span class="nc" id="L202">                VraNgCloudRegionProfile cloudRegionProfile = VraNgRegionalContentUtils.getCloudRegionProfile(regionProfileDir);</span>
+<span class="nc" id="L203">                cloudAccounts</span>
+<span class="nc" id="L204">                        .stream()</span>
+<span class="nc" id="L205">                        .filter(cloudAccount -&gt; VraNgRegionalContentUtils.isIntersecting(cloudAccount.getTags(), importTags))</span>
+<span class="nc" id="L206">                        .filter(cloudAccount -&gt; cloudAccount.getType().equals(cloudRegionProfile.getRegionType()))</span>
+<span class="nc" id="L207">                        .forEach(cloudAccount -&gt; cloudAccount.getRegionIds()</span>
+<span class="nc" id="L208">                                .forEach(regionId -&gt; this.importImageProfilesInRegion(</span>
+                                        regionId,
+                                        regionProfileDir,
+                                        imageProfilesByRegion)));
+<span class="nc" id="L212">            } catch (IOException e) {</span>
+<span class="nc" id="L213">                e.printStackTrace();</span>
+<span class="nc" id="L214">            }</span>
+<span class="nc" id="L215">        });</span>
+<span class="nc" id="L216">    }</span>
+
+    /**
+     * Create a list of image mappings from JSON file representation
+     * @param imageMappingsDir directory containing the image mappings for the region
+     * @return list of image mappings
+     */
+    private List&lt;VraNgImageMapping&gt; getImageMappingsFromFileSystem(File imageMappingsDir) {
+<span class="nc" id="L224">        List&lt;VraNgImageMapping&gt; imageMappings = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L225">        FileUtils.listFiles(imageMappingsDir, new String[] { &quot;json&quot; }, false).forEach(im -&gt; {</span>
+            try {
+<span class="nc" id="L227">                File imFile = (File) im;</span>
+<span class="nc" id="L228">                String imageMappingName = FilenameUtils.removeExtension(imFile.getName());</span>
+<span class="nc" id="L229">                String imageMappingContent = FileUtils.readFileToString(imFile, &quot;UTF-8&quot;);</span>
+<span class="nc" id="L230">                imageMappings.add(new VraNgImageMapping(imageMappingName, imageMappingContent));</span>
+<span class="nc" id="L231">            } catch (IOException e) {</span>
+<span class="nc" id="L232">                e.printStackTrace();</span>
+<span class="nc" id="L233">            }</span>
+<span class="nc" id="L234">        });</span>
+
+<span class="nc" id="L236">        return imageMappings;</span>
+    }
+
+    /**
+     * Import image mappings in a cloud region (cloud zone). If an image profile already exists,
+     * update it with a new mapping, otherwise create an image profile with a single mapping inside.
+     * @param regionId region id
+     * @param regionProfileDir region directory
+     * @param imageProfilesByRegion list of existing image profiles on server
+     */
+    private void importImageProfilesInRegion(
+            String regionId, File regionProfileDir, Map&lt;String, List&lt;String&gt;&gt; imageProfilesByRegion) {
+
+<span class="nc" id="L249">        File imageMappingsDir = Paths.get(regionProfileDir.getPath(), DIR_IMAGE_MAPPINGS).toFile();</span>
+<span class="nc bnc" id="L250" title="All 2 branches missed.">        if (!imageMappingsDir.exists()) {</span>
+<span class="nc" id="L251">            logger.debug(&quot;Image mappings directory {} does not exist in region {}. Skipping...&quot;, DIR_IMAGE_MAPPINGS, regionId);</span>
+<span class="nc" id="L252">            return;</span>
+        }
+<span class="nc" id="L254">        List&lt;VraNgImageMapping&gt; imageMappings = this.getImageMappingsFromFileSystem(imageMappingsDir);</span>
+
+<span class="nc" id="L256">        logger.info(&quot;Creating/updating {} image mappings: {}&quot;,</span>
+<span class="nc" id="L257">			imageMappings.size(), imageMappings.stream().map(VraNgImageMapping::getName).collect(Collectors.toList()));</span>
+
+<span class="nc bnc" id="L259" title="All 2 branches missed.">        if (imageProfilesByRegion.containsKey(regionId)) {</span>
+<span class="nc" id="L260">            this.updateImageProfilesWithMappings(imageProfilesByRegion.get(regionId), imageMappings);</span>
+        } else {
+<span class="nc" id="L262">            this.createImageProfilesWithMappings(regionId, imageMappings);</span>
+        }
+<span class="nc" id="L264">    }</span>
+
+    private void updateImageProfilesWithMappings(
+            List&lt;String&gt; imageProfilesToPatch, List&lt;VraNgImageMapping&gt; imageMappings) {
+
+<span class="nc" id="L269">        List&lt;VraNgImageMapping&gt; mappingList = imageMappings.stream()</span>
+<span class="nc" id="L270">                .map(this::getUpsertPayload)</span>
+<span class="nc" id="L271">                .collect(Collectors.toList());</span>
+
+<span class="nc" id="L273">        imageProfilesToPatch.forEach(imageProfileId -&gt; {</span>
+<span class="nc" id="L274">            this.restClient.updateImageProfile(imageProfileId, mappingList);</span>
+<span class="nc" id="L275">        });</span>
+<span class="nc" id="L276">    }</span>
+
+    private void createImageProfilesWithMappings(String regionId, List&lt;VraNgImageMapping&gt; imageMappings) {
+<span class="nc" id="L279">        List&lt;VraNgImageMapping&gt; mappingList = imageMappings.stream()</span>
+<span class="nc" id="L280">                .map(this::getUpsertPayload)</span>
+<span class="nc" id="L281">                .collect(Collectors.toList());</span>
+
+<span class="nc" id="L283">        this.restClient.createImageProfile(regionId, &quot;Auto Generated Profile from Import&quot;, mappingList);</span>
+<span class="nc" id="L284">    }</span>
+
+    /**
+     * Create API-compliant JSON payload from local image mapping
+     * for creating/updating image profiles.
+     * @param mapping local image mapping
+     * @return image mapping with updated payload
+     */
+    private VraNgImageMapping getUpsertPayload(VraNgImageMapping mapping) {
+<span class="nc" id="L293">        JsonElement root = new JsonParser().parse(mapping.getJson());</span>
+<span class="nc" id="L294">        JsonObject ob = root.getAsJsonObject();</span>
+
+<span class="nc" id="L296">        String fabricId = this.restClient.getFabricEntityId(&quot;fabric-images&quot;, ob.get(&quot;name&quot;).getAsString());</span>
+<span class="nc bnc" id="L297" title="All 2 branches missed.">        if (fabricId != null) {</span>
+
+            // add fabric entity id
+<span class="nc" id="L300">            ob.addProperty(&quot;id&quot;, fabricId);</span>
+<span class="nc" id="L301">            Map&lt;String, String&gt; payload = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L302">            payload.put(&quot;id&quot;, fabricId);</span>
+
+<span class="nc" id="L304">            Gson gson = new GsonBuilder().setLenient().serializeNulls().create();</span>
+<span class="nc" id="L305">            return new VraNgImageMapping(mapping.getName(), gson.toJson(payload));</span>
+        }
+
+<span class="nc" id="L308">        return mapping;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

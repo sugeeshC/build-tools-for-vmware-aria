@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgSubscriptionStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.vrang</a> &gt; <span class="el_source">VraNgSubscriptionStore.java</span></div><h1>VraNgSubscriptionStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVraNg;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.abx.AbxAction;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageDescriptor;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgProject;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgSubscription;
+import com.vmware.pscoe.iac.artifact.rest.RestClientVraNg;
+import com.vmware.pscoe.iac.artifact.store.filters.CustomFolderFileFilter;
+import com.vmware.pscoe.iac.artifact.utils.VraNgOrganizationUtil;
+
+import org.apache.commons.io.FileUtils;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+import static com.vmware.pscoe.iac.artifact.store.vrang.VraNgDirs.DIR_SUBSCRIPTIONS;
+
+<span class="fc" id="L49">public class VraNgSubscriptionStore extends AbstractVraNgStore {</span>
+
+    /**
+     * Contains Id of the current organization.
+     */
+    private String currentOrganizationId;
+
+    /**
+     * Contains information about the projects affected by import/export.
+     */
+    private List&lt;VraNgProject&gt; projects;
+
+    /**
+     * Contains Id of the main proect.
+     */
+    private String configProjectId;
+
+    /**
+     * Init method, set initial values for base variables.
+     */
+    @Override
+    public void init(RestClientVraNg restClient, Package vraNgPackage, ConfigurationVraNg config,
+            VraNgPackageDescriptor vraNgPackageDescriptor) {
+<span class="fc" id="L72">        super.init(restClient, vraNgPackage, config, vraNgPackageDescriptor);</span>
+<span class="fc" id="L73">        this.currentOrganizationId = VraNgOrganizationUtil.getOrganization(this.restClient, this.config).getId();</span>
+<span class="fc" id="L74">        this.configProjectId = this.restClient.getProjectId();</span>
+<span class="fc" id="L75">        this.projects = this.restClient.getProjects();</span>
+<span class="fc" id="L76">    }</span>
+
+	/**
+	 * Used to fetch the store's data from the package descriptor.
+	 *
+	 * @return a list of subscriptions
+	 */
+	@Override
+	protected List&lt;String&gt; getItemListFromDescriptor() {
+<span class="fc" id="L85">		return this.vraNgPackageDescriptor.getSubscription();</span>
+	}
+
+	/**
+	 * Called when the List returned from getItemListFromDescriptor is empty.
+	 */
+	@Override
+	protected void exportStoreContent() {
+<span class="fc" id="L93">		Map&lt;String, VraNgSubscription&gt; subscriptionsOnServer	= this.getAllSubscriptions();</span>
+
+<span class="fc bfc" id="L95" title="All 2 branches covered.">		for (String subscriptionId : subscriptionsOnServer.keySet()) {</span>
+<span class="fc" id="L96">			storeSubscriptionOnFilesystem(</span>
+				vraNgPackage,
+<span class="fc" id="L98">				subscriptionsOnServer.get(subscriptionId).getName(),</span>
+<span class="fc" id="L99">				subscriptionsOnServer.get(subscriptionId).getJson()</span>
+			);
+<span class="fc" id="L101">		}</span>
+<span class="fc" id="L102">	}</span>
+
+	/**
+	 * Exports all subscription names that match the filter.
+	 *
+	 * @param	subscriptionNames - filter
+	 */
+	@Override
+	protected void exportStoreContent(List&lt;String&gt; subscriptionNames) {
+<span class="fc" id="L111">		Map&lt;String, VraNgSubscription&gt; subscriptionsOnServer = this.getAllSubscriptions();</span>
+
+<span class="fc" id="L113">		Map&lt;String, String&gt; namesToIdsOnServer = subscriptionsOnServer.keySet().stream()</span>
+<span class="fc" id="L114">			.collect(Collectors.toMap(subscriptionId -&gt; subscriptionsOnServer.get(subscriptionId).getName(), subscriptionId -&gt; subscriptionId));</span>
+
+<span class="fc bfc" id="L116" title="All 2 branches covered.">		for (String subscriptionName : subscriptionNames) {</span>
+			// Check the export the content.yaml Subscriptions and try to find them on the server
+<span class="fc bfc" id="L118" title="All 2 branches covered.">			if (!namesToIdsOnServer.containsKey(subscriptionName)) {</span>
+<span class="fc" id="L119">				throw new IllegalStateException(&quot;Subscription with name [&quot; + subscriptionName + &quot;] doesn't exist on the remote&quot;);</span>
+			}
+<span class="fc" id="L121">			String subscriptionId = namesToIdsOnServer.get(subscriptionName);</span>
+<span class="fc" id="L122">			storeSubscriptionOnFilesystem(</span>
+				vraNgPackage,
+				subscriptionName,
+<span class="fc" id="L125">				subscriptionsOnServer.get(subscriptionId).getJson()</span>
+			);
+<span class="fc" id="L127">		}</span>
+<span class="fc" id="L128">	}</span>
+
+    /**
+     * Immports all subscriptions from the source directory.
+     * 
+     * @param sourceDirectory - directory with the subscriptions.
+     */
+	public void importContent(File sourceDirectory) {
+<span class="fc" id="L136">		logger.info(&quot;Importing files from the '{}' directory&quot;, DIR_SUBSCRIPTIONS);</span>
+<span class="fc" id="L137">        File folder = Paths.get(sourceDirectory.getPath(), DIR_SUBSCRIPTIONS).toFile();</span>
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">		if (!folder.exists()) {</span>
+<span class="nc" id="L139">			logger.info(&quot;Subscription Dir not found.&quot;);</span>
+<span class="nc" id="L140">			return;</span>
+		}
+<span class="fc" id="L142">		File[] files = this.filterBasedOnConfiguration(folder, new CustomFolderFileFilter(this.getItemListFromDescriptor()));</span>
+<span class="pc bpc" id="L143" title="1 of 4 branches missed.">		if (files == null || files.length == 0) {</span>
+<span class="fc" id="L144">			logger.info(&quot;Could not find any Subscriptions.&quot;);</span>
+<span class="fc" id="L145">			return;</span>
+		}
+<span class="fc" id="L147">		logger.info(&quot;Found subscriptions. Importing...&quot;);</span>
+		
+<span class="fc" id="L149">		final Map&lt;String, VraNgSubscription&gt; allSubscriptions = this.getAllSubscriptions();</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">		for (File file : files) {</span>
+<span class="fc" id="L151">			importSubscription(file, allSubscriptions);</span>
+		}
+<span class="fc" id="L153">    }</span>
+
+    private File storeSubscriptionOnFilesystem(Package serverPackage, String subscriptionName,
+            String subscriptionJson) {
+<span class="fc" id="L157">        File store = new File(serverPackage.getFilesystemPath());</span>
+<span class="fc" id="L158">        File subscription = Paths.get(store.getPath(), DIR_SUBSCRIPTIONS, subscriptionName + &quot;.json&quot;).toFile();</span>
+<span class="fc" id="L159">        subscription.getParentFile().mkdirs();</span>
+
+        try {
+<span class="fc" id="L162">            Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="fc" id="L163">            final JsonObject subscriptionJsonElement = gson.fromJson(subscriptionJson, JsonObject.class);</span>
+            // leaving orgId in the JSON prevents pushing to different vRA organizations
+            // orgId is optional when importing in vRA, so it can be safely removed
+<span class="fc" id="L166">            subscriptionJsonElement.remove(&quot;orgId&quot;);</span>
+<span class="fc" id="L167">            addProjectNamesToStorage(subscriptionJsonElement);</span>
+<span class="fc" id="L168">            addRunnableNameToStorage(subscriptionJsonElement);</span>
+<span class="fc" id="L169">            subscriptionJson = gson.toJson(subscriptionJsonElement);</span>
+<span class="fc" id="L170">            logger.info(&quot;Created file {}&quot;, Files.write(Paths.get(subscription.getPath()), subscriptionJson.getBytes(),</span>
+                    StandardOpenOption.CREATE));
+<span class="nc" id="L172">        } catch (IOException e) {</span>
+<span class="nc" id="L173">            logger.error(&quot;Unable to store subscription {} {}&quot;, subscriptionName, subscription.getPath());</span>
+<span class="nc" id="L174">            throw new RuntimeException(&quot;Unable to store subscription.&quot;, e);</span>
+<span class="fc" id="L175">        }</span>
+
+<span class="fc" id="L177">        return subscription;</span>
+    }
+
+    private Map&lt;String, VraNgSubscription&gt; getAllSubscriptions() {
+<span class="fc" id="L181">        return this.restClient.getAllSubscriptions();</span>
+    }
+
+
+    private void importSubscription(File jsonFile, final Map&lt;String, VraNgSubscription&gt; allSubscriptions) {
+        try {
+<span class="fc" id="L187">            Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="fc" id="L188">            String subscriptionContent = FileUtils.readFileToString(jsonFile, &quot;UTF-8&quot;);</span>
+<span class="fc" id="L189">            final JsonObject subscriptionJsonElement = gson.fromJson(subscriptionContent, JsonObject.class);</span>
+            // Get the subscription name from the JSON not from the filename
+<span class="fc" id="L191">            String subscriptionName = subscriptionJsonElement.get(&quot;name&quot;).getAsString();</span>
+<span class="fc" id="L192">            String subscriptionId = generateId(subscriptionJsonElement, allSubscriptions);</span>
+<span class="fc" id="L193">            subscriptionJsonElement.remove(&quot;orgId&quot;);</span>
+<span class="fc" id="L194">            subscriptionJsonElement.addProperty(&quot;id&quot;, subscriptionId);</span>
+<span class="fc" id="L195">            logger.info(&quot;Trying to importing subscription '{}' with ID {}...&quot;, subscriptionName, subscriptionId);</span>
+<span class="fc" id="L196">            substituteProjects(subscriptionJsonElement);</span>
+<span class="fc" id="L197">            addRunnableId(subscriptionJsonElement);</span>
+<span class="fc" id="L198">            subscriptionContent = gson.toJson(subscriptionJsonElement);</span>
+<span class="fc" id="L199">            restClient.importSubscription(subscriptionName, subscriptionContent);</span>
+<span class="fc" id="L200">            logger.debug(&quot;Subscription '{}' imported successfully.&quot;, subscriptionName);</span>
+<span class="nc" id="L201">        } catch (</span>
+
+        IOException e) {
+<span class="nc" id="L204">            throw new RuntimeException(&quot;Error reading from file: &quot; + jsonFile.getPath(), e);</span>
+<span class="fc" id="L205">        }</span>
+<span class="fc" id="L206">    }</span>
+
+    private void addRunnableId(JsonObject subscriptionJsonElement) {
+<span class="fc" id="L209">        JsonElement runnableTypeElement = subscriptionJsonElement.get(&quot;runnableType&quot;);</span>
+<span class="pc bpc" id="L210" title="1 of 2 branches missed.">        if (!runnableTypeElement.getAsString().contains(&quot;extensibility.abx&quot;)) {</span>
+<span class="nc" id="L211">            return;</span>
+        }
+<span class="fc" id="L213">        JsonElement runnableNameElement = subscriptionJsonElement.get(&quot;runnableName&quot;);</span>
+<span class="fc" id="L214">        List&lt;AbxAction&gt; actions = restClient.getAllAbxActions().stream()</span>
+<span class="fc" id="L215">                .filter(a -&gt; a.name.equals(runnableNameElement.getAsString()))</span>
+<span class="fc" id="L216">                .collect(Collectors.toList());</span>
+
+<span class="fc bfc" id="L218" title="All 2 branches covered.">        if (actions.size() == 0) {</span>
+<span class="fc" id="L219">            throw new RuntimeException(&quot;Abx actions with the specified Name can not be found&quot;);</span>
+        }
+
+<span class="fc" id="L222">        subscriptionJsonElement.remove(&quot;runnableName&quot;);</span>
+<span class="fc" id="L223">        subscriptionJsonElement.addProperty(&quot;runnableId&quot;, actions.get(0).id);</span>
+<span class="fc" id="L224">    }</span>
+        
+    private String generateId(JsonObject subscriptionJsonElement, Map&lt;String, VraNgSubscription&gt; allSubscriptions) {
+<span class="fc" id="L227">        String subscriptionId = subscriptionJsonElement.get(&quot;id&quot;).getAsString();</span>
+<span class="fc" id="L228">        String subscriptionName = subscriptionJsonElement.get(&quot;name&quot;).getAsString();</span>
+
+<span class="pc bpc" id="L230" title="2 of 4 branches missed.">        if (subscriptionJsonElement.get(&quot;id&quot;) != null &amp;&amp; subscriptionId != null) {</span>
+<span class="fc" id="L231">            subscriptionId = subscriptionId.replaceAll(&quot;^[\\w]{8}-[\\w]{4}-[\\w]{4}-[\\w]{4}-[\\w]{12}-&quot;, &quot;&quot;);</span>
+<span class="pc bpc" id="L232" title="1 of 2 branches missed.">            if (allSubscriptions.get(subscriptionId) == null</span>
+<span class="nc" id="L233">                    || !JsonParser.parseString(allSubscriptions.get(subscriptionId).getJson()).getAsJsonObject()</span>
+<span class="nc bnc" id="L234" title="All 2 branches missed.">                            .get(&quot;orgId&quot;).getAsString().equals(currentOrganizationId)) {            </span>
+<span class="fc" id="L235">                subscriptionId = this.currentOrganizationId + &quot;-&quot; + subscriptionId;</span>
+<span class="fc" id="L236">                logger.debug(&quot;Generating new subscription ID '{}' because subscription exists in different organization.&quot;, subscriptionId);</span>
+
+            }
+        } else {
+<span class="nc" id="L240">            subscriptionId = this.currentOrganizationId + &quot;-&quot; + &quot;sub_&quot; + subscriptionName.hashCode();</span>
+<span class="nc" id="L241">            logger.debug(&quot;Subscription Id is missing. Generate id from organization id and name hashcode: &quot; + subscriptionId);</span>
+        }
+<span class="fc" id="L243">        return subscriptionId;</span>
+    }
+
+    private void addProjectNamesToStorage(JsonObject subscriptionJsonElement) {
+<span class="fc" id="L247">        JsonElement constraintElement = subscriptionJsonElement.get(&quot;constraints&quot;);</span>
+<span class="pc bpc" id="L248" title="1 of 2 branches missed.">        if (constraintElement != null) {</span>
+<span class="fc" id="L249">            JsonElement projectElement = constraintElement.getAsJsonObject().get(&quot;projectId&quot;);</span>
+<span class="pc bpc" id="L250" title="4 of 6 branches missed.">            if (projectElement != null &amp;&amp; projectElement.isJsonArray() &amp;&amp; projectElement.getAsJsonArray().size() &gt; 0) {</span>
+<span class="nc" id="L251">                JsonArray projectNames = new JsonArray(projectElement.getAsJsonArray().size());</span>
+<span class="nc" id="L252">                projectElement.getAsJsonArray().forEach(el -&gt; projectNames.add(projectIdToName(el.getAsString())));</span>
+                // constraintElement.getAsJsonObject().remove(&quot;projectId&quot;);
+<span class="nc" id="L254">                constraintElement.getAsJsonObject().add(&quot;projectNames&quot;, projectNames);</span>
+            }
+        }
+<span class="fc" id="L257">    }</span>
+
+    private void addRunnableNameToStorage(JsonObject subscriptionJsonElement) {
+
+<span class="fc" id="L261">        JsonElement runnableTypeElement = subscriptionJsonElement.get(&quot;runnableType&quot;);</span>
+<span class="fc bfc" id="L262" title="All 2 branches covered.">        if (!runnableTypeElement.getAsString().contains(&quot;extensibility.abx&quot;)) {</span>
+<span class="fc" id="L263">            return;</span>
+        }
+
+<span class="fc" id="L266">        JsonElement runnableIdElement = subscriptionJsonElement.get(&quot;runnableId&quot;);</span>
+<span class="fc" id="L267">        List&lt;AbxAction&gt; actions = restClient.getAllAbxActions().stream()</span>
+<span class="fc" id="L268">            .filter(a -&gt; a.id.equals(runnableIdElement.getAsString()))</span>
+<span class="fc" id="L269">            .collect(Collectors.toList());</span>
+
+<span class="fc bfc" id="L271" title="All 2 branches covered.">        if (actions.size() == 0) {</span>
+<span class="fc" id="L272">            throw new RuntimeException(&quot;Abx actions with the specified Id can not be found&quot;);</span>
+        }
+        
+<span class="fc" id="L275">        subscriptionJsonElement.remove(&quot;runnableId&quot;);</span>
+<span class="fc" id="L276">        subscriptionJsonElement.addProperty(&quot;runnableName&quot;, actions.get(0).name);        </span>
+<span class="fc" id="L277">    }</span>
+
+    private void substituteProjects(JsonObject content) {
+<span class="fc" id="L280">        JsonElement constraintElement = content.get(&quot;constraints&quot;);</span>
+<span class="pc bpc" id="L281" title="1 of 2 branches missed.">        if (constraintElement != null) {</span>
+<span class="fc" id="L282">            JsonObject constraintJsonObject = constraintElement.getAsJsonObject();</span>
+<span class="fc" id="L283">            JsonElement projectNamesElement = constraintJsonObject.get(&quot;projectNames&quot;);</span>
+<span class="fc" id="L284">            JsonElement projectIdElement = constraintJsonObject.get(&quot;projectId&quot;);</span>
+
+<span class="pc bpc" id="L286" title="3 of 4 branches missed.">            if (projectNamesElement != null &amp;&amp; projectNamesElement.getAsJsonArray().size() &gt; 0) {</span>
+<span class="nc" id="L287">                constraintJsonObject.remove(&quot;projectNames&quot;);</span>
+<span class="nc bnc" id="L288" title="All 2 branches missed.">                if (projectIdElement != null) {</span>
+<span class="nc" id="L289">                    constraintJsonObject.remove(&quot;projectId&quot;);</span>
+                }
+
+<span class="nc" id="L292">                List&lt;String&gt; projectNames = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L293">                projectNames.add(projectIdToName(this.configProjectId));</span>
+<span class="nc" id="L294">                JsonArray newProjectIdElements = new JsonArray();</span>
+<span class="nc" id="L295">                newProjectIdElements.add(configProjectId);</span>
+<span class="nc" id="L296">                projectNamesElement.getAsJsonArray().forEach(el -&gt; projectNames.add(el.getAsString()));</span>
+<span class="nc" id="L297">                projectNames.stream()</span>
+<span class="nc" id="L298">                        .distinct()</span>
+<span class="nc" id="L299">                        .map(this::projectNameToId)</span>
+<span class="nc" id="L300">                        .filter(Objects::nonNull)</span>
+<span class="nc" id="L301">                        .forEach(id -&gt; newProjectIdElements.add(id));</span>
+
+<span class="nc" id="L303">                constraintJsonObject.add(&quot;projectId&quot;, newProjectIdElements);</span>
+<span class="pc bpc" id="L304" title="2 of 4 branches missed.">            } else if (projectIdElement != null &amp;&amp; projectIdElement.isJsonArray()</span>
+<span class="nc bnc" id="L305" title="All 2 branches missed.">                    &amp;&amp; projectIdElement.getAsJsonArray().size() &gt; 0) {</span>
+<span class="nc" id="L306">                JsonArray newProjectIdElements = new JsonArray();</span>
+<span class="nc" id="L307">                List&lt;String&gt; projectIds = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L308">                projectIds.add(this.configProjectId);</span>
+<span class="nc" id="L309">                projectIdElement.getAsJsonArray().forEach(el -&gt; projectIds.add(el.getAsString()));</span>
+<span class="nc" id="L310">                projectIds.stream()</span>
+<span class="nc" id="L311">                        .distinct()</span>
+<span class="nc" id="L312">                        .filter(this::isProjectIdPresent)</span>
+<span class="nc" id="L313">                        .forEach(id -&gt; newProjectIdElements.add(id));</span>
+<span class="nc" id="L314">                constraintJsonObject.remove(&quot;projectId&quot;);</span>
+<span class="nc" id="L315">                constraintJsonObject.add(&quot;projectId&quot;, newProjectIdElements);</span>
+            }
+        }
+<span class="fc" id="L318">    }</span>
+
+    private String projectIdToName(String projectId) {
+<span class="nc" id="L321">        return projects</span>
+<span class="nc" id="L322">                .stream()</span>
+<span class="nc" id="L323">                .filter(prj -&gt; prj.getId().equals(projectId))</span>
+<span class="nc" id="L324">                .map(prj -&gt; prj.getName())</span>
+<span class="nc" id="L325">                .findFirst()</span>
+<span class="nc" id="L326">                .orElse(null);</span>
+    }
+
+    private Boolean isProjectIdPresent(String projectId) {
+<span class="nc" id="L330">        return projects</span>
+<span class="nc" id="L331">                .stream()</span>
+<span class="nc" id="L332">                .anyMatch(prj -&gt; prj.getId().equals(projectId));</span>
+    }
+
+    private String projectNameToId(String name) {
+<span class="nc" id="L336">        return projects</span>
+<span class="nc" id="L337">                .stream()</span>
+<span class="nc" id="L338">                .filter(prj -&gt; prj.getName().equals(name))</span>
+<span class="nc" id="L339">                .map(prj -&gt; prj.getId())</span>
+<span class="nc" id="L340">                .findFirst()</span>
+<span class="nc" id="L341">                .orElse(null);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

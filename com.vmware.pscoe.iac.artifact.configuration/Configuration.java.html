@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Configuration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.configuration</a> &gt; <span class="el_source">Configuration.java</span></div><h1>Configuration.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.configuration;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.net.URISyntaxException;
+import java.util.Properties;
+
+import org.apache.http.client.utils.URIBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
+
+import com.vmware.pscoe.iac.artifact.model.PackageType;
+
+/**
+ * Contains properties common for all configurations.
+ */
+public abstract class Configuration {
+
+	/**
+	 * The type of the package. Can be: `vro`, `vra-ng`, etc
+	 */
+	private final PackageType type;
+
+	// Important - Maven base projects (maven/base-package/**/pom.xml)
+	// configurations must be compatible with @Configuration and all its subclasses
+	/**
+	 * Hostname of the server, without the protocol.
+	 */
+	public static final String HOST = &quot;host&quot;;
+
+	/**
+	 * Port of the server.
+	 */
+	public static final String PORT = &quot;port&quot;;
+
+	/**
+	 * Username to authenticate with.
+	 */
+	public static final String USERNAME = &quot;username&quot;;
+
+	/**
+	 * Password to authenticate with.
+	 */
+	public static final String PASSWORD = &quot;password&quot;;
+
+	/**
+	 * Connection timeout in seconds.
+	 */
+	public static final String CONNECTION_TIMEOUT = &quot;vrealize.connection.timeout&quot;;
+
+	/**
+	 * Socket timeout in seconds.
+	 */
+	public static final String SOCKET_TIMEOUT = &quot;vrealize.socket.timeout&quot;;
+
+	/**
+	 * Default connection timeout in seconds.
+	 */
+<span class="fc" id="L73">	public static final Integer DEFAULT_CONNECTION_TIMEOUT = 360;</span>
+
+	/**
+	 * Default socket timeout in seconds.
+	 */
+<span class="fc" id="L78">	public static final Integer DEFAULT_SOCKET_TIMEOUT = 360;</span>
+
+	/**
+	 * Strategy configuration property. If set to true will perform force import
+	 * regardless of the vRO server content.
+	 *
+	 * NOTE: This strategy is used for pushing and pulling.
+	 */
+	public static final String IMPORT_OLD_VERSIONS = &quot;importOldVersions&quot;;
+
+	/**
+	 * Strategy configuration property. If set to true will only import a package if
+	 * it's the same or newer version than the one in the vRO server. The difference
+	 * between this strategy and the default one is that this one will throw an
+	 * error failing the pipeline.
+	 *
+	 * NOTE: This is only used during pushing
+	 */
+	public static final String FORCE_IMPORT_LATEST_VERSIONS = &quot;forceImportLatestVersions&quot;;
+
+	/**
+	 * Contains all the properties passed by the user.
+	 */
+	protected Properties properties;
+
+	/**
+	 * Default flag for the default import strategy. It is currently set to false for backwards compatibility.
+	 */
+<span class="fc" id="L106">	private static final Boolean DEFAULT_FORCE_IMPORT_LATEST_VERSIONS = false;</span>
+
+	/**
+	 * Logger instance.
+	 */
+<span class="fc" id="L111">	protected final Logger logger = LoggerFactory.getLogger(Configuration.class);;</span>
+
+<span class="fc" id="L113">	protected Configuration(PackageType type, Properties props) {</span>
+<span class="fc" id="L114">		this.type = type;</span>
+<span class="fc" id="L115">		this.properties = props;</span>
+<span class="fc" id="L116">	}</span>
+
+	/**
+	 * @return the package type
+	 */
+	public PackageType getPackageType() {
+<span class="nc" id="L122">		return type;</span>
+	}
+
+	/**
+	 * @return the host
+	 */
+	public String getHost() {
+<span class="fc" id="L129">		return this.properties.getProperty(HOST);</span>
+	}
+
+	/**
+	 * @return the port
+	 */
+	public int getPort() {
+		try {
+<span class="fc" id="L137">			return Integer.parseInt(this.properties.getProperty(PORT));</span>
+<span class="nc" id="L138">		} catch (NumberFormatException e) {</span>
+<span class="nc" id="L139">			throw new RuntimeException(&quot;Port is not a number&quot;);</span>
+		}
+	}
+
+	/**
+	 * Will return the username without the domain.
+	 *
+	 * @return the username
+	 */
+	public String getUsername() {
+<span class="fc" id="L149">		String username = this.properties.getProperty(USERNAME);</span>
+<span class="pc bpc" id="L150" title="1 of 4 branches missed.">		return !StringUtils.hasLength(username) ? username : (username.indexOf(&quot;@&quot;) &gt; 0 ? username.substring(0, username.lastIndexOf(&quot;@&quot;)) : username);</span>
+	}
+
+	/**
+	 * Will return the domain from the username if it exists.
+	 *
+	 * @return the domain
+	 */
+	public String getDomain() {
+<span class="fc" id="L159">		String username = this.properties.getProperty(USERNAME);</span>
+<span class="fc bfc" id="L160" title="All 4 branches covered.">		return !StringUtils.hasLength(username) ? username : (username.indexOf(&quot;@&quot;) &gt; 0 ? username.substring(username.lastIndexOf(&quot;@&quot;) + 1) : null);</span>
+	}
+
+	/**
+	 * @return the password
+	 */
+	public String getPassword() {
+<span class="fc" id="L167">		return this.properties.getProperty(PASSWORD);</span>
+	}
+
+	/**
+	 * @return a boolean value indicating if old versions should be imported
+	 */
+	public boolean isImportOldVersions() {
+<span class="nc" id="L174">		return Boolean.parseBoolean(this.properties.getProperty(IMPORT_OLD_VERSIONS));</span>
+	}
+
+	/**
+	 * @return a boolean value indicating if the latest versions should be enforced
+	 */
+	public boolean isForceImportLatestVersions() {
+<span class="pc bpc" id="L181" title="1 of 2 branches missed.">		if (!StringUtils.hasLength(this.properties.getProperty(FORCE_IMPORT_LATEST_VERSIONS))) {</span>
+<span class="fc" id="L182">			return DEFAULT_FORCE_IMPORT_LATEST_VERSIONS;</span>
+		} else {
+<span class="nc" id="L184">			return Boolean.parseBoolean(this.properties.getProperty(FORCE_IMPORT_LATEST_VERSIONS));</span>
+		}
+	}
+
+	/**
+	 * Perform validation on the configuration.
+	 *
+	 * @param domainOptional if the domain is optional
+	 */
+	public void validate(boolean domainOptional) throws ConfigurationException {
+<span class="nc" id="L194">		validate(domainOptional, false);</span>
+<span class="nc" id="L195">	}</span>
+
+	/**
+	 * Perform validation on the configuration.
+	 *
+	 * @param domainOptional                   if the domain is optional
+	 * @param useRefreshTokenForAuthentication if the refresh token should be used
+	 *                                         for authentication
+	 */
+	public void validate(boolean domainOptional, boolean useRefreshTokenForAuthentication) throws ConfigurationException {
+<span class="fc" id="L205">		StringBuilder message = new StringBuilder();</span>
+<span class="pc bpc" id="L206" title="1 of 2 branches missed.">		if (!StringUtils.hasLength(getHost())) {</span>
+<span class="nc" id="L207">			message.append(&quot;Hostname &quot;);</span>
+		}
+<span class="pc bpc" id="L209" title="1 of 2 branches missed.">		if (!StringUtils.hasLength(String.valueOf(getPort()))) {</span>
+<span class="nc" id="L210">			message.append(&quot;Port &quot;);</span>
+		}
+<span class="pc bpc" id="L212" title="2 of 4 branches missed.">		if (!StringUtils.hasLength(getDomain()) &amp;&amp; !domainOptional) {</span>
+<span class="nc" id="L213">			message.append(&quot;Domain (in username) &quot;);</span>
+		}
+<span class="fc bfc" id="L215" title="All 2 branches covered.">		if (!useRefreshTokenForAuthentication) {</span>
+<span class="fc" id="L216">			logger.info(&quot;Refresh token not detected. Checking username and password on configuration&quot;);</span>
+<span class="pc bpc" id="L217" title="1 of 2 branches missed.">			if (!StringUtils.hasLength(getUsername())) {</span>
+<span class="nc" id="L218">				message.append(&quot;Username &quot;);</span>
+			}
+<span class="pc bpc" id="L220" title="1 of 2 branches missed.">			if (!StringUtils.hasLength(getPassword())) {</span>
+<span class="nc" id="L221">				message.append(&quot;Password &quot;);</span>
+			}
+		}
+<span class="pc bpc" id="L224" title="1 of 2 branches missed.">		if (message.length() != 0) {</span>
+<span class="nc" id="L225">			throw new ConfigurationException(&quot;Configuration validation failed: Empty &quot; + message);</span>
+		}
+
+		try {
+<span class="fc" id="L229">			new URIBuilder().setScheme(&quot;https&quot;).setHost(getHost()).setPort(getPort()).build();</span>
+<span class="nc" id="L230">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L231">			throw new ConfigurationException(e.getMessage(), e);</span>
+<span class="fc" id="L232">		}</span>
+<span class="fc" id="L233">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

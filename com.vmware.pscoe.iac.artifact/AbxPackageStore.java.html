@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbxPackageStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact</a> &gt; <span class="el_source">AbxPackageStore.java</span></div><h1>AbxPackageStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationAbx;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.PackageContent.Content;
+import com.vmware.pscoe.iac.artifact.model.abx.AbxAction;
+import com.vmware.pscoe.iac.artifact.model.abx.AbxConstant;
+import com.vmware.pscoe.iac.artifact.model.abx.AbxPackageContent;
+import com.vmware.pscoe.iac.artifact.model.abx.AbxPackageDescriptor;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgSecret;
+import com.vmware.pscoe.iac.artifact.rest.RestClientVraNg;
+import org.apache.commons.lang3.NotImplementedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+public class AbxPackageStore extends GenericPackageStore&lt;AbxPackageDescriptor&gt; {
+	/**
+	 * Variable for logging.
+	 */
+<span class="nc" id="L44">	private final Logger logger = LoggerFactory.getLogger(AbxPackageStore.class);</span>
+
+	/**
+	 * The vRA rest client.
+	 */
+	private final RestClientVraNg restClient;
+
+	/**
+	 * The abx configuration.
+	 */
+	private final ConfigurationAbx config;
+
+	/**
+	 *
+	 * @param restClientVraNg vRA Rest Client
+	 * @param abxConfig abx configuration
+	 */
+<span class="nc" id="L61">	protected AbxPackageStore(final RestClientVraNg restClientVraNg, final ConfigurationAbx abxConfig) {</span>
+<span class="nc" id="L62">		this.restClient = restClientVraNg;</span>
+<span class="nc" id="L63">		this.config = abxConfig;</span>
+<span class="nc" id="L64">	}</span>
+
+	/**
+	 *
+	 * @param pkg package to get content from
+	 * @return abx package content to return
+	 */
+	@Override
+    protected final AbxPackageContent getPackageContent(final Package pkg) {
+<span class="nc" id="L73">		throw new NotImplementedException(&quot;Not implemented&quot;);</span>
+	}
+
+	/**
+	 *
+	 * @return received packages
+	 */
+    @Override
+    public final List&lt;Package&gt; getPackages() {
+<span class="nc" id="L82">		throw new NotImplementedException(&quot;Not implemented&quot;);</span>
+	}
+
+	/**
+	 *
+	 * @param pkg package to delete
+	 * @param withContent whether to delete it with content
+	 * @param dryrun whether it should be dry run
+	 * @return the deleted package
+	 */
+	@Override
+    protected final Package deletePackage(final Package pkg, final boolean withContent, final boolean dryrun) {
+<span class="nc" id="L94">        throw new NotImplementedException(&quot;Not implemented&quot;);</span>
+    }
+
+	/**
+	 *
+	 * @param content the content to delete
+	 * @param dryrun whether it should be dry run
+	 */
+	@Override
+    protected final void deleteContent(final Content content, final boolean dryrun) {
+<span class="nc" id="L104">        throw new NotImplementedException(&quot;Not implemented&quot;);</span>
+    }
+
+	/**
+	 *
+	 * @param abxPackages the axb packages to export
+	 * @param dryrun whether it should be dry run
+	 * @return the exported packages
+	 */
+	@Override
+	public final List&lt;Package&gt; exportAllPackages(final List&lt;Package&gt; abxPackages, final boolean dryrun) {
+<span class="nc" id="L115">		this.vlidateServer(abxPackages);</span>
+
+<span class="nc" id="L117">		List&lt;Package&gt; sourceEndpointPackages = abxPackages;</span>
+
+<span class="nc bnc" id="L119" title="All 2 branches missed.">		if (sourceEndpointPackages.isEmpty()) {</span>
+<span class="nc" id="L120">			return new ArrayList&lt;&gt;();</span>
+		}
+
+<span class="nc" id="L123">		List&lt;Package&gt; exportedPackages = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L124" title="All 2 branches missed.">		for (Package pkg : abxPackages) {</span>
+<span class="nc" id="L125">			AbxPackageDescriptor abxPackageDescriptor = AbxPackageDescriptor</span>
+<span class="nc" id="L126">					.getInstance(new File(pkg.getFilesystemPath()).getParentFile());</span>
+<span class="nc" id="L127">			exportedPackages.add(this.exportPackage(pkg, abxPackageDescriptor, dryrun));</span>
+<span class="nc" id="L128">		}</span>
+
+<span class="nc" id="L130">		return exportedPackages;</span>
+	}
+
+	/**
+	 *
+	 * @param pkg the packages to import
+	 * @param dryrun whether it should be dry run
+	 * @param enableBackup whether to enable backup of package import
+	 * @return the imported packages
+	 */
+	@Override
+	public final List&lt;Package&gt; importAllPackages(final List&lt;Package&gt; pkg, final boolean dryrun, final boolean enableBackup) {
+<span class="nc" id="L142">		return this.importAllPackages(pkg, dryrun, false, enableBackup);</span>
+	}
+
+	/**
+	 *
+	 * @param abxPackages the abx packages to import
+	 * @param dryrun whether it should be dry run
+	 * @param mergePackages whether to merge the packages
+	 * @param enableBackup whether to enable backup of package import
+	 * @return the imported packages
+	 */
+	@Override
+	public final List&lt;Package&gt; importAllPackages(final List&lt;Package&gt; abxPackages, final boolean dryrun, final boolean mergePackages, final boolean enableBackup) {
+<span class="nc" id="L155">		this.validateFilesystem(abxPackages);</span>
+
+<span class="nc" id="L157">		List&lt;Package&gt; sourceEndpointPackages = abxPackages;</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">		if (sourceEndpointPackages.isEmpty()) {</span>
+<span class="nc" id="L159">			return new ArrayList&lt;&gt;();</span>
+		}
+
+<span class="nc" id="L162">		List&lt;Package&gt; importedPackages = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">		for (Package pkg : sourceEndpointPackages) {</span>
+<span class="nc" id="L164">			importedPackages.add(this.importPackage(pkg, dryrun, mergePackages));</span>
+<span class="nc" id="L165">		}</span>
+
+<span class="nc" id="L167">		return importedPackages;</span>
+	}
+
+	/**
+	 *
+	 * @param abxPackage the abx package to export
+	 * @param dryrun whether it should be dry run
+	 * @return the exported package
+	 */
+	@Override
+	public final Package exportPackage(final Package abxPackage, final boolean dryrun) {
+<span class="nc" id="L178">	    File abxPackageFile = new File(abxPackage.getFilesystemPath());</span>
+<span class="nc" id="L179">		return this.exportPackage(abxPackage, abxPackageFile, dryrun);</span>
+	}
+
+	/**
+	 *
+	 * @param abxPackage the abx package to export
+	 * @param abxPackageDescriptorParent the parent of the abx package descriptor
+	 * @param dryrun whether it should be dry run
+	 * @return the exported package
+	 */
+	@Override
+	public final Package exportPackage(final Package abxPackage, final File abxPackageDescriptorParent, final boolean dryrun) {
+<span class="nc" id="L191">		AbxPackageDescriptor abxPackageDescriptor = AbxPackageDescriptor.getInstance(abxPackageDescriptorParent);</span>
+<span class="nc" id="L192">        return exportPackage(abxPackage, abxPackageDescriptor, dryrun);</span>
+	}
+
+    /**
+     * Main handler for exporting abx package based on package.json file.
+     * @param pkg abx package
+     * @param packageDescriptor abx package descriptor file
+     * @param dryrun whether it should be dry run
+     * @return package
+     */
+    @Override
+    public final Package exportPackage(final Package pkg, final AbxPackageDescriptor packageDescriptor, final boolean dryrun) {
+<span class="nc" id="L204">        logger.info(String.format(PackageStore.PACKAGE_EXPORT, pkg));</span>
+
+<span class="nc" id="L206">		logger.warn(&quot;ABX content pull is not supported yet&quot;);</span>
+
+<span class="nc" id="L208">        return pkg;</span>
+    }
+
+	/**
+	 * Main handler for importing abx package.
+	 * @param abxPackage ABX package
+	 * @param dryrun dryrun flag
+	 * @return package
+	 */
+	@Override
+	public final Package importPackage(final Package abxPackage, final boolean dryrun, final boolean mergePackages) {
+<span class="nc" id="L219">		logger.info(String.format(PackageStore.PACKAGE_IMPORT, abxPackage));</span>
+
+		File tmp;
+		try {
+<span class="nc" id="L223">			tmp = Files.createTempDirectory(&quot;iac-package-import&quot;).toFile();</span>
+<span class="nc" id="L224">            logger.info(&quot;Created temp dir {}&quot;, tmp.getAbsolutePath());</span>
+<span class="nc" id="L225">			new PackageManager(abxPackage).unpack(tmp);</span>
+<span class="nc" id="L226">		} catch (IOException e) {</span>
+<span class="nc" id="L227">			logger.error(&quot;Unable to extract package '{}' in temporary directory.&quot;, abxPackage.getFQName());</span>
+<span class="nc" id="L228">			throw new RuntimeException(&quot;Unable to extract package.&quot;, e);</span>
+<span class="nc" id="L229">		}</span>
+
+		// build package descriptor and use it to import the action
+<span class="nc" id="L232">		AbxPackageDescriptor pkgDescriptor = AbxPackageDescriptor.getInstance(tmp);</span>
+<span class="nc" id="L233">		importAction(pkgDescriptor, dryrun);</span>
+
+<span class="nc" id="L235">		return abxPackage;</span>
+	}
+
+	/**
+	 * Add ABX action constants to the payload.
+	 * @param actionToImport ABX action to import
+	 */
+	protected final void addActionConstantsToPayload(final AbxAction actionToImport) {
+<span class="nc bnc" id="L243" title="All 4 branches missed.">		if (actionToImport.abx.inputConstants != null &amp;&amp; actionToImport.abx.inputConstants.length &gt; 0) {</span>
+<span class="nc" id="L244">			logger.debug(&quot;Number of definied constants: &quot; + actionToImport.abx.inputConstants.length);</span>
+<span class="nc bnc" id="L245" title="All 2 branches missed.">			for (String name : actionToImport.abx.inputConstants) {</span>
+<span class="nc" id="L246">				AbxConstant abxConstant = this.restClient.getAbxConstant(name);</span>
+<span class="nc bnc" id="L247" title="All 2 branches missed.">				if (abxConstant == null) {</span>
+<span class="nc" id="L248">					throw new RuntimeException(&quot;Unable to find action constant with name: &quot; + name);</span>
+				}
+<span class="nc" id="L250">				actionToImport.abx.inputs.put(String.format(&quot;secret:%s&quot;, abxConstant.id), &quot;&quot;);</span>
+			}
+		}
+<span class="nc" id="L253">	}</span>
+
+	/**
+	 * Add secrets to the payload.
+	 * @param actionToImport ABX action to import
+	 */
+	protected final void addSecretsToPayload(final AbxAction actionToImport) {
+<span class="nc bnc" id="L260" title="All 4 branches missed.">		if (actionToImport.abx.inputSecrets != null &amp;&amp; actionToImport.abx.inputSecrets.length &gt; 0) {</span>
+<span class="nc" id="L261">			logger.debug(&quot;Number of definied secrets: &quot; + actionToImport.abx.inputSecrets.length);</span>
+<span class="nc bnc" id="L262" title="All 2 branches missed.">			for (String name : actionToImport.abx.inputSecrets) {</span>
+<span class="nc" id="L263">				VraNgSecret secret = this.restClient.getSecret(name);</span>
+<span class="nc bnc" id="L264" title="All 2 branches missed.">				if (secret == null) {</span>
+<span class="nc" id="L265">					throw new RuntimeException(&quot;Unable to find secret with name: &quot; + name);</span>
+				}
+<span class="nc" id="L267">				actionToImport.abx.inputs.put(String.format(&quot;psecret:%s&quot;, secret.id), &quot;&quot;);</span>
+			}
+		}
+<span class="nc" id="L270">	}</span>
+
+	/**
+	 *
+	 * @param pkgDescriptor the abx package descriptor
+	 * @param dryrun whether it should be dry run
+	 */
+	private void importAction(final AbxPackageDescriptor pkgDescriptor, final boolean dryrun) {
+
+		// Get existing actions from server
+<span class="nc" id="L280">		List&lt;AbxAction&gt; abxActionsOnServer = this.restClient.getAllAbxActions();</span>
+<span class="nc" id="L281">		Map&lt;String, AbxAction&gt; abxActionsOnServerByName = abxActionsOnServer.stream()</span>
+<span class="nc" id="L282">				.collect(Collectors.toMap(AbxAction::getName, item -&gt; item));</span>
+
+		// Build payload
+<span class="nc" id="L285">		AbxAction actionToImport = pkgDescriptor.getAction();</span>
+
+<span class="nc bnc" id="L287" title="All 2 branches missed.">		if (actionToImport.abx.inputs == null) {</span>
+<span class="nc" id="L288">			actionToImport.abx.inputs = new HashMap&lt;&gt;();</span>
+		}
+
+<span class="nc" id="L291">		addSecretsToPayload(actionToImport);</span>
+<span class="nc" id="L292">		addActionConstantsToPayload(actionToImport);</span>
+
+		// Issue REST request
+<span class="nc bnc" id="L295" title="All 2 branches missed.">		if (abxActionsOnServerByName.containsKey(actionToImport.getName())) {</span>
+<span class="nc" id="L296">			AbxAction actionToUpdate = abxActionsOnServerByName.get(actionToImport.getName());</span>
+<span class="nc" id="L297">			logger.info(&quot;Updating action: {} ({})&quot;, actionToImport.getName(), actionToUpdate.id);</span>
+<span class="nc bnc" id="L298" title="All 2 branches missed.">			if (!dryrun) {</span>
+<span class="nc" id="L299">				this.restClient.updateAbxAction(actionToUpdate.id, actionToImport);</span>
+			} else {
+<span class="nc" id="L301">				logger.info(&quot;Dryrun has been set to 'true'. Skipping actual update...&quot;);</span>
+			}
+
+<span class="nc" id="L304">		} else {</span>
+<span class="nc" id="L305">			logger.info(&quot;Creating action: &quot; + actionToImport.getName());</span>
+<span class="nc bnc" id="L306" title="All 2 branches missed.">			if (!dryrun) {</span>
+<span class="nc" id="L307">				this.restClient.createAbxAction(actionToImport);</span>
+			} else {
+<span class="nc" id="L309">				logger.info(&quot;Dryrun has been set to 'true'. Skipping actual create...&quot;);</span>
+			}
+		}
+<span class="nc" id="L312">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

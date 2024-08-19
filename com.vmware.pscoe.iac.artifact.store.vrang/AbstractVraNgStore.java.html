@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AbstractVraNgStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.vrang</a> &gt; <span class="el_source">AbstractVraNgStore.java</span></div><h1>AbstractVraNgStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationException;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVraNg;
+import com.vmware.pscoe.iac.artifact.model.Package;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgIntegration;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgPackageDescriptor;
+import com.vmware.pscoe.iac.artifact.rest.RestClientVraNg;
+import com.vmware.pscoe.iac.artifact.utils.VraNgIntegrationUtils;
+
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.FilenameFilter;
+import java.util.List;
+
+/**
+ * Abstract class that unify the way the content is exported for all subclasses
+ * When no item ([]) is given, nothing is exported
+ * When a list of specific items ([item1, item2]) are given, only the given items are exported
+ * When nothing (null) is given, all items from the store are exported
+ */
+<span class="fc" id="L40">public abstract class AbstractVraNgStore implements IVraNgStore {</span>
+	protected RestClientVraNg restClient;
+	protected Package vraNgPackage;
+	// initialize the vraNgPackageDescriptor to avoid NPE
+<span class="fc" id="L44">	protected VraNgPackageDescriptor vraNgPackageDescriptor = new VraNgPackageDescriptor();</span>
+	protected ConfigurationVraNg config;
+	protected Logger logger;
+
+	private void ini(RestClientVraNg restClient, Package vraNgPackage, ConfigurationVraNg config,
+					 VraNgPackageDescriptor vraNgPackageDescriptor) {
+<span class="fc" id="L50">		this.restClient = restClient;</span>
+<span class="fc" id="L51">		this.vraNgPackage = vraNgPackage;</span>
+<span class="fc" id="L52">		this.vraNgPackageDescriptor = vraNgPackageDescriptor;</span>
+<span class="fc" id="L53">		this.config = config;</span>
+<span class="fc" id="L54">	}</span>
+
+	public void init(RestClientVraNg restClient, Package vraNgPackage, ConfigurationVraNg config,
+					 VraNgPackageDescriptor vraNgPackageDescriptor) {
+<span class="fc" id="L58">		this.ini(restClient, vraNgPackage, config, vraNgPackageDescriptor);</span>
+<span class="fc" id="L59">		this.logger = LoggerFactory.getLogger(this.getClass());</span>
+<span class="fc" id="L60">	}</span>
+
+	public void init(RestClientVraNg restClient, Package vraNgPackage, ConfigurationVraNg config,
+					 VraNgPackageDescriptor vraNgPackageDescriptor, Logger logger) {
+<span class="nc" id="L64">		this.ini(restClient, vraNgPackage, config, vraNgPackageDescriptor);</span>
+<span class="nc" id="L65">		this.logger = logger;</span>
+<span class="nc" id="L66">	}</span>
+
+	/**
+	 * The main export method. It unifies the way the vRA NG Stores are exported.
+	 * When no item ([]) is given, nothing is exported
+	 * When a list of specific items ([item1, item2]) are given, only the given items are exported
+	 * When nothing (null) is given, all items from the store are exported
+	 * 
+	 * In Sub-classes the abstract methods getItemListFromDescriptor, exportStoreContent should be overwritten
+	 */
+	public void exportContent() {
+<span class="fc" id="L77">		List&lt;String&gt; itemNames	= this.getItemListFromDescriptor();</span>
+
+<span class="fc" id="L79">		logger.info( &quot;Currently exporting: {}&quot;, this.getClass().getSimpleName() );</span>
+
+<span class="fc bfc" id="L81" title="All 2 branches covered.">		if ( itemNames == null ) {</span>
+<span class="fc" id="L82">			logger.info( &quot;Nothing/null passed exporting everything&quot; );</span>
+<span class="fc" id="L83">			this.exportStoreContent();</span>
+
+		}
+<span class="fc bfc" id="L86" title="All 2 branches covered.">		else if ( ! itemNames.isEmpty() ) {</span>
+<span class="fc" id="L87">			logger.info( &quot;Exporting filtered items: {}&quot;, itemNames );</span>
+<span class="fc" id="L88">			this.exportStoreContent( itemNames );</span>
+		}
+		else {
+<span class="fc" id="L91">			logger.info( &quot;Empty array is passed, not exporting anything&quot; );</span>
+		}
+<span class="fc" id="L93">	}</span>
+
+	/**
+	 * Used to fetch the store's data from the package descriptor
+	 *
+	 * @return list of items
+	 */
+	protected abstract List&lt;String&gt; getItemListFromDescriptor();
+
+	/**
+	 * Called when the List returned from getItemListFromDescriptor is empty
+	 */
+	protected abstract void exportStoreContent();
+
+	/**
+	 * Called when the List returned from getItemListFromDescriptor is not empty
+	 * @param itemNames list of names
+	 */
+	protected abstract void exportStoreContent( List&lt;String&gt; itemNames );
+
+
+    protected String getVroTargetIntegrationEndpointLink() throws ConfigurationException {
+<span class="fc" id="L115">        String integrationName = this.config.getVroIntegration();</span>
+<span class="fc" id="L116">        VraNgIntegration targetIntegration = this.restClient.getVraWorkflowIntegration(integrationName);</span>
+<span class="pc bpc" id="L117" title="2 of 4 branches missed.">        if (targetIntegration != null &amp;&amp; !StringUtils.isEmpty(targetIntegration.getName())) {</span>
+<span class="fc" id="L118">            return targetIntegration.getEndpointConfigurationLink();</span>
+        } else {
+            // fetch the default vra integration
+<span class="nc" id="L121">            VraNgIntegration defaultIntegration = VraNgIntegrationUtils.getInstance()</span>
+<span class="nc" id="L122">                    .getDefaultVraIntegration(this.restClient);</span>
+
+<span class="nc bnc" id="L124" title="All 2 branches missed.">            if (!StringUtils.isEmpty(defaultIntegration.getName())) {</span>
+<span class="nc" id="L125">                logger.warn(&quot;Unable to find integration '{}' on host '{}' setting default integration to '{}'&quot;,</span>
+<span class="nc" id="L126">                        integrationName, this.config.getHost(), defaultIntegration.getName());</span>
+<span class="nc" id="L127">                return defaultIntegration.getEndpointConfigurationLink();</span>
+            } else {
+                // After try for search for vRO integration if we can't find the right one we
+                // interrupt the process
+<span class="nc" id="L131">                throw new ConfigurationException(String.format(</span>
+                        &quot;Unable to find integration '%s' on host '%s' and the default integration '%s' is not configured on it&quot;,
+<span class="nc" id="L133">                        integrationName, this.config.getHost(), VraNgIntegrationUtils.DEFAULT_INTEGRATION_NAME));</span>
+            }
+        }
+    }
+	protected File[] filterBasedOnConfiguration(File itemFolder, FilenameFilter filter) {
+<span class="fc" id="L138">		return itemFolder.listFiles(filter);</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

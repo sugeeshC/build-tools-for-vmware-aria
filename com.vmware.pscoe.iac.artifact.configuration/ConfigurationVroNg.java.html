@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfigurationVroNg.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.configuration</a> &gt; <span class="el_source">ConfigurationVroNg.java</span></div><h1>ConfigurationVroNg.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.configuration;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.vmware.pscoe.iac.artifact.model.PackageType;
+import org.springframework.util.StringUtils;
+
+import java.util.Properties;
+
+public final class ConfigurationVroNg extends ConfigurationVraNg implements ConfigurationNg {
+    private ConfigurationVroNg(Properties props) {
+<span class="nc" id="L25">        super(props);</span>
+<span class="nc" id="L26">    }</span>
+
+    public static ConfigurationVroNg fromProperties(Properties props) throws ConfigurationException {
+<span class="nc" id="L29">        ConfigurationVroNg config = new ConfigurationVroNg(props);</span>
+<span class="nc" id="L30">        config.validate(true);</span>
+<span class="nc" id="L31">        return config;</span>
+    }
+
+    // Important - when modify properties refer to comments in @Configuration
+    public static final String ORGANIZATION_ID = &quot;org.id&quot;;
+    public static final String REFRESH_TOKEN = &quot;refresh.token&quot;;
+    /**
+     * vRA Package Import content conflict resolution mode
+     */
+
+    public String getOrgId() {
+<span class="nc" id="L42">        return this.properties.getProperty(ORGANIZATION_ID);</span>
+    }
+
+    public String getRefreshToken() {
+<span class="nc" id="L46">        return this.properties.getProperty(REFRESH_TOKEN);</span>
+    }
+
+    @Override
+    public void validate(boolean domainOptional) throws ConfigurationException {
+<span class="nc" id="L51">        StringBuilder message = new StringBuilder();</span>
+
+<span class="nc bnc" id="L53" title="All 2 branches missed.">        if (StringUtils.isEmpty(getHost())) {</span>
+<span class="nc" id="L54">            message.append(&quot;Hostname &quot;);</span>
+        }
+
+<span class="nc bnc" id="L57" title="All 2 branches missed.">        if (StringUtils.isEmpty(getPort())) {</span>
+<span class="nc" id="L58">            message.append(&quot;Port &quot;);</span>
+        }
+
+<span class="nc bnc" id="L61" title="All 4 branches missed.">        if (StringUtils.isEmpty(getRefreshToken()) &amp;&amp; StringUtils.isEmpty(super.getUsername())){</span>
+<span class="nc" id="L62">            message.append(&quot;Refresh token or Username &quot;);</span>
+        }
+
+<span class="nc bnc" id="L65" title="All 2 branches missed.">        if (message.length() != 0) {</span>
+<span class="nc" id="L66">            throw new ConfigurationException(&quot;Configuration validation failed: Empty &quot; + message);</span>
+        }
+<span class="nc" id="L68">    }</span>
+
+    @Override
+    public boolean isPackageImportConfigurationAttributeValues() {
+<span class="nc" id="L72">        return Boolean.parseBoolean(this.properties.getProperty(PACKAGE_IMPORT_CONFIGURATION_ATTRIBUTE_VALUES));</span>
+    }
+
+    @Override
+    public String getPackageTagsImportMode() {
+<span class="nc" id="L77">        return this.properties.getProperty(PACKAGE_IMPORT_TAGS_IMPORT_MODE, DEFAULT_TAG_IMPORT_MODE);</span>
+    }
+
+    @Override
+    public boolean isPackageImportConfigSecureStringAttributeValues() {
+<span class="nc" id="L82">        return Boolean.parseBoolean(this.properties.getProperty(PACKAGE_IMPORT_CONFIGURATION_SECURE_ATTRIBUTE_VALUES));</span>
+    }
+
+    @Override
+    public boolean isPackageExportVersionHistory() {
+<span class="nc" id="L87">        return Boolean.parseBoolean(this.properties.getProperty(PACKAGE_EXPORT_VERSION_HISTORY));</span>
+    }
+
+    @Override
+    public boolean isPackageExportConfigurationAttributeValues() {
+<span class="nc" id="L92">        return Boolean.parseBoolean(this.properties.getProperty(PACKAGE_EXPORT_CONFIGURATION_ATTRIBUTE_VALUES));</span>
+    }
+
+    @Override
+    public boolean isPackageExportConfigSecureStringAttributeValues() {
+<span class="nc" id="L97">        return Boolean.parseBoolean(this.properties.getProperty(PACKAGE_EXPORT_CONFIG_SECURE_STRING_ATTRIBUTE_VALUES));</span>
+    }
+
+    @Override
+    public boolean isPackageExportGlobalTags() {
+<span class="nc" id="L102">        return Boolean.parseBoolean(this.properties.getProperty(PACKAGE_EXPORT_GLOBAL_TAGS));</span>
+    }
+
+    @Override
+    public boolean isPackgeExportAsZip() {
+<span class="nc" id="L107">        return Boolean.parseBoolean(this.properties.getProperty(PACKAGE_EXPORT_AS_ZIP));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgCatalogEntitlement.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.vrang</a> &gt; <span class="el_source">VraNgCatalogEntitlement.java</span></div><h1>VraNgCatalogEntitlement.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Simplified model for Catalog Entitlement. A catalog entitlement is used to
+ * define content sharing of catalog items in or among projects. A catalog item
+ * is any requestable item coming from a content source, e.g. Cloud Assembly
+ * blueprints, vRealize Orchestrator workflows, Cloud Formation templates, ABX
+ * actions, etc. With catalog entitlements a catalog administrator can define a
+ * set of catalog items, or entire catalog sources to be visible within the
+ * scope of one or more project, thus enabling users that belong to the project
+ * to be able to request those catalog items.
+ */
+public class VraNgCatalogEntitlement {
+
+    // {
+    // &quot;definition&quot;: {
+    // &quot;description&quot;: &quot;string&quot;,
+    // &quot;iconId&quot;: &quot;string&quot;,
+    // &quot;id&quot;: &quot;string&quot;,
+    // &quot;name&quot;: &quot;string&quot;,
+    // &quot;numItems&quot;: 0,
+    // &quot;sourceName&quot;: &quot;string&quot;,
+    // &quot;sourceType&quot;: &quot;string&quot;,
+    // &quot;type&quot;: &quot;string&quot;
+    // },
+    // &quot;id&quot;: &quot;string&quot;,
+    // &quot;projectId&quot;: &quot;string&quot;
+    // }
+
+    private String id;
+    private String name;
+    private VraNgCatalogEntitlementType type;
+    private VraNgContentSourceType sourceType;
+    private String sourceId;
+    private String iconId;
+<span class="pc" id="L54">    private List&lt;String&gt; projects = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L56">    public VraNgCatalogEntitlement(String name, VraNgCatalogEntitlementType type, VraNgContentSourceType sourceType) {</span>
+<span class="nc" id="L57">        this.name = name;</span>
+<span class="nc" id="L58">        this.type = type;</span>
+<span class="nc" id="L59">        this.sourceType = sourceType;</span>
+<span class="nc" id="L60">    }</span>
+
+<span class="nc" id="L62">    public VraNgCatalogEntitlement(String name, List&lt;String&gt; projects, VraNgCatalogEntitlementType type, VraNgContentSourceType sourceType) {</span>
+<span class="nc" id="L63">        this.name = name;</span>
+<span class="nc" id="L64">        this.type = type;</span>
+<span class="nc" id="L65">        this.sourceType = sourceType;</span>
+<span class="nc" id="L66">        this.projects = projects;</span>
+<span class="nc" id="L67">    }</span>
+
+<span class="nc" id="L69">    public VraNgCatalogEntitlement(String id, String sourceId, String name, VraNgCatalogEntitlementType type, VraNgContentSourceType sourceType) {</span>
+<span class="nc" id="L70">        this.id = id;</span>
+<span class="nc" id="L71">        this.sourceId = sourceId;</span>
+<span class="nc" id="L72">        this.name = name;</span>
+<span class="nc" id="L73">        this.type = type;</span>
+<span class="nc" id="L74">        this.sourceType = sourceType;</span>
+<span class="nc" id="L75">    }</span>
+
+    public VraNgCatalogEntitlement(String id, String sourceId, String name, List&lt;String&gt; projects, VraNgCatalogEntitlementType type,
+<span class="nc" id="L78">            VraNgContentSourceType sourceType) {</span>
+<span class="nc" id="L79">        this.id = id;</span>
+<span class="nc" id="L80">        this.sourceId = sourceId;</span>
+<span class="nc" id="L81">        this.name = name;</span>
+<span class="nc" id="L82">        this.type = type;</span>
+<span class="nc" id="L83">        this.sourceType = sourceType;</span>
+<span class="nc" id="L84">        this.projects = projects;</span>
+<span class="nc" id="L85">    }</span>
+
+<span class="fc" id="L87">    public VraNgCatalogEntitlement() {</span>
+<span class="fc" id="L88">    }</span>
+
+    /**
+     * Get the id of the entitlement.
+     * 
+     * @return catalog entitlement id
+     */
+    public String getId() {
+<span class="fc" id="L96">        return id;</span>
+    }
+
+    /**
+     * Set the id of the entitlement.
+     * 
+     * @param id - id of the entitlement
+     */
+    public void setId(String id) {
+<span class="fc" id="L105">        this.id = id;</span>
+<span class="fc" id="L106">    }</span>
+    
+    /**
+     * Get the iconId of the entitlement.
+     * 
+     * @return catalog entitlement icon
+     */
+    public String getIconId() {
+<span class="fc" id="L114">        return this.iconId;</span>
+    }
+
+     /**
+     * Set the id of the entitlement.
+     * 
+     * @param iconId - iconId of the entitlement
+     */
+    public void setIconId(String iconId) {
+<span class="nc" id="L123">        this.iconId = iconId;</span>
+<span class="nc" id="L124">    }</span>
+
+    /**
+     * Get the name of the entitlement. Usually this is the name of a catalog item
+     * source or a catalog item.
+     * 
+     * @return catalog entitlement name
+     */
+    public String getName() {
+<span class="fc" id="L133">        return this.name;</span>
+    }
+
+    /**
+     * Set the name of the entitlement.
+     * 
+     * @param name name of the entitlement
+     */
+    public void setName(String name) {
+<span class="fc" id="L142">        this.name = name;</span>
+<span class="fc" id="L143">    }</span>
+
+    /**
+     * Get the type of the entitlement. This represents the type of the catalog item
+     * behind the entitlement.
+     * 
+     * @return catalog item type
+     */
+    public VraNgCatalogEntitlementType getType() {
+<span class="fc" id="L152">        return this.type;</span>
+    }
+
+    /**
+     * Set the type of the entitlement. This represents the type of the catalog item
+     * behind the entitlement.
+     * 
+     * @param type - type of the entitlement
+     */
+    public void setType(VraNgCatalogEntitlementType type) {
+<span class="nc" id="L162">        this.type = type;</span>
+<span class="nc" id="L163">    }</span>
+
+    /**
+     * Get the content source type of the entitlement. This represents the type of
+     * the content source, e.g. abx, vro, cloud assembly, etc.
+     * 
+     * @return source type
+     */
+    public VraNgContentSourceType getSourceType() {
+<span class="fc" id="L172">        return this.sourceType;</span>
+    }
+
+    public void setSourceType(VraNgContentSourceType sourceType) {
+<span class="nc" id="L176">        this.sourceType = sourceType;</span>
+<span class="nc" id="L177">    }</span>
+
+    /**
+     * Get the content source id of the entitlement. This correlates to a catalog
+     * source or catalog item.
+     * 
+     * @return source id
+     */
+    public String getSourceId() {
+<span class="nc" id="L186">        return this.sourceId;</span>
+    }
+
+    /**
+     * Set source id of the entitlement. This is used when a new entitlement is
+     * being created.
+     * 
+     * @param id source id
+     */
+    public void setSourceId(String id) {
+<span class="nc" id="L196">        this.sourceId = id;</span>
+<span class="nc" id="L197">    }</span>
+
+    /**
+     * Get the project of the entitlement. This correlates to the projects that it
+     * has to be shared with.
+     * 
+     * @return projects - the projects associated with the entitlement.
+     */
+    public List&lt;String&gt; getProjects() {
+<span class="fc" id="L206">        return projects;</span>
+    }
+
+    /**
+     * Sets the project of the entitlement. This correlates to the projects that it
+     * has to be shared with.
+     * 
+     * @param projects projects to be set
+     */
+    public void setProjects(List&lt;String&gt; projects) {
+<span class="fc" id="L216">        this.projects = projects;</span>
+<span class="fc" id="L217">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

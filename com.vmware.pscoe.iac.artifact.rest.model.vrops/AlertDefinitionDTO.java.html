@@ -1,0 +1,503 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AlertDefinitionDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest.model.vrops</a> &gt; <span class="el_source">AlertDefinitionDTO.java</span></div><h1>AlertDefinitionDTO.java</h1><pre class="source lang-java linenums">
+package com.vmware.pscoe.iac.artifact.rest.model.vrops;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({ &quot;alertDefinitions&quot;, &quot;pageInfo&quot;, &quot;links&quot; })
+@JsonIgnoreProperties({ &quot;pageInfo&quot;, &quot;links&quot; })
+<span class="nc" id="L36">public class AlertDefinitionDTO implements Serializable {</span>
+    private static final long serialVersionUID = -8907264880213106337L;
+
+<span class="nc" id="L39">    @JsonProperty(&quot;alertDefinitions&quot;)</span>
+    private List&lt;AlertDefinition&gt; alertDefinitions = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L42">    @JsonIgnore</span>
+    private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+    @JsonProperty(&quot;alertDefinitions&quot;)
+    public List&lt;AlertDefinition&gt; getAlertDefinitions() {
+<span class="nc" id="L47">        return alertDefinitions;</span>
+    }
+
+    @JsonProperty(&quot;alertDefinitions&quot;)
+    public void setAlertDefinitions(List&lt;AlertDefinition&gt; alertDefinitions) {
+<span class="nc" id="L52">        this.alertDefinitions = alertDefinitions;</span>
+<span class="nc" id="L53">    }</span>
+
+    @JsonAnyGetter
+    public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L57">        return this.additionalProperties;</span>
+    }
+
+    @JsonAnySetter
+    public void setAdditionalProperties(String name, Object value) {
+<span class="nc" id="L62">        this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L63">    }</span>
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;id&quot;, &quot;name&quot;, &quot;description&quot;, &quot;adapterKindKey&quot;, &quot;resourceKindKey&quot;, &quot;waitCycles&quot;, &quot;cancelCycles&quot;, &quot;type&quot;, &quot;subType&quot;, &quot;states&quot; })
+<span class="fc" id="L67">    public static class AlertDefinition implements Serializable {</span>
+        private static final long serialVersionUID = -5556208274143439935L;
+
+        @JsonProperty(&quot;id&quot;)
+        private String id;
+
+        @JsonProperty(&quot;name&quot;)
+        private String name;
+
+        @JsonProperty(&quot;description&quot;)
+        private String description;
+
+        @JsonProperty(&quot;adapterKindKey&quot;)
+        private String adapterKindKey;
+
+        @JsonProperty(&quot;resourceKindKey&quot;)
+        private String resourceKindKey;
+
+        @JsonProperty(&quot;waitCycles&quot;)
+        private Integer waitCycles;
+
+        @JsonProperty(&quot;cancelCycles&quot;)
+        private Integer cancelCycles;
+
+        @JsonProperty(&quot;type&quot;)
+        private Integer type;
+
+        @JsonProperty(&quot;subType&quot;)
+        private Integer subType;
+
+<span class="fc" id="L97">        @JsonProperty(&quot;states&quot;)</span>
+        private List&lt;State&gt; states = new ArrayList&lt;&gt;();
+
+<span class="fc" id="L100">        @JsonIgnore</span>
+        private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;id&quot;)
+        public String getId() {
+<span class="fc" id="L105">            return id;</span>
+        }
+
+        @JsonProperty(&quot;id&quot;)
+        public void setId(String id) {
+<span class="fc" id="L110">            this.id = id;</span>
+<span class="fc" id="L111">        }</span>
+
+        @JsonProperty(&quot;name&quot;)
+        public String getName() {
+<span class="nc" id="L115">            return name;</span>
+        }
+
+        @JsonProperty(&quot;name&quot;)
+        public void setName(String name) {
+<span class="nc" id="L120">            this.name = name;</span>
+<span class="nc" id="L121">        }</span>
+
+        public String getDescription() {
+<span class="nc" id="L124">            return description;</span>
+        }
+
+        public void setDescription(String description) {
+<span class="nc" id="L128">            this.description = description;</span>
+<span class="nc" id="L129">        }</span>
+
+        @JsonProperty(&quot;adapterKindKey&quot;)
+        public String getAdapterKindKey() {
+<span class="nc" id="L133">            return adapterKindKey;</span>
+        }
+
+        @JsonProperty(&quot;adapterKindKey&quot;)
+        public void setAdapterKindKey(String adapterKindKey) {
+<span class="nc" id="L138">            this.adapterKindKey = adapterKindKey;</span>
+<span class="nc" id="L139">        }</span>
+
+        @JsonProperty(&quot;resourceKindKey&quot;)
+        public String getResourceKindKey() {
+<span class="nc" id="L143">            return resourceKindKey;</span>
+        }
+
+        @JsonProperty(&quot;resourceKindKey&quot;)
+        public void setResourceKindKey(String resourceKindKey) {
+<span class="nc" id="L148">            this.resourceKindKey = resourceKindKey;</span>
+<span class="nc" id="L149">        }</span>
+
+        @JsonProperty(&quot;waitCycles&quot;)
+        public Integer getWaitCycles() {
+<span class="nc" id="L153">            return waitCycles;</span>
+        }
+
+        @JsonProperty(&quot;waitCycles&quot;)
+        public void setWaitCycles(Integer waitCycles) {
+<span class="nc" id="L158">            this.waitCycles = waitCycles;</span>
+<span class="nc" id="L159">        }</span>
+
+        @JsonProperty(&quot;cancelCycles&quot;)
+        public Integer getCancelCycles() {
+<span class="nc" id="L163">            return cancelCycles;</span>
+        }
+
+        @JsonProperty(&quot;cancelCycles&quot;)
+        public void setCancelCycles(Integer cancelCycles) {
+<span class="nc" id="L168">            this.cancelCycles = cancelCycles;</span>
+<span class="nc" id="L169">        }</span>
+
+        @JsonProperty(&quot;type&quot;)
+        public Integer getType() {
+<span class="nc" id="L173">            return type;</span>
+        }
+
+        @JsonProperty(&quot;type&quot;)
+        public void setType(Integer type) {
+<span class="nc" id="L178">            this.type = type;</span>
+<span class="nc" id="L179">        }</span>
+
+        @JsonProperty(&quot;subType&quot;)
+        public Integer getSubType() {
+<span class="nc" id="L183">            return subType;</span>
+        }
+
+        @JsonProperty(&quot;subType&quot;)
+        public void setSubType(Integer subType) {
+<span class="nc" id="L188">            this.subType = subType;</span>
+<span class="nc" id="L189">        }</span>
+
+        @JsonProperty(&quot;states&quot;)
+        public List&lt;State&gt; getStates() {
+<span class="nc" id="L193">            return states;</span>
+        }
+
+        @JsonProperty(&quot;states&quot;)
+        public void setStates(List&lt;State&gt; states) {
+<span class="nc" id="L198">            this.states = states;</span>
+<span class="nc" id="L199">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L203">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperties(String name, Object value) {
+<span class="nc" id="L208">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L209">        }</span>
+
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        @JsonPropertyOrder({ &quot;type&quot;, &quot;relation&quot;, &quot;aggregation&quot;, &quot;symptomSetOperator&quot;, &quot;symptomDefinitionIds&quot;, &quot;symptomSets&quot; })
+<span class="nc" id="L213">        public static class BaseSymptomSet implements Serializable {</span>
+            private static final long serialVersionUID = 7061962708255866132L;
+
+            @JsonProperty(&quot;type&quot;)
+            private String type;
+
+            @JsonProperty(&quot;relation&quot;)
+            private String relation;
+
+            @JsonProperty(&quot;aggregation&quot;)
+            private String aggregation;
+
+            @JsonProperty(&quot;symptomSetOperator&quot;)
+            private String symptomSetOperator;
+
+<span class="nc" id="L228">            @JsonProperty(&quot;symptomDefinitionIds&quot;)</span>
+            private List&lt;String&gt; symptomDefinitionIds = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L231">            @JsonProperty(&quot;symptomSets&quot;)</span>
+            private List&lt;SymptomSet&gt; symptomSets = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L234">            @JsonIgnore</span>
+            private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+            @JsonProperty(&quot;type&quot;)
+            public String getType() {
+<span class="nc" id="L239">                return type;</span>
+            }
+
+            @JsonProperty(&quot;type&quot;)
+            public void setType(String type) {
+<span class="nc" id="L244">                this.type = type;</span>
+<span class="nc" id="L245">            }</span>
+
+            @JsonProperty(&quot;relation&quot;)
+            public String getRelation() {
+<span class="nc" id="L249">                return relation;</span>
+            }
+
+            @JsonProperty(&quot;relation&quot;)
+            public void setRelation(String relation) {
+<span class="nc" id="L254">                this.relation = relation;</span>
+<span class="nc" id="L255">            }</span>
+
+            @JsonProperty(&quot;aggregation&quot;)
+            public String getAggregation() {
+<span class="nc" id="L259">                return aggregation;</span>
+            }
+
+            @JsonProperty(&quot;aggregation&quot;)
+            public void setAggregation(String aggregation) {
+<span class="nc" id="L264">                this.aggregation = aggregation;</span>
+<span class="nc" id="L265">            }</span>
+
+            @JsonProperty(&quot;symptomSetOperator&quot;)
+            public String getSymptomSetOperator() {
+<span class="nc" id="L269">                return symptomSetOperator;</span>
+            }
+
+            @JsonProperty(&quot;symptomSetOperator&quot;)
+            public void setSymptomSetOperator(String symptomSetOperator) {
+<span class="nc" id="L274">                this.symptomSetOperator = symptomSetOperator;</span>
+<span class="nc" id="L275">            }</span>
+
+            @JsonProperty(&quot;symptomDefinitionIds&quot;)
+            public List&lt;String&gt; getSymptomDefinitionIds() {
+<span class="nc" id="L279">                return symptomDefinitionIds;</span>
+            }
+
+            @JsonProperty(&quot;symptomDefinitionIds&quot;)
+            public void setSymptomDefinitionIds(List&lt;String&gt; symptomDefinitionIds) {
+<span class="nc" id="L284">                this.symptomDefinitionIds = symptomDefinitionIds;</span>
+<span class="nc" id="L285">            }</span>
+
+            @JsonProperty(&quot;symptomSets&quot;)
+            public List&lt;SymptomSet&gt; getSymptomSets() {
+<span class="nc" id="L289">                return symptomSets;</span>
+            }
+
+            @JsonProperty(&quot;symptomSets&quot;)
+            public void setSymptomSets(List&lt;SymptomSet&gt; symptomSets) {
+<span class="nc" id="L294">                this.symptomSets = symptomSets;</span>
+<span class="nc" id="L295">            }</span>
+
+            @JsonAnySetter
+            public void setAdditionalProperties(Map&lt;String, Object&gt; additionalProperties) {
+<span class="nc" id="L299">                this.additionalProperties = additionalProperties;</span>
+<span class="nc" id="L300">            }</span>
+
+            @JsonAnyGetter
+            public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L304">                return this.additionalProperties;</span>
+            }
+
+            @JsonAnySetter
+            public void setAdditionalProperties(String name, Object value) {
+<span class="nc" id="L309">                this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L310">            }</span>
+        }
+
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        @JsonPropertyOrder({ &quot;type&quot;, &quot;relation&quot;, &quot;aggregation&quot;, &quot;symptomSetOperator&quot;, &quot;symptomDefinitionIds&quot; })
+<span class="nc" id="L315">        public static class SymptomSet implements Serializable {</span>
+            private static final long serialVersionUID = 7061962708255866132L;
+
+            @JsonProperty(&quot;type&quot;)
+            private String type;
+
+            @JsonProperty(&quot;relation&quot;)
+            private String relation;
+
+            @JsonProperty(&quot;aggregation&quot;)
+            private String aggregation;
+
+            @JsonProperty(&quot;symptomSetOperator&quot;)
+            private String symptomSetOperator;
+
+<span class="nc" id="L330">            @JsonProperty(&quot;symptomDefinitionIds&quot;)</span>
+            private List&lt;String&gt; symptomDefinitionIds = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L333">            @JsonIgnore</span>
+            private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+            @JsonProperty(&quot;type&quot;)
+            public String getType() {
+<span class="nc" id="L338">                return type;</span>
+            }
+
+            @JsonProperty(&quot;type&quot;)
+            public void setType(String type) {
+<span class="nc" id="L343">                this.type = type;</span>
+<span class="nc" id="L344">            }</span>
+
+            @JsonProperty(&quot;relation&quot;)
+            public String getRelation() {
+<span class="nc" id="L348">                return relation;</span>
+            }
+
+            @JsonProperty(&quot;relation&quot;)
+            public void setRelation(String relation) {
+<span class="nc" id="L353">                this.relation = relation;</span>
+<span class="nc" id="L354">            }</span>
+
+            @JsonProperty(&quot;aggregation&quot;)
+            public String getAggregation() {
+<span class="nc" id="L358">                return aggregation;</span>
+            }
+
+            @JsonProperty(&quot;aggregation&quot;)
+            public void setAggregation(String aggregation) {
+<span class="nc" id="L363">                this.aggregation = aggregation;</span>
+<span class="nc" id="L364">            }</span>
+
+            @JsonProperty(&quot;symptomSetOperator&quot;)
+            public String getSymptomSetOperator() {
+<span class="nc" id="L368">                return symptomSetOperator;</span>
+            }
+
+            @JsonProperty(&quot;symptomSetOperator&quot;)
+            public void setSymptomSetOperator(String symptomSetOperator) {
+<span class="nc" id="L373">                this.symptomSetOperator = symptomSetOperator;</span>
+<span class="nc" id="L374">            }</span>
+
+            @JsonProperty(&quot;symptomDefinitionIds&quot;)
+            public List&lt;String&gt; getSymptomDefinitionIds() {
+<span class="nc" id="L378">                return symptomDefinitionIds;</span>
+            }
+
+            @JsonProperty(&quot;symptomDefinitionIds&quot;)
+            public void setSymptomDefinitionIds(List&lt;String&gt; symptomDefinitionIds) {
+<span class="nc" id="L383">                this.symptomDefinitionIds = symptomDefinitionIds;</span>
+<span class="nc" id="L384">            }</span>
+
+            @JsonAnyGetter
+            public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L388">                return this.additionalProperties;</span>
+            }
+
+            @JsonAnySetter
+            public void setAdditionalProperties(String name, Object value) {
+<span class="nc" id="L393">                this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L394">            }</span>
+        }
+
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        @JsonPropertyOrder({ &quot;impactType&quot;, &quot;detail&quot; })
+<span class="nc" id="L399">        public static class Impact implements Serializable {</span>
+            private static final long serialVersionUID = 8675023498733072632L;
+
+            @JsonProperty(&quot;impactType&quot;)
+            private String impactType;
+
+            @JsonProperty(&quot;detail&quot;)
+            private String detail;
+
+<span class="nc" id="L408">            @JsonIgnore</span>
+            private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+            @JsonProperty(&quot;impactType&quot;)
+            public String getImpactType() {
+<span class="nc" id="L413">                return impactType;</span>
+            }
+
+            @JsonProperty(&quot;impactType&quot;)
+            public void setImpactType(String impactType) {
+<span class="nc" id="L418">                this.impactType = impactType;</span>
+<span class="nc" id="L419">            }</span>
+
+            @JsonProperty(&quot;detail&quot;)
+            public String getDetail() {
+<span class="nc" id="L423">                return detail;</span>
+            }
+
+            @JsonProperty(&quot;detail&quot;)
+            public void setDetail(String detail) {
+<span class="nc" id="L428">                this.detail = detail;</span>
+<span class="nc" id="L429">            }</span>
+
+            @JsonAnyGetter
+            public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L433">                return this.additionalProperties;</span>
+            }
+
+            @JsonAnySetter
+            public void setAdditionalProperties(String name, Object value) {
+<span class="nc" id="L438">                this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L439">            }</span>
+        }
+
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        @JsonPropertyOrder({ &quot;severity&quot;, &quot;base-symptom-set&quot;, &quot;impact&quot;, &quot;recommendationPriorityMap&quot; })
+        @JsonIgnoreProperties({ &quot;recommendationPriorityMap&quot; })
+<span class="nc" id="L445">        public static class State implements Serializable {</span>
+            private static final long serialVersionUID = -4167387367232110038L;
+
+            @JsonProperty(&quot;severity&quot;)
+            private String severity;
+
+            @JsonProperty(&quot;base-symptom-set&quot;)
+            private BaseSymptomSet baseSymptomSet;
+
+            @JsonProperty(&quot;impact&quot;)
+            private Impact impact;
+
+<span class="nc" id="L457">            @JsonIgnore</span>
+            private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+            @JsonProperty(&quot;severity&quot;)
+            public String getSeverity() {
+<span class="nc" id="L462">                return severity;</span>
+            }
+
+            @JsonProperty(&quot;severity&quot;)
+            public void setSeverity(String severity) {
+<span class="nc" id="L467">                this.severity = severity;</span>
+<span class="nc" id="L468">            }</span>
+
+            @JsonProperty(&quot;base-symptom-set&quot;)
+            public BaseSymptomSet getBaseSymptomSet() {
+<span class="nc" id="L472">                return baseSymptomSet;</span>
+            }
+
+            @JsonProperty(&quot;base-symptom-set&quot;)
+            public void setBaseSymptomSet(BaseSymptomSet baseSymptomSet) {
+<span class="nc" id="L477">                this.baseSymptomSet = baseSymptomSet;</span>
+<span class="nc" id="L478">            }</span>
+
+            @JsonProperty(&quot;impact&quot;)
+            public Impact getImpact() {
+<span class="nc" id="L482">                return impact;</span>
+            }
+
+            @JsonProperty(&quot;impact&quot;)
+            public void setImpact(Impact impact) {
+<span class="nc" id="L487">                this.impact = impact;</span>
+<span class="nc" id="L488">            }</span>
+
+            @JsonAnyGetter
+            public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L492">                return this.additionalProperties;</span>
+            }
+
+            @JsonAnySetter
+            public void setAdditionalProperties(String name, Object value) {
+<span class="nc" id="L497">                this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L498">            }</span>
+        }
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CsStoreHelper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.cs</a> &gt; <span class="el_source">CsStoreHelper.java</span></div><h1>CsStoreHelper.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.cs;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator.Feature;
+import com.google.gson.JsonObject;
+import com.vmware.pscoe.iac.artifact.model.cs.CsPackageDescriptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+<span class="nc" id="L43">public class CsStoreHelper {</span>
+<span class="fc" id="L44">    private final static Logger logger = LoggerFactory.getLogger(CsStoreHelper.class);</span>
+
+    public static void addVarsToExtractionContext(String content, CsPackageDescriptor descriptor) {
+
+<span class="fc" id="L48">        Set&lt;String&gt; allMatches = new LinkedHashSet&lt;String&gt;();</span>
+<span class="fc" id="L49">        Matcher m = Pattern</span>
+<span class="fc" id="L50">                .compile(&quot;\\$\\{var\\.(.*?)\\}&quot;)</span>
+<span class="fc" id="L51">                .matcher(content);</span>
+<span class="pc bpc" id="L52" title="1 of 2 branches missed.">        while (m.find()) {</span>
+<span class="nc" id="L53">            allMatches.add(m.group(1));</span>
+        }
+<span class="fc" id="L55">        List&lt;String&gt; newVars = allMatches.stream()</span>
+<span class="pc bnc" id="L56" title="All 2 branches missed.">                .filter(el -&gt; !descriptor.getVariable().contains(el))</span>
+<span class="fc" id="L57">                .collect(Collectors.toList());</span>
+<span class="pc bpc" id="L58" title="1 of 2 branches missed.">        if (newVars.size() &gt; 0) {</span>
+<span class="nc" id="L59">            descriptor.getVariable().addAll(newVars);</span>
+        }
+
+<span class="fc" id="L62">    }</span>
+
+    public static void sanitizeDefaultProperties(JsonObject obj) {
+<span class="fc" id="L65">        String[] myIntArray = {&quot;id&quot;, &quot;project&quot;, &quot;_link&quot;, &quot;_createdBy&quot;, &quot;_updatedBy&quot;, &quot;_updateTimeInMicros&quot;, &quot;_createTimeInMicros&quot;, &quot;_projectId&quot;};</span>
+<span class="fc" id="L66">        Arrays.stream(myIntArray).forEach(obj::remove);</span>
+<span class="fc" id="L67">    }</span>
+
+    public static Optional&lt;JsonObject&gt; findObjectByName(List&lt;JsonObject&gt; objects, String name) {
+<span class="fc" id="L70">        return objects</span>
+<span class="fc" id="L71">                .stream()</span>
+<span class="fc" id="L72">                .filter(ex -&gt; ex.get(&quot;name&quot;).getAsString().equals(name))</span>
+<span class="fc" id="L73">                .findFirst();</span>
+    }
+
+
+
+    public static void storeToYamlFile(String path, String subPath, String name, String jsonString) {
+<span class="fc" id="L79">        File store = new File(path);</span>
+<span class="fc" id="L80">        File file = Paths.get(store.getPath(), subPath, name + &quot;.yaml&quot;).toFile();</span>
+<span class="fc" id="L81">        file.getParentFile().mkdirs();</span>
+        try {
+<span class="fc" id="L83">            JsonNode jsonNodeTree = new ObjectMapper().readTree(jsonString);</span>
+<span class="fc" id="L84">            YAMLMapper yamlMapper = new YAMLMapper();</span>
+<span class="fc" id="L85">            yamlMapper.setSerializationInclusion(Include.NON_NULL);</span>
+<span class="fc" id="L86">            String yamlString = yamlMapper.writeValueAsString(jsonNodeTree);</span>
+            // StringWriter writer = new StringWriter();
+            // writer.write(triggerYaml);
+<span class="fc" id="L89">            Files.write(Paths.get(file.getPath()), yamlString.getBytes(),</span>
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.WRITE,
+                    StandardOpenOption.TRUNCATE_EXISTING);
+<span class="nc" id="L93">        } catch (IOException e) {</span>
+<span class="nc" id="L94">            logger.error(&quot;Unable to store file {} {}&quot;, name, file.getPath());</span>
+<span class="nc" id="L95">            throw new RuntimeException(&quot;Unable to store file.&quot;, e);</span>
+<span class="fc" id="L96">        }</span>
+<span class="fc" id="L97">    }</span>
+
+    public static void storeToYamlFile(String path, String subPath, String name, Object obj) {
+
+
+<span class="fc" id="L102">        File store = new File(path);</span>
+<span class="fc" id="L103">        File file = Paths.get(store.getPath(), subPath, name + &quot;.yaml&quot;).toFile();</span>
+<span class="fc" id="L104">        file.getParentFile().mkdirs();</span>
+        try {
+<span class="fc" id="L106">            YAMLMapper yamlMapper = new YAMLMapper();</span>
+<span class="fc" id="L107">            yamlMapper.setSerializationInclusion(Include.NON_NULL);</span>
+<span class="fc" id="L108">            yamlMapper.enable(Feature.LITERAL_BLOCK_STYLE);</span>
+<span class="fc" id="L109">            String yamlString = yamlMapper.writeValueAsString(obj);</span>
+            // StringWriter writer = new StringWriter();
+            // writer.write(triggerYaml);
+<span class="fc" id="L112">            Files.write(Paths.get(file.getPath()), yamlString.getBytes(),</span>
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.WRITE,
+                    StandardOpenOption.TRUNCATE_EXISTING);
+<span class="nc" id="L116">        } catch (IOException e) {</span>
+<span class="nc" id="L117">            logger.error(&quot;Unable to store file {} {}&quot;, name, file.getPath());</span>
+<span class="nc" id="L118">            throw new RuntimeException(&quot;Unable to store file.&quot;, e);</span>
+<span class="fc" id="L119">        }</span>
+<span class="fc" id="L120">    }</span>
+
+    public static String loadFromYamlFile(File file) {
+<span class="fc" id="L123">        YAMLMapper yaml = new YAMLMapper();</span>
+<span class="fc" id="L124">        try (FileInputStream stream = new FileInputStream(file)) {</span>
+<span class="fc" id="L125">            ObjectNode yamlContent = (ObjectNode) yaml.readTree(stream);</span>
+<span class="fc" id="L126">            ObjectMapper jsonMapper = new ObjectMapper();</span>
+<span class="fc" id="L127">            jsonMapper.setSerializationInclusion(Include.NON_NULL);</span>
+<span class="fc" id="L128">            String json = jsonMapper.writeValueAsString(yamlContent);</span>
+<span class="fc" id="L129">            return json;</span>
+<span class="nc" id="L130">        } catch (IOException e) {</span>
+<span class="nc" id="L131">            throw new RuntimeException(&quot;Failed to import trigger.&quot;, e);</span>
+        }
+    }
+
+    public static &lt;T&gt; T loadFromYamlFile(File varFile, Class&lt;T&gt; clazz) {
+<span class="fc" id="L136">        System.out.println(varFile.getAbsolutePath());</span>
+        try {
+<span class="fc" id="L138">            YAMLMapper yamlMapper = new YAMLMapper();</span>
+<span class="fc" id="L139">            return yamlMapper.readValue(varFile, clazz);</span>
+<span class="nc" id="L140">        } catch (IOException e) {</span>
+<span class="nc" id="L141">            throw new RuntimeException(String.format(&quot;Error while reading file '%s'&quot;, varFile.getPath()));</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

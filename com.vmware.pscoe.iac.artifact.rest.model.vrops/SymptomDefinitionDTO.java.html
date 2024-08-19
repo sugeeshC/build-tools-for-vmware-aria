@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SymptomDefinitionDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest.model.vrops</a> &gt; <span class="el_source">SymptomDefinitionDTO.java</span></div><h1>SymptomDefinitionDTO.java</h1><pre class="source lang-java linenums">
+package com.vmware.pscoe.iac.artifact.rest.model.vrops;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({ &quot;symptomDefinitions&quot; })
+@JsonIgnoreProperties({ &quot;pageInfo&quot;, &quot;links&quot; })
+<span class="nc" id="L36">public class SymptomDefinitionDTO implements Serializable {</span>
+    private static final long serialVersionUID = -8907264880213103337L;
+
+<span class="nc" id="L39">    @JsonProperty(&quot;symptomDefinitions&quot;)</span>
+    private List&lt;SymptomDefinition&gt; symptomDefinitions = new ArrayList&lt;&gt;();
+
+<span class="nc" id="L42">    @JsonIgnore</span>
+    private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+    @JsonProperty(&quot;symptomDefinitions&quot;)
+    public List&lt;SymptomDefinition&gt; getSymptomDefinitions() {
+<span class="nc" id="L47">        return symptomDefinitions;</span>
+    }
+
+    @JsonProperty(&quot;symptomDefinitions&quot;)
+    public void setSymptomDefinitions(List&lt;SymptomDefinition&gt; symptomDefinitions) {
+<span class="nc" id="L52">        this.symptomDefinitions = symptomDefinitions;</span>
+<span class="nc" id="L53">    }</span>
+
+    @JsonAnyGetter
+    public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L57">        return this.additionalProperties;</span>
+    }
+
+    @JsonAnySetter
+    public void setAdditionalProperties(String name, Object value) {
+<span class="nc" id="L62">        this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L63">    }</span>
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonPropertyOrder({ &quot;id&quot;, &quot;name&quot;, &quot;adapterKindKey&quot;, &quot;resourceKindKey&quot;, &quot;waitCycles&quot;, &quot;cancelCycles&quot;, &quot;state&quot; })
+<span class="nc" id="L67">    public static class SymptomDefinition implements Serializable {</span>
+        private static final long serialVersionUID = -5587983216831252144L;
+
+        @JsonProperty(&quot;id&quot;)
+        private String id;
+
+        @JsonProperty(&quot;name&quot;)
+        private String name;
+
+        @JsonProperty(&quot;adapterKindKey&quot;)
+        private String adapterKindKey;
+
+        @JsonProperty(&quot;resourceKindKey&quot;)
+        private String resourceKindKey;
+
+        @JsonProperty(&quot;waitCycles&quot;)
+        private Integer waitCycles;
+
+        @JsonProperty(&quot;cancelCycles&quot;)
+        private Integer cancelCycles;
+
+        @JsonProperty(&quot;state&quot;)
+        private State state;
+
+<span class="nc" id="L91">        @JsonIgnore</span>
+        private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+        @JsonProperty(&quot;id&quot;)
+        public String getId() {
+<span class="nc" id="L96">            return id;</span>
+        }
+
+        @JsonProperty(&quot;id&quot;)
+        public void setId(String id) {
+<span class="nc" id="L101">            this.id = id;</span>
+<span class="nc" id="L102">        }</span>
+
+        @JsonProperty(&quot;name&quot;)
+        public String getName() {
+<span class="nc" id="L106">            return name;</span>
+        }
+
+        @JsonProperty(&quot;name&quot;)
+        public void setName(String name) {
+<span class="nc" id="L111">            this.name = name;</span>
+<span class="nc" id="L112">        }</span>
+
+        @JsonProperty(&quot;adapterKindKey&quot;)
+        public String getAdapterKindKey() {
+<span class="nc" id="L116">            return adapterKindKey;</span>
+        }
+
+        @JsonProperty(&quot;adapterKindKey&quot;)
+        public void setAdapterKindKey(String adapterKindKey) {
+<span class="nc" id="L121">            this.adapterKindKey = adapterKindKey;</span>
+<span class="nc" id="L122">        }</span>
+
+        @JsonProperty(&quot;resourceKindKey&quot;)
+        public String getResourceKindKey() {
+<span class="nc" id="L126">            return resourceKindKey;</span>
+        }
+
+        @JsonProperty(&quot;resourceKindKey&quot;)
+        public void setResourceKindKey(String resourceKindKey) {
+<span class="nc" id="L131">            this.resourceKindKey = resourceKindKey;</span>
+<span class="nc" id="L132">        }</span>
+
+        @JsonProperty(&quot;waitCycles&quot;)
+        public Integer getWaitCycles() {
+<span class="nc" id="L136">            return waitCycles;</span>
+        }
+
+        @JsonProperty(&quot;waitCycles&quot;)
+        public void setWaitCycles(Integer waitCycles) {
+<span class="nc" id="L141">            this.waitCycles = waitCycles;</span>
+<span class="nc" id="L142">        }</span>
+
+        @JsonProperty(&quot;cancelCycles&quot;)
+        public Integer getCancelCycles() {
+<span class="nc" id="L146">            return cancelCycles;</span>
+        }
+
+        @JsonProperty(&quot;cancelCycles&quot;)
+        public void setCancelCycles(Integer cancelCycles) {
+<span class="nc" id="L151">            this.cancelCycles = cancelCycles;</span>
+<span class="nc" id="L152">        }</span>
+
+        @JsonProperty(&quot;state&quot;)
+        public State getState() {
+<span class="nc" id="L156">            return state;</span>
+        }
+
+        @JsonProperty(&quot;state&quot;)
+        public void setState(State state) {
+<span class="nc" id="L161">            this.state = state;</span>
+<span class="nc" id="L162">        }</span>
+
+        @JsonAnyGetter
+        public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L166">            return this.additionalProperties;</span>
+        }
+
+        @JsonAnySetter
+        public void setAdditionalProperties(String name, Object value) {
+<span class="nc" id="L171">            this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L172">        }</span>
+
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        @JsonPropertyOrder({ &quot;severity&quot;, &quot;condition&quot; })
+<span class="nc" id="L176">        public static class State implements Serializable {</span>
+            private static final long serialVersionUID = -1599769134473820197L;
+
+            @JsonProperty(&quot;severity&quot;)
+            private String severity;
+
+            @JsonProperty(&quot;condition&quot;)
+            private Condition condition;
+
+<span class="nc" id="L185">            @JsonIgnore</span>
+            private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+            @JsonProperty(&quot;severity&quot;)
+            public String getSeverity() {
+<span class="nc" id="L190">                return severity;</span>
+            }
+
+            @JsonProperty(&quot;severity&quot;)
+            public void setSeverity(String severity) {
+<span class="nc" id="L195">                this.severity = severity;</span>
+<span class="nc" id="L196">            }</span>
+
+            @JsonProperty(&quot;condition&quot;)
+            public Condition getCondition() {
+<span class="nc" id="L200">                return condition;</span>
+            }
+
+            @JsonProperty(&quot;condition&quot;)
+            public void setCondition(Condition condition) {
+<span class="nc" id="L205">                this.condition = condition;</span>
+<span class="nc" id="L206">            }</span>
+
+            @JsonAnyGetter
+            public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L210">                return this.additionalProperties;</span>
+            }
+
+            @JsonAnySetter
+            public void setAdditionalProperties(String name, Object value) {
+<span class="nc" id="L215">                this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L216">            }</span>
+        }
+
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        @JsonPropertyOrder({ &quot;type&quot;, &quot;key&quot;, &quot;operator&quot;, &quot;value&quot;, &quot;valueType&quot;, &quot;instanced&quot;, &quot;thresholdType&quot;, &quot;stringValue&quot;, &quot;eventType&quot;, &quot;message&quot;, &quot;faultKey&quot; })
+        @JsonIgnoreProperties({ &quot;faultEvents&quot;, &quot;targetKey&quot;, &quot;instanced&quot;, &quot;hardThresholdEventType&quot;, &quot;statKey&quot; })
+<span class="nc" id="L222">        public static class Condition implements Serializable {</span>
+            private static final long serialVersionUID = 6996617212704194983L;
+
+            @JsonProperty(&quot;type&quot;)
+            private String type;
+
+            @JsonProperty(&quot;key&quot;)
+            private String key;
+
+            @JsonProperty(&quot;operator&quot;)
+            private String operator;
+
+            @JsonProperty(&quot;value&quot;)
+            private String value;
+
+            @JsonProperty(&quot;valueType&quot;)
+            private String valueType;
+
+            @JsonProperty(&quot;instanced&quot;)
+            private Boolean instanced;
+
+            @JsonProperty(&quot;thresholdType&quot;)
+            private String thresholdType;
+
+            @JsonProperty(&quot;stringValue&quot;)
+            private String stringValue;
+
+            @JsonProperty(&quot;eventType&quot;)
+            private String eventType;
+
+            @JsonProperty(&quot;message&quot;)
+            private String message;
+
+            @JsonProperty(&quot;faultKey&quot;)
+            private String faultKey;
+
+<span class="nc" id="L258">            @JsonIgnore</span>
+            private transient Map&lt;String, Object&gt; additionalProperties = new HashMap&lt;&gt;();
+
+            @JsonProperty(&quot;type&quot;)
+            public String getType() {
+<span class="nc" id="L263">                return type;</span>
+            }
+
+            @JsonProperty(&quot;type&quot;)
+            public void setType(String type) {
+<span class="nc" id="L268">                this.type = type;</span>
+<span class="nc" id="L269">            }</span>
+
+            @JsonProperty(&quot;key&quot;)
+            public String getKey() {
+<span class="nc" id="L273">                return key;</span>
+            }
+
+            @JsonProperty(&quot;key&quot;)
+            public void setKey(String key) {
+<span class="nc" id="L278">                this.key = key;</span>
+<span class="nc" id="L279">            }</span>
+
+            @JsonProperty(&quot;operator&quot;)
+            public String getOperator() {
+<span class="nc" id="L283">                return operator;</span>
+            }
+
+            @JsonProperty(&quot;operator&quot;)
+            public void setOperator(String operator) {
+<span class="nc" id="L288">                this.operator = operator;</span>
+<span class="nc" id="L289">            }</span>
+
+            @JsonProperty(&quot;value&quot;)
+            public String getValue() {
+<span class="nc" id="L293">                return value;</span>
+            }
+
+            @JsonProperty(&quot;value&quot;)
+            public void setValue(String value) {
+<span class="nc" id="L298">                this.value = value;</span>
+<span class="nc" id="L299">            }</span>
+
+            @JsonProperty(&quot;valueType&quot;)
+            public String getValueType() {
+<span class="nc" id="L303">                return valueType;</span>
+            }
+
+            @JsonProperty(&quot;valueType&quot;)
+            public void setValueType(String valueType) {
+<span class="nc" id="L308">                this.valueType = valueType;</span>
+<span class="nc" id="L309">            }</span>
+
+            @JsonProperty(&quot;instanced&quot;)
+            public Boolean isInstanced() {
+<span class="nc" id="L313">                return instanced;</span>
+            }
+
+            @JsonProperty(&quot;instanced&quot;)
+            public void setInstanced(Boolean instanced) {
+<span class="nc" id="L318">                this.instanced = instanced;</span>
+<span class="nc" id="L319">            }</span>
+
+            @JsonProperty(&quot;thresholdType&quot;)
+            public String getThresholdType() {
+<span class="nc" id="L323">                return thresholdType;</span>
+            }
+
+            @JsonProperty(&quot;thresholdType&quot;)
+            public void setThresholdType(String thresholdType) {
+<span class="nc" id="L328">                this.thresholdType = thresholdType;</span>
+<span class="nc" id="L329">            }</span>
+
+            @JsonProperty(&quot;stringValue&quot;)
+            public String getStringValue() {
+<span class="nc" id="L333">                return stringValue;</span>
+            }
+
+            @JsonProperty(&quot;stringValue&quot;)
+            public void setStringValue(String stringValue) {
+<span class="nc" id="L338">                this.stringValue = stringValue;</span>
+<span class="nc" id="L339">            }</span>
+
+            @JsonProperty(&quot;eventType&quot;)
+            public String getEventType() {
+<span class="nc" id="L343">                return eventType;</span>
+            }
+
+            @JsonProperty(&quot;eventType&quot;)
+            public void setEventType(String eventType) {
+<span class="nc" id="L348">                this.eventType = eventType;</span>
+<span class="nc" id="L349">            }</span>
+
+            @JsonProperty(&quot;message&quot;)
+            public String getMessage() {
+<span class="nc" id="L353">                return message;</span>
+            }
+
+            @JsonProperty(&quot;message&quot;)
+            public void setMessage(String message) {
+<span class="nc" id="L358">                this.message = message;</span>
+<span class="nc" id="L359">            }</span>
+
+            @JsonProperty(&quot;faultKey&quot;)
+            public String getFaultKey() {
+<span class="nc" id="L363">                return faultKey;</span>
+            }
+
+            @JsonProperty(&quot;faultKey&quot;)
+            public void setFaultKey(String faultKey) {
+<span class="nc" id="L368">                this.faultKey = faultKey;</span>
+<span class="nc" id="L369">            }</span>
+
+            @JsonAnyGetter
+            public Map&lt;String, Object&gt; getAdditionalProperties() {
+<span class="nc" id="L373">                return this.additionalProperties;</span>
+            }
+
+            @JsonAnySetter
+            public void setAdditionalProperties(String name, Object value) {
+<span class="nc" id="L378">                this.additionalProperties.put(name, value);</span>
+<span class="nc" id="L379">            }</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

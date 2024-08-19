@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgPackageContent.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.vrang</a> &gt; <span class="el_source">VraNgPackageContent.java</span></div><h1>VraNgPackageContent.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.util.List;
+
+import com.vmware.pscoe.iac.artifact.model.PackageContent;
+
+/**
+ * This class extends the PackageContent class and provides a list of content types specific to VraNg.
+ */
+public class VraNgPackageContent extends PackageContent&lt;VraNgPackageContent.ContentType&gt; {
+    
+    /**
+     * This enum represents the various content types that a VraNgPackage can have.
+     */
+<span class="fc" id="L30">    public enum ContentType implements PackageContent.ContentType { </span>
+		/**
+		 * Content type for blueprints.
+		 */
+<span class="fc" id="L34">        BLUEPRINT(&quot;blueprint&quot;),</span>
+		/**
+		 * Content type for subscriptions.
+		 */
+<span class="fc" id="L38">        SUBSCRIPTION(&quot;subscription&quot;),</span>
+		/**
+		 * Content type for flavor mappings.
+		 */
+<span class="fc" id="L42">        FLAVOR_MAPPING(&quot;flavor-mapping&quot;),</span>
+		/**
+		 * Content type for image mappings.
+		 */
+<span class="fc" id="L46">        IMAGE_MAPPING(&quot;image-mapping&quot;),</span>
+		/**
+		 * Content type for storage profiles.
+		 */
+<span class="fc" id="L50">        STORAGE_PROFILE(&quot;storage-profile&quot;),</span>
+		/**
+		 * Content type for region mappings.
+		 */
+<span class="fc" id="L54">        REGION_MAPPING(&quot;region-mapping&quot;),</span>
+		/**
+		 * Content type for catalog entitlement.
+		 */
+<span class="fc" id="L58">        CATALOG_ENTITLEMENT(&quot;catalog-entitlement&quot;),</span>
+		/**
+		 * Content type for custom resources.
+		 */
+<span class="fc" id="L62">        CUSTOM_RESOURCE(&quot;custom-resource&quot;),</span>
+		/**
+		 * Content type for resource actions.
+		 */
+<span class="fc" id="L66">        RESOURCE_ACTION(&quot;resource-action&quot;),</span>
+		/**
+		 * Content type for property groups.
+		 */
+<span class="fc" id="L70">        PROPERTY_GROUP(&quot;property-group&quot;),</span>
+		/**
+		 * Content type for content sources.
+		 */
+<span class="fc" id="L74">        CONTENT_SOURCE(&quot;content-source&quot;),</span>
+		/**
+		 * Content type for catalog items.
+		 */
+<span class="fc" id="L78">        CATALOG_ITEM(&quot;catalog-item&quot;),</span>
+		/**
+		 * Content type for content sharing policies.
+		 */
+<span class="fc" id="L82">		CONTENT_SHARING_POLICY(&quot;content-sharing&quot;),</span>
+		/**
+		 * Content type for lease policies.
+		 */
+<span class="fc" id="L86">		LEASE_POLICY(&quot;lease&quot;),</span>
+
+		/**
+		 * Content type for resource quota policies.
+		 */
+<span class="fc" id="L91">		RESOURCE_QUOTA_POLICY(&quot;resource-quota&quot;),</span>
+
+		/**
+		 * Content type for day 2 actions policies.
+		 */
+<span class="fc" id="L96">		DAY2_ACTIONS_POLICY(&quot;day2-actions&quot;),</span>
+
+		/**
+		 * Content type for deployment limit policies.
+		 */
+<span class="fc" id="L101">		DEPLOYMENT_LIMIT_POLICY(&quot;deployment-limit&quot;),</span>
+
+		/**
+		 * Content type for approval policies.
+		 */
+<span class="fc" id="L106">		APPROVAL_POLICY(&quot;approval&quot;);</span>
+		/**
+		 * PackageContent type.
+		 */
+        private final String type;
+
+        
+        /** 
+         * Constructor for ContentType.
+         *
+         * @param type  the type of the content. 
+         */
+<span class="fc" id="L118">        ContentType(String type) {</span>
+<span class="fc" id="L119">            this.type = type;</span>
+<span class="fc" id="L120">        }</span>
+        
+        /** 
+         * Gets the type value.
+         *
+         * @return the type value.
+         */
+        public String getTypeValue() { 
+<span class="nc" id="L128">            return this.type;</span>
+        }
+        
+        /** 
+         * Returns the ContentType instance corresponding to the given type.
+         *
+         * @param type  the type of the content. 
+         * @return the ContentType instance.
+         */
+        public static ContentType getInstance(String type) { 
+<span class="nc bnc" id="L138" title="All 2 branches missed.">            for (ContentType ct: ContentType.values()) {</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">                if (ct.getTypeValue().equalsIgnoreCase(type)) {</span>
+<span class="nc" id="L140">                    return ct;</span>
+                }
+            }
+<span class="nc" id="L143">            return null;</span>
+        }
+        
+    }
+
+    /** 
+     * Constructor for VraNgPackageContent.
+     *
+     * @param content  the content of the package. 
+     */
+    public VraNgPackageContent(List&lt;Content&lt;ContentType&gt;&gt; content) { 
+<span class="nc" id="L154">        super(content);</span>
+<span class="nc" id="L155">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

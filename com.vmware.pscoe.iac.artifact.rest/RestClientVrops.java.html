@@ -1,0 +1,2346 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RestClientVrops.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest</a> &gt; <span class="el_source">RestClientVrops.java</span></div><h1>RestClientVrops.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.rest;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.ByteArrayHttpMessageConverter;
+import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.jayway.jsonpath.JsonPath;
+import com.vmware.pscoe.iac.artifact.configuration.Configuration;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVrops;
+import com.vmware.pscoe.iac.artifact.model.Version;
+import com.vmware.pscoe.iac.artifact.model.vrops.VropsPackageMemberType;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.AdapterKindDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.AlertDefinitionDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.AlertDefinitionDTO.AlertDefinition.State;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.AlertDefinitionDTO.AlertDefinition.SymptomSet;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.AuthGroupDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.AuthGroupsDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.AuthUsersDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.AuthUserDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.CustomGroupDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.CustomGroupTypeDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.PolicyCustomGroupAssignmentDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.PolicyDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.RecommendationDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.ReportDefinitionDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.ResourceKindDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.ResourcesDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.SupermetricDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.SymptomDefinitionDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.ViewDefinitionDTO;
+
+@SuppressWarnings(&quot;deprecation&quot;)
+public class RestClientVrops extends RestClient {
+	/**
+	 * logger.
+	 */
+<span class="nc" id="L88">	private final Logger logger = LoggerFactory.getLogger(RestClientVrops.class);</span>
+	/**
+	 * PUBLIC_API_PREFIX.
+	 */
+	private static final String PUBLIC_API_PREFIX = &quot;/suite-api/api/&quot;;
+	/**
+	 * INTERNAL_API_PREFIX.
+	 */
+	private static final String INTERNAL_API_PREFIX = &quot;/suite-api/internal/&quot;;
+	/**
+	 * ALERT_DEFS_API.
+	 */
+	private static final String ALERT_DEFS_API = PUBLIC_API_PREFIX + &quot;alertdefinitions/&quot;;
+	/**
+	 * SYMPTOM_DEFS_API.
+	 */
+	private static final String SYMPTOM_DEFS_API = PUBLIC_API_PREFIX + &quot;symptomdefinitions/&quot;;
+	/**
+	 * POLICIES_API.
+	 */
+	private static final String POLICIES_API = INTERNAL_API_PREFIX + &quot;policies&quot;;
+	/**
+	 * POLICY_PRIORITY_PUBLIC_API.
+	 */
+	private static final String POLICY_PRIORITY_PUBLIC_API = PUBLIC_API_PREFIX + &quot;policies/priorities&quot;;
+	/**
+	 * POLICIES_IMPORT_INTERNAL_API.
+	 */
+	private static final String POLICIES_IMPORT_INTERNAL_API = POLICIES_API + &quot;/import&quot;;
+	/**
+	 * POLICIES_IMPORT_PUBLIC_API.
+	 */
+	private static final String POLICIES_IMPORT_PUBLIC_API = PUBLIC_API_PREFIX + &quot;policies/import&quot;;
+	/**
+	 * POLICIES_EXPORT_INTERNAL_API.
+	 */
+	private static final String POLICIES_EXPORT_INTERNAL_API = POLICIES_API + &quot;/export&quot;;
+	/**
+	 * POLICIES_EXPORT_PUBLIC_API.
+	 */
+	private static final String POLICIES_EXPORT_PUBLIC_API = PUBLIC_API_PREFIX + &quot;policies/export&quot;;
+	/**
+	 * POLICIES_APPLY_INTERNAL_API.
+	 */
+	private static final String POLICIES_APPLY_INTERNAL_API = POLICIES_API + &quot;/apply&quot;;
+	/**
+	 * POLICIES_APPLY_PUBLIC_API.
+	 */
+	private static final String POLICIES_APPLY_PUBLIC_API = PUBLIC_API_PREFIX + &quot;policies/apply&quot;;
+	/**
+	 * POLICIES_FETCH_INTERNAL_API.
+	 */
+	private static final String POLICIES_FETCH_INTERNAL_API = POLICIES_API;
+	/**
+	 * POLICIES_FETCH_PUBLIC_API.
+	 */
+	private static final String POLICIES_FETCH_PUBLIC_API = PUBLIC_API_PREFIX + &quot;policies&quot;;
+	/**
+	 * DEFAULT_POLICY_API.
+	 */
+	private static final String DEFAULT_POLICY_API = PUBLIC_API_PREFIX + &quot;policies/default&quot;;
+	/**
+	 * RECOMMENDATIONS_API.
+	 */
+	private static final String RECOMMENDATIONS_API = PUBLIC_API_PREFIX + &quot;recommendations/&quot;;
+	/**
+	 * RESOURCES_API.
+	 */
+	private static final String RESOURCES_API = PUBLIC_API_PREFIX + &quot;resources/&quot;;
+	/**
+	 * CUSTOM_GROUPS_FETCH_API.
+	 */
+	private static final String CUSTOM_GROUPS_FETCH_API = RESOURCES_API + &quot;groups&quot;;
+	/**
+	 * CUSTOM_GROUPS_UPDATE_API.
+	 */
+	private static final String CUSTOM_GROUPS_UPDATE_API = PUBLIC_API_PREFIX + &quot;resources/groups&quot;;
+	/**
+	 * CUSTOM_GROUP_TYPES_API.
+	 */
+	private static final String CUSTOM_GROUP_TYPES_API = PUBLIC_API_PREFIX + &quot;resources/groups/types&quot;;
+	/**
+	 * RESOURCES_LIST_API.
+	 */
+	private static final String RESOURCES_LIST_API = PUBLIC_API_PREFIX + &quot;resources&quot;;
+	/**
+	 * ADAPTER_KINDS_API.
+	 */
+	private static final String ADAPTER_KINDS_API = PUBLIC_API_PREFIX + &quot;adapterkinds&quot;;
+	/**
+	 * RESOURCE_KINDS_API.
+	 */
+	private static final String RESOURCE_KINDS_API = PUBLIC_API_PREFIX + &quot;adapterkinds/%s/resourcekinds&quot;;
+	/**
+	 * RESOURCES_LIST_PER_ADAPTER_KIND.
+	 */
+	private static final String RESOURCES_LIST_PER_ADAPTER_KIND = PUBLIC_API_PREFIX + &quot;adapterkinds/%s/resources&quot;;
+	/**
+	 * SUPERMETRICS_LIST_API.
+	 */
+	private static final String SUPERMETRICS_LIST_API = PUBLIC_API_PREFIX + &quot;supermetrics&quot;;
+	/**
+	 * REPORT_DEFINITIONS_LIST_API.
+	 */
+	private static final String REPORT_DEFINITIONS_LIST_API = PUBLIC_API_PREFIX + &quot;reportdefinitions&quot;;
+	/**
+	 * VIEW_DEFINITIONS_LIST_API.
+	 */
+	private static final String VIEW_DEFINITIONS_LIST_API = INTERNAL_API_PREFIX + &quot;viewdefinitions&quot;;
+	/**
+	 * INTERNAL_API_HEADER_NAME.
+	 */
+	private static final String INTERNAL_API_HEADER_NAME = &quot;X-vRealizeOps-API-use-unsupported&quot;;
+	/**
+	 * AUTH_GROUPS_API.
+	 */
+	private static final String AUTH_GROUPS_API = PUBLIC_API_PREFIX + &quot;/auth/usergroups&quot;;
+	/**
+	 * AUTH_USERS_API.
+	 */
+	private static final String AUTH_USERS_API = PUBLIC_API_PREFIX + &quot;/auth/users&quot;;
+	/**
+	 * DEFAULT_PAGE_SIZE.
+	 */
+	private static final int DEFAULT_PAGE_SIZE = 10000;
+	/**
+	 * VROPS_KIND_ALL.
+	 */
+	private static final String VROPS_KIND_ALL = &quot;ALL&quot;;
+	/**
+	 * vROPs 8.12 version.
+	 */
+	private static final String VROPS_8_12 = &quot;8.12&quot;;
+	/**
+	 * VROPS_8_2 version.
+	 */
+	private static final String VROPS_8_2 = &quot;8.2&quot;;
+	/**
+	 * VROPS_8_17_0 version.
+	 */
+	private static final String VROPS_8_17 = &quot;8.17&quot;;
+
+	/**
+	 * configuration.
+	 */
+	private ConfigurationVrops configuration;
+	/**
+	 * restTemplate.
+	 */
+	private RestTemplate restTemplate;
+	/**
+	 * mapper.
+	 */
+<span class="nc" id="L241">	private ObjectMapper mapper = new ObjectMapper();</span>
+	/**
+	 * isAbove812 flag.
+	 */
+<span class="nc" id="L245">	private Boolean isAbove812 = null;</span>
+	/**
+	 * isAbove82 flag.
+	 */
+<span class="nc" id="L249">	private Boolean isAbove82 = null;</span>
+	/**
+	 * isAbove817 flag.
+	 */
+<span class="nc" id="L253">	private Boolean isAbove817 = null;</span>
+
+	/**
+	 * RestClientVrops.
+	 * 
+	 * @param configuration
+	 * @param restTemplate
+	 */
+<span class="nc" id="L261">	public RestClientVrops(ConfigurationVrops configuration, RestTemplate restTemplate) {</span>
+<span class="nc" id="L262">		this.configuration = configuration;</span>
+<span class="nc" id="L263">		this.restTemplate = restTemplate;</span>
+<span class="nc" id="L264">	}</span>
+
+	/**
+	 * getRestTemplate.
+	 * 
+	 * @return restTemplate
+	 */
+	public RestTemplate getRestTemplate() {
+<span class="nc" id="L272">		return restTemplate;</span>
+	}
+
+	/**
+	 * getConfiguration.
+	 * 
+	 * @return configuration
+	 */
+	@Override
+	protected Configuration getConfiguration() {
+<span class="nc" id="L282">		return configuration;</span>
+	}
+
+	/**
+	 * getURIBuilder.
+	 * 
+	 * @return URIBuilder
+	 */
+	@Override
+	protected URIBuilder getURIBuilder() {
+<span class="nc" id="L292">		ConfigurationVrops config = (ConfigurationVrops) getConfiguration();</span>
+<span class="nc" id="L293">		return new URIBuilder().setScheme(&quot;https&quot;).setHost(config.getHost()).setPort(config.getHttpPort());</span>
+	}
+
+	/**
+	 * getVersion.
+	 * 
+	 * @return version
+	 */
+	@Override
+	public String getVersion() {
+<span class="nc" id="L303">		URI url = getURI(getURIBuilder().setPath(PUBLIC_API_PREFIX + &quot;versions/current&quot;));</span>
+<span class="nc" id="L304">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="nc" id="L306">		String versionString = JsonPath.parse(response.getBody()).read(&quot;$.releaseName&quot;);</span>
+<span class="nc" id="L307">		Integer buildNumber = JsonPath.parse(response.getBody()).read(&quot;buildNumber&quot;);</span>
+
+<span class="nc" id="L309">		Pattern versionNumberRegex = Pattern.compile(&quot;([\\d]+)\\.([\\d]+)\\.([\\d]+)&quot;);</span>
+<span class="nc" id="L310">		Matcher matcher = versionNumberRegex.matcher(versionString);</span>
+
+<span class="nc" id="L312">		StringBuilder retVal = new StringBuilder(&quot;&quot;);</span>
+<span class="nc bnc" id="L313" title="All 2 branches missed.">		if (matcher.find()) {</span>
+<span class="nc" id="L314">			retVal.append(matcher.group(0));</span>
+<span class="nc" id="L315">			retVal.append(&quot;.&quot; + buildNumber);</span>
+		}
+
+<span class="nc" id="L318">		return retVal.toString();</span>
+	}
+
+	/**
+	 * Checks whether vROPs version is above or equal to certain one.
+	 *
+	 * @param targetVersion string with target version to compare with.
+	 * @return true if version is above or equal to the certain one otherwise false.
+	 */
+	public boolean isVersionAbove(final String targetVersion) {
+<span class="nc" id="L328">		Version version = new Version(this.getVersion());</span>
+<span class="nc" id="L329">		int isGreater = version.compareTo(new Version(targetVersion));</span>
+
+<span class="nc bnc" id="L331" title="All 2 branches missed.">		return isGreater &gt;= 0;</span>
+	}
+
+	/**
+	 * Checks whether vROPs version is above 8.12.
+	 *
+	 * @return true if version is above 8.12 otherwise false.
+	 */
+	public Boolean isVersionAbove812() {
+<span class="nc bnc" id="L340" title="All 2 branches missed.">		if (this.isAbove812 == null) {</span>
+<span class="nc" id="L341">			this.isAbove812 = this.isVersionAbove(VROPS_8_12);</span>
+		}
+
+<span class="nc" id="L344">		return this.isAbove812;</span>
+	}
+
+	/**
+	 * Checks whether vROPs version is above 8.2.
+	 *
+	 * @return true if version is above 8.2 otherwise false.
+	 */
+	public Boolean isVersionAbove82() {
+<span class="nc bnc" id="L353" title="All 2 branches missed.">		if (this.isAbove82 == null) {</span>
+<span class="nc" id="L354">			this.isAbove82 = this.isVersionAbove(VROPS_8_2);</span>
+		}
+
+<span class="nc" id="L357">		return this.isAbove82;</span>
+	}
+
+	/**
+	 * Checks whether vROPs version is above 8.17.0.
+	 *
+	 * @return true if version is above 8.17.0 otherwise false.
+	 */
+	public Boolean isVersionAbove817() {
+<span class="nc bnc" id="L366" title="All 2 branches missed.">		if (this.isAbove817 == null) {</span>
+<span class="nc" id="L367">			this.isAbove817 = this.isVersionAbove(VROPS_8_17);</span>
+		}
+
+<span class="nc" id="L370">		return this.isAbove817;</span>
+	}
+
+	/**
+	 * Import policies from a zip file.
+	 * 
+	 * @param file       policy zip file as byte[]
+	 * @param policyName List of strings that represent the custom groups policy
+	 *                   will be assigned to.
+	 * @param force      true to overwrite the existing policies, false to skip
+	 *                   importing when there is a conflict
+	 * @throws Exception exception
+	 */
+	public void importPolicyFromZip(String policyName, File file, Boolean force) throws Exception {
+		URI uri;
+		try {
+			// for newer vROPs versions the policies API is no longer internal.
+<span class="nc bnc" id="L387" title="All 2 branches missed.">			if (this.isVersionAbove812()) {</span>
+<span class="nc" id="L388">				uri = getURI(getURIBuilder().setPath(POLICIES_IMPORT_PUBLIC_API));</span>
+			} else {
+<span class="nc" id="L390">				uri = getURI(getURIBuilder().setPath(POLICIES_IMPORT_INTERNAL_API));</span>
+			}
+<span class="nc" id="L392">		} catch (RuntimeException e) {</span>
+<span class="nc" id="L393">			throw e;</span>
+<span class="nc" id="L394">		}</span>
+<span class="nc" id="L395">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L396">		headers.setContentType(MediaType.MULTIPART_FORM_DATA);</span>
+		// older vROPs versions use internal API, thus header must be set for it
+<span class="nc bnc" id="L398" title="All 2 branches missed.">		if (!this.isVersionAbove812()) {</span>
+<span class="nc" id="L399">			headers.set(INTERNAL_API_HEADER_NAME, Boolean.TRUE.toString());</span>
+		}
+<span class="nc" id="L401">		MultiValueMap&lt;String, Object&gt; body = new LinkedMultiValueMap&lt;&gt;();</span>
+<span class="nc" id="L402">		body.add(&quot;policy&quot;, new FileSystemResource(file));</span>
+<span class="nc" id="L403">		body.add(&quot;forceImport&quot;, force);</span>
+
+<span class="nc" id="L405">		HttpEntity&lt;MultiValueMap&lt;String, Object&gt;&gt; requestEntity = new HttpEntity&lt;&gt;(body, headers);</span>
+		try {
+<span class="nc" id="L407">			restTemplate.postForEntity(uri, requestEntity, String.class);</span>
+<span class="nc" id="L408">		} catch (RestClientException e) {</span>
+<span class="nc" id="L409">			throw new RuntimeException(String.format(&quot;The policy '%s' could not be imported : %s.&quot;, policyName, e.getMessage()), e);</span>
+<span class="nc" id="L410">		}</span>
+<span class="nc" id="L411">	}</span>
+
+	/**
+	 * Sets default policy in vROPs to given policy. Note that it applies to vROPs
+	 * 8.12 and later only.
+	 *
+	 * @param policyName policy name to be set by default.
+	 * @throws Exception exception if the policy is not found or could not be set to
+	 *                   default.
+	 */
+	public void setDefaultPolicy(final String policyName) throws Exception {
+		// default policy setting is available since vROPs 8.12 only
+<span class="nc bnc" id="L423" title="All 2 branches missed.">		if (!this.isVersionAbove812()) {</span>
+<span class="nc" id="L424">			logger.warn(&quot;Cannot set default policy to '{}' as vROPs version is older than '{}'&quot;, policyName, VROPS_8_12);</span>
+<span class="nc" id="L425">			return;</span>
+		}
+<span class="nc" id="L427">		List&lt;PolicyDTO.Policy&gt; allPolicies = this.getAllPolicies();</span>
+<span class="nc" id="L428">		PolicyDTO.Policy policy = allPolicies.stream().filter(item -&gt; item.getName().equalsIgnoreCase(policyName)).findFirst().orElse(null);</span>
+<span class="nc bnc" id="L429" title="All 2 branches missed.">		if (policy == null) {</span>
+<span class="nc" id="L430">			throw new RuntimeException(String.format(&quot;The policy '%s' does not exist.&quot;, policyName));</span>
+		}
+
+<span class="nc" id="L433">		logger.info(&quot;Setting default vROPs policy to '{}'&quot;, policyName);</span>
+		try {
+<span class="nc" id="L435">			UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUri(new URI(getURIBuilder().setPath(DEFAULT_POLICY_API).toString()));</span>
+<span class="nc" id="L436">			uriBuilder.queryParam(&quot;id&quot;, policy.getId());</span>
+<span class="nc" id="L437">			URI restUri = uriBuilder.build().toUri();</span>
+<span class="nc" id="L438">			restTemplate.exchange(restUri, HttpMethod.PUT, null, String.class);</span>
+<span class="nc" id="L439">		} catch (RestClientException e) {</span>
+<span class="nc" id="L440">			throw new RuntimeException(String.format(&quot;Error setting default policy to '%s'. Message: %s&quot;, policyName, e.getMessage()));</span>
+<span class="nc" id="L441">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L442">			throw new RuntimeException(String.format(&quot;Error building REST URI to set default policy. Message: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L443">		}</span>
+<span class="nc" id="L444">	}</span>
+
+	/**
+	 * Gets the default policy for vROPs. Note that it applies to vROPs 8.12 and
+	 * later only.
+	 *
+	 * @return PolicyDTO.Policy policy object, or null if the vROPs version is older
+	 *         than 8.12 or no default policy is set.
+	 * @throws Exception exception if the default policy cannot be fetched.
+	 */
+	public PolicyDTO.Policy getDefaultPolicy() throws Exception {
+		// default policy is available since vROPs 8.12 only
+<span class="nc bnc" id="L456" title="All 2 branches missed.">		if (!this.isVersionAbove812()) {</span>
+<span class="nc" id="L457">			return null;</span>
+		}
+
+<span class="nc" id="L460">		return this.getAllPolicies().stream().filter(item -&gt; item.getDefaultPolicy()).findFirst().orElse(null);</span>
+	}
+
+	/**
+	 * Sets the priorities for a set of policies. Note that it applies to vROPs
+	 * 8.17.0 and later only. The order of the policy in the list define the policy
+	 * priorities. First policy in the list will be a policy with top priority.
+	 *
+	 * @param policies List of Policies.
+	 * @throws Exception exception if on or more policies cannot be found or
+	 *                   priority cannot be set.
+	 */
+	public void setPolicyPriorities(final List&lt;String&gt; policies) throws Exception {
+		// policy priority setting is available only since vROPs version 8.17.X
+<span class="nc bnc" id="L474" title="All 2 branches missed.">		if (!this.isVersionAbove817()) {</span>
+<span class="nc" id="L475">			return;</span>
+		}
+<span class="nc" id="L477">		List&lt;PolicyDTO.Policy&gt; allPolicies = this.getAllPolicies();</span>
+<span class="nc" id="L478">		List&lt;PolicyDTO.Policy&gt; policyObjects = policies.stream()</span>
+<span class="nc" id="L479">				.map(policyName -&gt; allPolicies.stream().filter(policyObject -&gt; policyObject.getName().equalsIgnoreCase(policyName)).findFirst().orElse(null))</span>
+<span class="nc" id="L480">				.toList();</span>
+		// the default policy cannot be part of the priority order list (due to limitation of vROPs)
+<span class="nc bnc" id="L482" title="All 4 branches missed.">		List&lt;PolicyDTO.Policy&gt; filteredObjects = policyObjects.stream().filter(policyObject -&gt; policyObject != null &amp;&amp; !policyObject.getDefaultPolicy()).collect(Collectors.toList());</span>
+<span class="nc" id="L483">		List&lt;String&gt; policyIds = filteredObjects.stream().map(item -&gt; item.getId()).collect(Collectors.toList());</span>
+<span class="nc" id="L484">		List&lt;String&gt; policyNames = filteredObjects.stream().map(item -&gt; item.getName()).collect(Collectors.toList());</span>
+
+		// check whether there are missing policies
+<span class="nc" id="L487">		List&lt;String&gt; missingPolicies = CollectionUtils.subtract(policies, allPolicies.stream().map(item -&gt; item.getName()).collect(Collectors.toList()))</span>
+<span class="nc" id="L488">				.stream().collect(Collectors.toList());</span>
+<span class="nc bnc" id="L489" title="All 2 branches missed.">		if (!missingPolicies.isEmpty()) {</span>
+<span class="nc" id="L490">			throw new RuntimeException(String.format(&quot;The policies '%s' cannot be found on the target system&quot;, this.concatenateList(missingPolicies, &quot;, &quot;)));</span>
+		}
+
+<span class="nc" id="L493">		logger.info(&quot;Ordering policies by priority '{}'&quot;, this.concatenateList(policyNames, &quot;, &quot;));</span>
+<span class="nc" id="L494">		Gson gson = new GsonBuilder().setLenient().create();</span>
+		try {
+<span class="nc" id="L496">			UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUri(new URI(getURIBuilder().setPath(POLICY_PRIORITY_PUBLIC_API).toString()));</span>
+<span class="nc" id="L497">			URI restUri = uriBuilder.build().toUri();</span>
+<span class="nc" id="L498">			HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L499">			headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L500">			Map&lt;String, List&lt;String&gt;&gt; parameters = new HashMap&lt;String, List&lt;String&gt;&gt;();</span>
+<span class="nc" id="L501">			List&lt;String&gt; mergedPolicyIds = policyIds;</span>
+			// in order priority list to work properly preserve the current ordering for the
+			// rest of the policies prior sending them to the API
+<span class="nc bnc" id="L504" title="All 4 branches missed.">			mergedPolicyIds.addAll(allPolicies.stream().filter(item -&gt; item.getPriority() != null).filter(item -&gt; !policyIds.contains(item.getId()))</span>
+<span class="nc" id="L505">					.sorted((object1, object2) -&gt; object1.getPriority().compareTo(object2.getPriority())).map(item -&gt; item.getId())</span>
+<span class="nc" id="L506">					.collect(Collectors.toList()));</span>
+<span class="nc" id="L507">			parameters.put(&quot;policyIds&quot;, mergedPolicyIds);</span>
+<span class="nc" id="L508">			restTemplate.exchange(restUri, HttpMethod.PUT, new HttpEntity&lt;&gt;(gson.toJson(parameters), headers), String.class);</span>
+<span class="nc" id="L509">		} catch (RestClientException e) {</span>
+<span class="nc" id="L510">			throw new RuntimeException(String.format(&quot;REST service error while ordering policies by priority for policies '%s'. Message: %s&quot;,</span>
+<span class="nc" id="L511">					this.concatenateList(policyNames, &quot;, &quot;), e.getMessage()));</span>
+<span class="nc" id="L512">		} catch (Exception e) {</span>
+<span class="nc" id="L513">			throw new RuntimeException(String.format(&quot;Error while ordering policies by priority for policies '%s'. Message: %s&quot;,</span>
+<span class="nc" id="L514">					this.concatenateList(policyNames, &quot;, &quot;), e.getMessage()));</span>
+<span class="nc" id="L515">		}</span>
+<span class="nc" id="L516">	}</span>
+
+	/**
+	 * Export a zip file per policies, filtered by name.
+	 * 
+	 * @param policyEntries Names of the policies to be exported
+	 * @return a list of policies containing a zip file as byte[], name and id of
+	 *         the policy
+	 */
+	public List&lt;PolicyDTO.Policy&gt; exportPoliciesFromVrops(List&lt;String&gt; policyEntries) {
+<span class="nc" id="L526">		List&lt;PolicyDTO.Policy&gt; policies = filterPoliciesByName(policyEntries);</span>
+<span class="nc" id="L527">		restTemplate.getMessageConverters().add(new ByteArrayHttpMessageConverter());</span>
+
+		UriComponentsBuilder uriBuilder;
+		// for newer vROPs versions the policies API is no longer internal.
+<span class="nc bnc" id="L531" title="All 2 branches missed.">		if (this.isVersionAbove812()) {</span>
+<span class="nc" id="L532">			uriBuilder = UriComponentsBuilder.fromUri(getURI(getURIBuilder().setPath(POLICIES_EXPORT_PUBLIC_API)));</span>
+		} else {
+<span class="nc" id="L534">			uriBuilder = UriComponentsBuilder.fromUri(getURI(getURIBuilder().setPath(POLICIES_EXPORT_INTERNAL_API)));</span>
+		}
+
+<span class="nc bnc" id="L537" title="All 2 branches missed.">		for (PolicyDTO.Policy policy : policies) {</span>
+<span class="nc" id="L538">			uriBuilder.queryParam(&quot;id&quot;, policy.getId());</span>
+<span class="nc" id="L539">			HttpHeaders exportHeader = new HttpHeaders();</span>
+<span class="nc" id="L540">			exportHeader.setAccept(Arrays.asList(MediaType.APPLICATION_OCTET_STREAM));</span>
+			// older vROPs versions use internal API for policies export, thus internal
+			// header needs to be set.
+<span class="nc bnc" id="L543" title="All 2 branches missed.">			if (!this.isVersionAbove812()) {</span>
+<span class="nc" id="L544">				exportHeader.set(INTERNAL_API_HEADER_NAME, Boolean.TRUE.toString());</span>
+			}
+<span class="nc" id="L546">			HttpEntity&lt;String&gt; exportEntity = new HttpEntity&lt;&gt;(exportHeader);</span>
+<span class="nc" id="L547">			ResponseEntity&lt;byte[]&gt; exportResponse = restTemplate.exchange(uriBuilder.toUriString(), HttpMethod.GET, exportEntity, byte[].class);</span>
+<span class="nc" id="L548">			policy.setZipFile(exportResponse.getBody());</span>
+<span class="nc" id="L549">		}</span>
+
+<span class="nc" id="L551">		return policies;</span>
+	}
+
+	/**
+	 * Returns all policies.
+	 * 
+	 * @return a list of policies
+	 */
+	public List&lt;PolicyDTO.Policy&gt; getAllPolicies() {
+<span class="nc" id="L560">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L561">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+
+		// older vROPs versions use internal API for policies, thus internal header
+		// needs to be set.
+<span class="nc bnc" id="L565" title="All 2 branches missed.">		if (!this.isVersionAbove812()) {</span>
+<span class="nc" id="L566">			headers.set(INTERNAL_API_HEADER_NAME, Boolean.TRUE.toString());</span>
+		}
+<span class="nc" id="L568">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+<span class="nc" id="L569">		ResponseEntity&lt;String&gt; response = new ResponseEntity&lt;String&gt;(HttpStatus.OK);</span>
+		try {
+			UriComponentsBuilder uriBuilder;
+			// for newer vROPs versions the policies API is no longer internal.
+<span class="nc bnc" id="L573" title="All 2 branches missed.">			if (this.isVersionAbove812()) {</span>
+<span class="nc" id="L574">				uriBuilder = UriComponentsBuilder.fromUri(getURI(getURIBuilder().setPath(POLICIES_FETCH_PUBLIC_API)));</span>
+			} else {
+<span class="nc" id="L576">				uriBuilder = UriComponentsBuilder.fromUri(getURI(getURIBuilder().setPath(POLICIES_FETCH_INTERNAL_API)));</span>
+
+			}
+<span class="nc" id="L579">			uriBuilder.queryParam(&quot;pageSize&quot;, DEFAULT_PAGE_SIZE);</span>
+<span class="nc" id="L580">			URI restUri = uriBuilder.build().toUri();</span>
+<span class="nc" id="L581">			response = restTemplate.exchange(restUri, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L582">		} catch (HttpClientErrorException e) {</span>
+<span class="nc bnc" id="L583" title="All 2 branches missed.">			if (HttpStatus.NOT_FOUND.equals(e.getStatusCode())) {</span>
+<span class="nc" id="L584">				return new ArrayList&lt;&gt;();</span>
+			}
+<span class="nc" id="L586">			throw new RuntimeException(</span>
+<span class="nc" id="L587">					String.format(&quot;HTTP error ocurred trying to fetching policies. Message: %s, Server error: %s&quot;, e.getMessage(), e.getStatusText()));</span>
+<span class="nc" id="L588">		} catch (Exception e) {</span>
+<span class="nc" id="L589">			throw new RuntimeException(</span>
+<span class="nc" id="L590">					String.format(&quot;General error while fetching policies. Message: %s, Server error: %s&quot;, e.getMessage(), response.getBody()));</span>
+<span class="nc" id="L591">		}</span>
+<span class="nc" id="L592">		PolicyDTO policyDto = deserializePolicies(response.getBody());</span>
+
+		// in vROPs version 8.12 and above the DTO key is called 'policySummaries',
+		// however in older versions the key is called 'policy-summaries'
+<span class="nc bnc" id="L596" title="All 4 branches missed.">		return policyDto == null ? Collections.emptyList() : policyDto.getPolicySummaries() != null ? policyDto.getPolicySummaries() : policyDto.getPolicies();</span>
+	}
+
+	/**
+	 * Returns the content for certain policy.
+	 * 
+	 * @param policy
+	 * 
+	 * @return policy
+	 */
+	public PolicyDTO.Policy getPolicyContent(PolicyDTO.Policy policy) {
+		UriComponentsBuilder uriBuilder;
+<span class="nc" id="L608">		HttpHeaders exportHeader = new HttpHeaders();</span>
+<span class="nc" id="L609">		exportHeader.setAccept(Arrays.asList(MediaType.ALL));</span>
+
+		// The API vROPs 8.2 or later expects accept to be MediaType.ALL
+<span class="nc bnc" id="L612" title="All 2 branches missed.">		if (this.isVersionAbove82()) {</span>
+<span class="nc" id="L613">			exportHeader.setAccept(Arrays.asList(MediaType.ALL));</span>
+		}
+		// for newer vROPs versions the policies API is no longer internal.
+<span class="nc bnc" id="L616" title="All 2 branches missed.">		if (this.isVersionAbove812()) {</span>
+<span class="nc" id="L617">			uriBuilder = UriComponentsBuilder.fromUri(getURI(getURIBuilder().setPath(POLICIES_EXPORT_PUBLIC_API)));</span>
+		} else {
+<span class="nc" id="L619">			uriBuilder = UriComponentsBuilder.fromUri(getURI(getURIBuilder().setPath(POLICIES_EXPORT_INTERNAL_API)));</span>
+<span class="nc" id="L620">			exportHeader.setAccept(Arrays.asList(MediaType.APPLICATION_OCTET_STREAM));</span>
+			// older vROPs versions use internal API for policies, thus internal header
+			// needs to be set.
+<span class="nc" id="L623">			exportHeader.set(INTERNAL_API_HEADER_NAME, Boolean.TRUE.toString());</span>
+		}
+<span class="nc" id="L625">		uriBuilder.queryParam(&quot;id&quot;, policy.getId());</span>
+<span class="nc" id="L626">		HttpEntity&lt;String&gt; exportEntity = new HttpEntity&lt;&gt;(exportHeader);</span>
+<span class="nc" id="L627">		ResponseEntity&lt;byte[]&gt; response = new ResponseEntity&lt;byte[]&gt;(HttpStatus.OK);</span>
+		try {
+<span class="nc" id="L629">			response = restTemplate.exchange(uriBuilder.toUriString(), HttpMethod.GET, exportEntity, byte[].class);</span>
+<span class="nc" id="L630">		} catch (RestClientException e) {</span>
+<span class="nc" id="L631">			throw new RuntimeException(</span>
+<span class="nc" id="L632">					String.format(&quot;Error exporting all policy %s from vROPS : %s , Server error: %s&quot;, policy.getName(), e.getMessage(), response.getBody()));</span>
+<span class="nc" id="L633">		}</span>
+
+<span class="nc bnc" id="L635" title="All 2 branches missed.">		if (!HttpStatus.OK.equals(response.getStatusCode())) {</span>
+<span class="nc" id="L636">			throw new RuntimeException(</span>
+<span class="nc" id="L637">					String.format(&quot;Error exporting all policy %s from vROPS : remote REST service returned: %s&quot;, policy.getName(), response.getStatusCode()));</span>
+		}
+<span class="nc" id="L639">		policy.setZipFile(response.getBody());</span>
+
+<span class="nc" id="L641">		return policy;</span>
+	}
+
+	/**
+	 * Applies policy to given custom groups.
+	 * 
+	 * @param policy policy DTO object.
+	 * @param groups list of custom group group DTO objects.
+	 *
+	 */
+	public void applyPolicyToCustomGroups(PolicyDTO.Policy policy, List&lt;CustomGroupDTO.Group&gt; groups) {
+		UriComponentsBuilder uriBuilder;
+<span class="nc" id="L653">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L654">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+
+		// for newer vROPs versions the policies API is no longer internal.
+<span class="nc bnc" id="L657" title="All 2 branches missed.">		if (this.isVersionAbove812()) {</span>
+<span class="nc" id="L658">			uriBuilder = UriComponentsBuilder.fromUri(getURI(getURIBuilder().setPath(POLICIES_APPLY_PUBLIC_API)));</span>
+		} else {
+<span class="nc" id="L660">			uriBuilder = UriComponentsBuilder.fromUri(getURI(getURIBuilder().setPath(POLICIES_APPLY_INTERNAL_API)));</span>
+			// older vROPs versions use internal API for policies, thus internal header
+			// needs to be set.
+<span class="nc" id="L663">			headers.set(INTERNAL_API_HEADER_NAME, Boolean.TRUE.toString());</span>
+		}
+<span class="nc bnc" id="L665" title="All 2 branches missed.">		List&lt;String&gt; groupIds = groups.stream().filter(group -&gt; !StringUtils.isEmpty(group.getId())).map(group -&gt; (group.getId())).collect(Collectors.toList());</span>
+
+<span class="nc" id="L667">		PolicyCustomGroupAssignmentDTO policyAssignmentDto = new PolicyCustomGroupAssignmentDTO();</span>
+<span class="nc" id="L668">		policyAssignmentDto.setId(policy.getId());</span>
+<span class="nc" id="L669">		policyAssignmentDto.setGroups(groupIds);</span>
+<span class="nc" id="L670">		String policyAssignment = this.deserializePolicyCustomGroupAssignmentDto(policyAssignmentDto);</span>
+
+<span class="nc" id="L672">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(policyAssignment, headers);</span>
+<span class="nc" id="L673">		ResponseEntity&lt;String&gt; response = new ResponseEntity&lt;String&gt;(HttpStatus.OK);</span>
+		try {
+<span class="nc" id="L675">			response = restTemplate.exchange(uriBuilder.toUriString(), HttpMethod.POST, entity, String.class);</span>
+<span class="nc" id="L676">		} catch (HttpClientErrorException e) {</span>
+<span class="nc bnc" id="L677" title="All 2 branches missed.">			if (HttpStatus.NOT_FOUND.equals(e.getStatusCode())) {</span>
+<span class="nc" id="L678">				throw new RuntimeException(</span>
+<span class="nc" id="L679">						String.format(&quot;Unable to find resource while applying policy '%s' to custom groups: %s: &quot;, policy.getName(), e.getStatusText()));</span>
+<span class="nc bnc" id="L680" title="All 2 branches missed.">			} else if (HttpStatus.BAD_REQUEST.equals(e.getStatusCode())) {</span>
+<span class="nc" id="L681">				throw new RuntimeException(</span>
+<span class="nc" id="L682">						String.format(&quot;Validation error while applying policy '%s' to custom groups: %s: &quot;, policy.getName(), e.getStatusText()));</span>
+			} else {
+<span class="nc" id="L684">				throw new RuntimeException(String.format(&quot;Error while applying policy '%s' to custom groups: %s: &quot;, policy.getName(), e.getStatusText()));</span>
+			}
+<span class="nc" id="L686">		} catch (RestClientException e) {</span>
+<span class="nc" id="L687">			throw new RuntimeException(String.format(&quot;Error applying policy '%s' to custom groups: %s&quot;, policy.getName(), e.getMessage()));</span>
+<span class="nc" id="L688">		}</span>
+		// For all other HTTP errors than HTTP status OK, throw an error with the
+		// message returned by the API.
+<span class="nc bnc" id="L691" title="All 2 branches missed.">		if (!HttpStatus.OK.equals(response.getStatusCode())) {</span>
+<span class="nc" id="L692">			throw new RuntimeException(String.format(&quot;Error applying policy '%s' to custom groups: %s: &quot;, policy.getName(), response.getBody()));</span>
+		}
+<span class="nc" id="L694">	}</span>
+
+	/**
+	 * Export custom groups filtered by list of custom group names.
+	 * 
+	 * @param customGroupNames Names of the custom groups to be exported
+	 * @return a list of custom groups
+	 */
+	public List&lt;CustomGroupDTO.Group&gt; exportCustomGroupsFromVrops(List&lt;String&gt; customGroupNames) {
+<span class="nc" id="L703">		return findCustomGroupsByNames(customGroupNames);</span>
+	}
+
+	/**
+	 * Export all available custom groups from vROPs.
+	 * 
+	 * @return a list of custom groups
+	 */
+	public List&lt;CustomGroupDTO.Group&gt; getAllCustomGroups() {
+<span class="nc" id="L712">		return findCustomGroupsByNames(null);</span>
+	}
+
+	/**
+	 * Export definition of given type from vROPS server and return it as string.
+	 * 
+	 * @param definitionName - the name of the definition that has to be exported.
+	 * @param definitionType - the VropsPackageMemberType type of the definition
+	 *                       (currently ALERT_DEFINITION, SYMPTOM_DEFINITION and
+	 *                       RECOMMENDATION are supported only).
+	 * @return JSON String containing the definition data.
+	 */
+	public String exportDefinitionFromVrops(String definitionName, VropsPackageMemberType definitionType) {
+<span class="nc" id="L725">		String definitionId = getDefinitionIdByName(definitionName, definitionType);</span>
+<span class="nc bnc" id="L726" title="All 2 branches missed.">		if (StringUtils.isEmpty(definitionId)) {</span>
+<span class="nc" id="L727">			throw new RuntimeException(String.format(&quot;Error exporting %s of type %s from vROPS , unable to find definition&quot;, definitionName, definitionType));</span>
+		}
+<span class="nc" id="L729">		URI restUri = getDefinitionUri(definitionType, definitionId);</span>
+
+<span class="nc" id="L731">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L732">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L733">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+<span class="nc" id="L734">		ResponseEntity&lt;String&gt; response = new ResponseEntity&lt;String&gt;(HttpStatus.OK);</span>
+		try {
+<span class="nc" id="L736">			response = restTemplate.exchange(restUri, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L737">		} catch (RestClientException e) {</span>
+<span class="nc" id="L738">			throw new RuntimeException(String.format(&quot;Error exporting %s of type %s from vROPS : %s&quot;, definitionId, definitionType, e.getMessage()), e);</span>
+<span class="nc" id="L739">		}</span>
+
+<span class="nc bnc" id="L741" title="All 2 branches missed.">		if (!HttpStatus.OK.equals(response.getStatusCode())) {</span>
+<span class="nc" id="L742">			throw new RuntimeException(String.format(&quot;Error exporting %s of type %s from vROPS : remote REST service returned: %s&quot;, definitionType,</span>
+<span class="nc" id="L743">					definitionId, response.getStatusCode()));</span>
+		}
+
+<span class="nc" id="L746">		return response.getBody();</span>
+	}
+
+	/**
+	 * Export all definitions of given type from vROPs.
+	 * 
+	 * @param definitionType - the VropsPackageMemberType type of the definition
+	 *                       (currently ALERT_DEFINITION, SYMPTOM_DEFINITION and
+	 *                       RECOMMENDATION are supported only).
+	 * @return Object - the object that is instance of AlertDefinitionDTO or
+	 *         SymptomDefinitionsDTO or RecommendationsDTO.
+	 */
+	public Object exportDefinitionsFromVrops(VropsPackageMemberType definitionType) {
+<span class="nc" id="L759">		URI restUri = getDefinitionUri(definitionType);</span>
+
+<span class="nc" id="L761">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L762">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L763">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+<span class="nc" id="L764">		ResponseEntity&lt;String&gt; response = new ResponseEntity&lt;String&gt;(HttpStatus.OK);</span>
+		try {
+<span class="nc" id="L766">			response = restTemplate.exchange(restUri, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L767">		} catch (RestClientException e) {</span>
+<span class="nc" id="L768">			throw new RuntimeException(String.format(&quot;Error exporting all definitions of type %s from vROPS : %s&quot;, definitionType, e.getMessage()), e);</span>
+<span class="nc" id="L769">		}</span>
+
+<span class="nc bnc" id="L771" title="All 2 branches missed.">		if (!HttpStatus.OK.equals(response.getStatusCode())) {</span>
+<span class="nc" id="L772">			throw new RuntimeException(String.format(&quot;Error exporting all definitions of type %s from vROPS : remote REST service returned: %s&quot;, definitionType,</span>
+<span class="nc" id="L773">					response.getStatusCode()));</span>
+		}
+
+<span class="nc" id="L776">		return deserializeDefinitions(definitionType, response.getBody());</span>
+	}
+
+	/**
+	 * Import definitions to the vROPS based on their type.
+	 * 
+	 * @param definitionType          - the VropsPackageMemberType type of the
+	 *                                definition (currently ALERT_DEFINITION,
+	 *                                SYMPTOM_DEFINITION and RECOMMENDATION are
+	 *                                supported only).
+	 * @param definitions             - definitions
+	 * @param dependentDefinitionsMap - dependentDefinitionsMap
+	 */
+	public void importDefinitionsInVrops(Map&lt;String, Object&gt; definitions, VropsPackageMemberType definitionType, Map&lt;String, Object&gt; dependentDefinitionsMap) {
+<span class="nc bnc" id="L790" title="All 2 branches missed.">		if (definitions.isEmpty()) {</span>
+<span class="nc" id="L791">			return;</span>
+		}
+
+<span class="nc bnc" id="L794" title="All 2 branches missed.">		for (Map.Entry&lt;String, Object&gt; definitionEntry : definitions.entrySet()) {</span>
+<span class="nc bnc" id="L795" title="All 2 branches missed.">			if (definitionEntry.getValue() == null) {</span>
+<span class="nc" id="L796">				continue;</span>
+			}
+<span class="nc" id="L798">			String definitionName = getDefinitionName(definitionEntry.getValue(), definitionType);</span>
+<span class="nc" id="L799">			logger.info(&quot;Importing {} '{}' to vROPs&quot;, definitionType, definitionName);</span>
+<span class="nc" id="L800">			importDefinitionToVrops(definitionEntry.getValue(), definitionType, dependentDefinitionsMap);</span>
+<span class="nc" id="L801">		}</span>
+<span class="nc" id="L802">	}</span>
+
+	/**
+	 * Import custom group in vROPs.
+	 * 
+	 * @param customGroupName    - the custom group name.
+	 * @param customGroupPayload - the payload of the custom group as json.
+	 * @param policyIdMap        - the policy mappings.
+	 */
+	public void importCustomGroupInVrops(String customGroupName, String customGroupPayload, Map&lt;String, String&gt; policyIdMap) {
+<span class="nc bnc" id="L812" title="All 2 branches missed.">		if (StringUtils.isEmpty(customGroupPayload)) {</span>
+<span class="nc" id="L813">			return;</span>
+		}
+
+<span class="nc" id="L816">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc bnc" id="L817" title="All 2 branches missed.">		HttpMethod method = customGroupExists(customGroupPayload) ? HttpMethod.PUT : HttpMethod.POST;</span>
+<span class="nc" id="L818">		CustomGroupDTO.Group customGroup = serializeCustomGroup(customGroupPayload);</span>
+
+		// vROPs requires the group type to exists prior to creating
+<span class="nc" id="L821">		createMissingGroupTypes(customGroup);</span>
+
+		// vROPs requires the group id to be set to null prior creating it
+<span class="nc bnc" id="L824" title="All 2 branches missed.">		if (HttpMethod.POST.equals(method)) {</span>
+<span class="nc" id="L825">			customGroupPayload = setCustomGroupIdToNull(customGroupPayload);</span>
+		} else {
+<span class="nc" id="L827">			customGroupPayload = updateCustomGroupId(serializeCustomGroup(customGroupPayload), customGroupPayload);</span>
+		}
+
+<span class="nc" id="L830">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L831">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(customGroupPayload, headers);</span>
+<span class="nc" id="L832">		ResponseEntity&lt;String&gt; response = new ResponseEntity&lt;String&gt;(HttpStatus.OK);</span>
+		try {
+<span class="nc" id="L834">			URI restUri = new URI(getURIBuilder().setPath(CUSTOM_GROUPS_UPDATE_API).toString());</span>
+<span class="nc" id="L835">			response = restTemplate.exchange(restUri, method, entity, String.class);</span>
+<span class="nc" id="L836">		} catch (RestClientException e) {</span>
+<span class="nc" id="L837">			throw new RuntimeException(String.format(&quot;Unable to import custom group %s to vROPS : %s&quot;, customGroupName, e.getMessage()), e);</span>
+<span class="nc" id="L838">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L839">			throw new RuntimeException(String.format(&quot;Unable to determine vROPs REST endpoint for custom group %s : %s&quot;, customGroupName, e.getMessage()), e);</span>
+<span class="nc" id="L840">		}</span>
+
+<span class="nc" id="L842">		HttpStatus status = response.getStatusCode();</span>
+<span class="nc bnc" id="L843" title="All 2 branches missed.">		if (HttpMethod.POST.equals(method)) {</span>
+<span class="nc bnc" id="L844" title="All 2 branches missed.">			if (HttpStatus.BAD_REQUEST.equals(status)) {</span>
+<span class="nc" id="L845">				throw new RuntimeException(String.format(&quot;Error creating custom group %s: Validation error in the group data&quot;, customGroupName));</span>
+			}
+<span class="nc bnc" id="L847" title="All 2 branches missed.">			if (!HttpStatus.CREATED.equals(status)) {</span>
+<span class="nc" id="L848">				throw new RuntimeException(</span>
+<span class="nc" id="L849">						String.format(&quot;Error creating custom group %s: Remote REST service returned status code %s&quot;, customGroupName, status));</span>
+			}
+		}
+<span class="nc bnc" id="L852" title="All 2 branches missed.">		if (HttpMethod.PUT.equals(method)) {</span>
+<span class="nc bnc" id="L853" title="All 2 branches missed.">			if (HttpStatus.BAD_REQUEST.equals(status)) {</span>
+<span class="nc" id="L854">				throw new RuntimeException(String.format(&quot;Error updating custom group %s: Validation error in the group data&quot;, customGroupName));</span>
+			}
+<span class="nc bnc" id="L856" title="All 2 branches missed.">			if (!HttpStatus.OK.equals(status)) {</span>
+<span class="nc" id="L857">				throw new RuntimeException(</span>
+<span class="nc" id="L858">						String.format(&quot;Error creating custom group %s: Remote REST service returned status code %s&quot;, customGroupName, status));</span>
+			}
+		}
+
+		// Update policy for the custom group (if any)
+		// Note: due to bug in the API of vROPs the updating for the policy of
+		// a custom group should be done via separate call to the vROPs public API
+<span class="nc" id="L865">		updateCustomGroupPolicy(customGroupPayload, policyIdMap);</span>
+<span class="nc" id="L866">	}</span>
+
+	/**
+	 * Create the missing group types in vROPs.
+	 * 
+	 * @param customGroup - custom group DTO
+	 */
+	public void createMissingGroupTypes(CustomGroupDTO.Group customGroup) {
+<span class="nc" id="L874">		String customGroupResourceKind = customGroup.getResourceKey().getResourceKindKey();</span>
+<span class="nc bnc" id="L875" title="All 2 branches missed.">		if (!this.resourceKindExists(customGroupResourceKind, customGroup.getResourceKey().getAdapterKindKey())) {</span>
+<span class="nc" id="L876">			this.createCustomGroupType(customGroupResourceKind);</span>
+		}
+
+<span class="nc bnc" id="L879" title="All 2 branches missed.">		if (customGroup.getMembershipDefinition() != null) {</span>
+<span class="nc" id="L880">			customGroup.getMembershipDefinition().getRules().forEach(rule -&gt; {</span>
+<span class="nc" id="L881">				String resourceKindKey = rule.getResourceKindKey().getResourceKind();</span>
+<span class="nc" id="L882">				String adapterKindKey = rule.getResourceKindKey().getAdapterKind();</span>
+<span class="nc bnc" id="L883" title="All 2 branches missed.">				if (!resourceKindExists(resourceKindKey, adapterKindKey)) {</span>
+<span class="nc" id="L884">					this.createCustomGroupType(resourceKindKey);</span>
+				}
+<span class="nc" id="L886">			});</span>
+		}
+<span class="nc" id="L888">	}</span>
+
+	/**
+	 * Create the custom group type in vROPs.
+	 * 
+	 * @param customGroupType - custom group type.
+	 */
+	public void createCustomGroupType(String customGroupType) {
+<span class="nc" id="L896">		logger.info(String.format(&quot;Custom group type doesn't exist. Creating custom group type '%s'&quot;, customGroupType));</span>
+<span class="nc" id="L897">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L898">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L899">		CustomGroupTypeDTO customGroupTypeDto = new CustomGroupTypeDTO();</span>
+<span class="nc" id="L900">		customGroupTypeDto.setName(customGroupType);</span>
+<span class="nc" id="L901">		String customGroupTypePayload = deserializeCustomGroupType(customGroupTypeDto);</span>
+<span class="nc" id="L902">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(customGroupTypePayload, headers);</span>
+<span class="nc" id="L903">		ResponseEntity&lt;String&gt; response = new ResponseEntity&lt;String&gt;(HttpStatus.OK);</span>
+		try {
+<span class="nc" id="L905">			URI restUri = new URI(getURIBuilder().setPath(CUSTOM_GROUP_TYPES_API).toString());</span>
+<span class="nc" id="L906">			response = restTemplate.exchange(restUri, HttpMethod.POST, entity, String.class);</span>
+<span class="nc" id="L907">		} catch (RestClientException e) {</span>
+<span class="nc" id="L908">			throw new RuntimeException(String.format(&quot;Unable to create custom group type %s to vROPS : %s&quot;, customGroupType, e.getMessage()));</span>
+<span class="nc" id="L909">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L910">			throw new RuntimeException(String.format(&quot;Unable to determine vROPs REST endpoint for custom group type %s : %s&quot;, customGroupType, e.getMessage()));</span>
+<span class="nc" id="L911">		}</span>
+
+<span class="nc" id="L913">		HttpStatus status = response.getStatusCode();</span>
+<span class="nc bnc" id="L914" title="All 2 branches missed.">		if (HttpStatus.BAD_REQUEST.equals(status)) {</span>
+<span class="nc" id="L915">			throw new RuntimeException(String.format(&quot;Error creating custom group type %s: Validation error in the group data&quot;, customGroupType));</span>
+		}
+<span class="nc bnc" id="L917" title="All 2 branches missed.">		if (!HttpStatus.CREATED.equals(status)) {</span>
+<span class="nc" id="L918">			throw new RuntimeException(</span>
+<span class="nc" id="L919">					String.format(&quot;Error creating custom group type %s: Remote REST service returned status code %s&quot;, customGroupType, status));</span>
+		}
+<span class="nc" id="L921">	}</span>
+
+	/**
+	 * Get resources per vROPs adapter type.
+	 * 
+	 * @param adapterType - adapter type
+	 * @return resource DTO.
+	 */
+	public ResourcesDTO getResourcesPerAdapterType(final String adapterType) {
+<span class="nc" id="L930">		ResourcesDTO.PageInfo pageInfo = this.getResourcePerAdapterKindPageInfo(adapterType);</span>
+
+<span class="nc" id="L932">		ResourcesDTO resource = new ResourcesDTO();</span>
+<span class="nc bnc" id="L933" title="All 2 branches missed.">		long totalRecordsCount = pageInfo.getTotalCount() == null ? 0 : pageInfo.getTotalCount();</span>
+<span class="nc bnc" id="L934" title="All 2 branches missed.">		long pageSize = pageInfo.getPageSize() == null ? 0 : pageInfo.getPageSize();</span>
+<span class="nc bnc" id="L935" title="All 2 branches missed.">		if (pageSize == 0) {</span>
+<span class="nc" id="L936">			throw new RuntimeException(String.format(&quot;Invalid page size '0' received from vROPs for adapter type '%s'&quot;, adapterType));</span>
+		}
+
+<span class="nc" id="L939">		long totalPages = Math.floorDiv(totalRecordsCount, pageSize);</span>
+		// total pages should be 1 if the page size is exceeding the total records count
+		// (all results on 1 page)
+<span class="nc bnc" id="L942" title="All 2 branches missed.">		totalPages = totalPages == 0 ? 1 : totalPages;</span>
+<span class="nc bnc" id="L943" title="All 2 branches missed.">		for (long currentPage = 0; currentPage &lt; totalPages; currentPage++) {</span>
+<span class="nc" id="L944">			ResourcesDTO currentResource = this.getResourcesPerAdapterType(adapterType, currentPage);</span>
+<span class="nc bnc" id="L945" title="All 2 branches missed.">			if (!currentResource.getResourceList().isEmpty()) {</span>
+<span class="nc" id="L946">				resource.getResourceList().addAll(currentResource.getResourceList());</span>
+			}
+		}
+
+<span class="nc" id="L950">		return resource;</span>
+	}
+
+	/**
+	 * Get resources per vROPs adapter type and page.
+	 * 
+	 * @param adapterType - adapter type.
+	 * @param page        - page to retrieve from.
+	 * @return resource DTO.
+	 */
+	public ResourcesDTO getResourcesPerAdapterType(final String adapterType, final Long page) {
+<span class="nc" id="L961">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L962">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L963">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+<span class="nc" id="L964">		ResponseEntity&lt;String&gt; response = new ResponseEntity&lt;String&gt;(HttpStatus.OK);</span>
+<span class="nc" id="L965">		String endpointName = String.format(RESOURCES_LIST_PER_ADAPTER_KIND, adapterType);</span>
+		try {
+<span class="nc" id="L967">			UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUri(new URI(getURIBuilder().setPath(endpointName).toString()));</span>
+<span class="nc" id="L968">			uriBuilder.queryParam(&quot;pageSize&quot;, DEFAULT_PAGE_SIZE);</span>
+<span class="nc bnc" id="L969" title="All 2 branches missed.">			if (page != null) {</span>
+<span class="nc" id="L970">				uriBuilder.queryParam(&quot;page&quot;, page);</span>
+			}
+<span class="nc" id="L972">			URI restUri = uriBuilder.build().toUri();</span>
+<span class="nc" id="L973">			response = restTemplate.exchange(restUri, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L974">		} catch (HttpClientErrorException e) {</span>
+<span class="nc bnc" id="L975" title="All 2 branches missed.">			if (HttpStatus.NOT_FOUND.equals(e.getStatusCode())) {</span>
+<span class="nc" id="L976">				return new ResourcesDTO();</span>
+			}
+<span class="nc" id="L978">			throw new RuntimeException(String.format(&quot;Error occurred when trying to fetch resources for page %s. Message: %s, Server error: %s&quot;, page,</span>
+<span class="nc" id="L979">					e.getMessage(), e.getStatusText()));</span>
+<span class="nc" id="L980">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L981">			throw new RuntimeException(</span>
+<span class="nc" id="L982">					String.format(&quot;Error occurred when trying to build REST URI to fetch resources for page %s. Message: %s&quot;, page, e.getMessage()));</span>
+<span class="nc" id="L983">		}</span>
+		try {
+<span class="nc" id="L985">			return mapper.readValue(response.getBody(), ResourcesDTO.class);</span>
+<span class="nc" id="L986">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L987">			throw new RuntimeException(</span>
+<span class="nc" id="L988">					String.format(&quot;JSON mapping error while parsing the resources response for resource page %s. Message: %s&quot;, page, e.getMessage()));</span>
+<span class="nc" id="L989">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L990">			throw new RuntimeException(</span>
+<span class="nc" id="L991">					String.format(&quot;JSON processing error while parsing the resources response for resource page %s. Message: %s&quot;, page, e.getMessage()));</span>
+		}
+	}
+
+	/**
+	 * Get all vROPs resources.
+	 * 
+	 * @return resource DTO.
+	 */
+	public ResourcesDTO getResources() {
+<span class="nc" id="L1001">		ResourcesDTO.PageInfo pageInfo = this.getResourcePageInfo();</span>
+
+<span class="nc bnc" id="L1003" title="All 2 branches missed.">		long totalRecordsCount = pageInfo.getTotalCount() == null ? 0 : pageInfo.getTotalCount();</span>
+<span class="nc bnc" id="L1004" title="All 2 branches missed.">		long pageSize = pageInfo.getPageSize() == null ? 0 : pageInfo.getPageSize();</span>
+<span class="nc bnc" id="L1005" title="All 2 branches missed.">		if (pageSize == 0) {</span>
+<span class="nc" id="L1006">			throw new RuntimeException(&quot;Invalid page size '0' received from vROPs&quot;);</span>
+		}
+<span class="nc" id="L1008">		ResourcesDTO resource = new ResourcesDTO();</span>
+<span class="nc" id="L1009">		long totalPages = Math.floorDiv(totalRecordsCount, pageSize);</span>
+		// total pages should be 1 if the page size is exceeding the total records count
+		// (all results on 1 page)
+<span class="nc bnc" id="L1012" title="All 2 branches missed.">		totalPages = totalPages == 0 ? 1 : totalPages;</span>
+<span class="nc bnc" id="L1013" title="All 2 branches missed.">		for (long currentPage = 0; currentPage &lt; totalPages; currentPage++) {</span>
+<span class="nc" id="L1014">			ResourcesDTO currentResource = this.getResources(currentPage);</span>
+<span class="nc bnc" id="L1015" title="All 2 branches missed.">			if (!currentResource.getResourceList().isEmpty()) {</span>
+<span class="nc" id="L1016">				resource.getResourceList().addAll(currentResource.getResourceList());</span>
+			}
+		}
+
+<span class="nc" id="L1020">		return resource;</span>
+	}
+
+	/**
+	 * Get all vROPs resources for page.
+	 * 
+	 * @param page - page to retrieve from.
+	 * @return resource DTO.
+	 */
+	public ResourcesDTO getResources(final Long page) {
+<span class="nc" id="L1030">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L1031">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L1032">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+<span class="nc" id="L1033">		ResponseEntity&lt;String&gt; response = new ResponseEntity&lt;String&gt;(HttpStatus.OK);</span>
+		try {
+<span class="nc" id="L1035">			UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUri(new URI(getURIBuilder().setPath(RESOURCES_LIST_API).toString()));</span>
+<span class="nc" id="L1036">			uriBuilder.queryParam(&quot;pageSize&quot;, DEFAULT_PAGE_SIZE);</span>
+<span class="nc bnc" id="L1037" title="All 2 branches missed.">			if (page != null) {</span>
+<span class="nc" id="L1038">				uriBuilder.queryParam(&quot;page&quot;, page);</span>
+			}
+<span class="nc" id="L1040">			URI restUri = uriBuilder.build().toUri();</span>
+<span class="nc" id="L1041">			response = restTemplate.exchange(restUri, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L1042">		} catch (HttpClientErrorException e) {</span>
+<span class="nc bnc" id="L1043" title="All 2 branches missed.">			if (HttpStatus.NOT_FOUND.equals(e.getStatusCode())) {</span>
+<span class="nc" id="L1044">				return new ResourcesDTO();</span>
+			}
+<span class="nc" id="L1046">			throw new RuntimeException(</span>
+<span class="nc" id="L1047">					String.format(&quot;Error occurred when trying to fetch resources. Message: %s, Server error: %s&quot;, e.getMessage(), e.getStatusText()));</span>
+<span class="nc" id="L1048">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L1049">			throw new RuntimeException(String.format(&quot;Error occurred when trying to build REST URI to fetch resources. Message: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L1050">		}</span>
+		try {
+<span class="nc" id="L1052">			return mapper.readValue(response.getBody(), ResourcesDTO.class);</span>
+<span class="nc" id="L1053">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L1054">			throw new RuntimeException(String.format(&quot;JSON mapping error while parsing the resources response. Message: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L1055">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L1056">			throw new RuntimeException(String.format(&quot;JSON processing error while parsing the resources response. Message: %s&quot;, e.getMessage()));</span>
+		}
+	}
+
+	/**
+	 * Get all vROPs super metrics.
+	 * 
+	 * @return supermetric DTO.
+	 */
+	public SupermetricDTO getAllSupermetrics() {
+<span class="nc" id="L1066">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L1067">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L1068">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+<span class="nc" id="L1069">		ResponseEntity&lt;String&gt; response = new ResponseEntity&lt;String&gt;(HttpStatus.OK);</span>
+<span class="nc" id="L1070">		SupermetricDTO retVal = new SupermetricDTO();</span>
+		try {
+<span class="nc" id="L1072">			UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUri(new URI(getURIBuilder().setPath(SUPERMETRICS_LIST_API).toString()));</span>
+<span class="nc" id="L1073">			uriBuilder.queryParam(&quot;pageSize&quot;, DEFAULT_PAGE_SIZE);</span>
+<span class="nc" id="L1074">			URI restUri = uriBuilder.build().toUri();</span>
+<span class="nc" id="L1075">			response = restTemplate.exchange(restUri, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L1076">		} catch (HttpClientErrorException e) {</span>
+<span class="nc bnc" id="L1077" title="All 2 branches missed.">			if (HttpStatus.NOT_FOUND.equals(e.getStatusCode())) {</span>
+<span class="nc" id="L1078">				return retVal;</span>
+			}
+<span class="nc" id="L1080">			throw new RuntimeException(</span>
+<span class="nc" id="L1081">					String.format(&quot;Error occurred when trying to fetch supermetrics list. Message: %s, Server error: %s&quot;, e.getMessage(), e.getStatusText()));</span>
+<span class="nc" id="L1082">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L1083">			throw new RuntimeException(String.format(&quot;Error occurred when trying to build REST URI to fetch supermetrics. Message: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L1084">		}</span>
+		try {
+<span class="nc" id="L1086">			retVal = mapper.readValue(response.getBody(), SupermetricDTO.class);</span>
+<span class="nc" id="L1087">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L1088">			throw new RuntimeException(String.format(&quot;JSON mapping error while parsing the supermetrics list response. Message: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L1089">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L1090">			throw new RuntimeException(</span>
+<span class="nc" id="L1091">					String.format(&quot;JSON processing error while parsing the supermetrics list resources response. Message: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L1092">		}</span>
+		// Unescape special html characters in the names (returned by rest service)
+<span class="nc" id="L1094">		retVal.getSuperMetrics().forEach(supermetric -&gt; supermetric.setName(StringEscapeUtils.unescapeHtml4(supermetric.getName())));</span>
+
+<span class="nc" id="L1096">		return retVal;</span>
+	}
+
+	/**
+	 * Get all vROPs view definitions.
+	 * 
+	 * @return ViewDefinitionDTO
+	 */
+	public ViewDefinitionDTO getAllViewDefinitions() {
+<span class="nc" id="L1105">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L1106">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+		// Required header for internal API
+<span class="nc" id="L1108">		headers.set(INTERNAL_API_HEADER_NAME, Boolean.TRUE.toString());</span>
+<span class="nc" id="L1109">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+<span class="nc" id="L1110">		ResponseEntity&lt;String&gt; response = new ResponseEntity&lt;String&gt;(HttpStatus.OK);</span>
+<span class="nc" id="L1111">		ViewDefinitionDTO retVal = new ViewDefinitionDTO();</span>
+		try {
+<span class="nc" id="L1113">			UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUri(new URI(getURIBuilder().setPath(VIEW_DEFINITIONS_LIST_API).toString()));</span>
+<span class="nc" id="L1114">			uriBuilder.queryParam(&quot;pageSize&quot;, DEFAULT_PAGE_SIZE);</span>
+<span class="nc" id="L1115">			URI restUri = uriBuilder.build().toUri();</span>
+<span class="nc" id="L1116">			response = restTemplate.exchange(restUri, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L1117">		} catch (HttpClientErrorException e) {</span>
+<span class="nc bnc" id="L1118" title="All 2 branches missed.">			if (HttpStatus.NOT_FOUND.equals(e.getStatusCode())) {</span>
+<span class="nc" id="L1119">				return retVal;</span>
+			}
+<span class="nc" id="L1121">			throw new RuntimeException(</span>
+<span class="nc" id="L1122">					String.format(&quot;Error ocurred trying to fetching view definitions. Message: %s, Server error: %s&quot;, e.getMessage(), e.getStatusText()));</span>
+<span class="nc" id="L1123">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L1124">			throw new RuntimeException(String.format(&quot;Error building REST URI to fetch view definitions. Message: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L1125">		}</span>
+		try {
+<span class="nc" id="L1127">			retVal = mapper.readValue(response.getBody(), ViewDefinitionDTO.class);</span>
+<span class="nc" id="L1128">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L1129">			throw new RuntimeException(String.format(&quot;JSON mapping error while parsing the view definitions response. Message: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L1130">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L1131">			throw new RuntimeException(String.format(&quot;JSON processing error while parsing the view definitions response. Message: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L1132">		}</span>
+		// Unescape special html characters in the names (returned by rest service)
+<span class="nc" id="L1134">		retVal.getViewDefinitions().forEach(view -&gt; view.setName(StringEscapeUtils.unescapeHtml4(view.getName())));</span>
+
+<span class="nc" id="L1136">		return retVal;</span>
+	}
+
+	/**
+	 * Get all vROPs report definitions.
+	 * 
+	 * @return ReportDefinitionDTO
+	 */
+	public ReportDefinitionDTO getAllReportDefinitions() {
+<span class="nc" id="L1145">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L1146">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L1147">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+		ResponseEntity&lt;String&gt; response;
+<span class="nc" id="L1149">		ReportDefinitionDTO retVal = new ReportDefinitionDTO();</span>
+		try {
+<span class="nc" id="L1151">			UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUri(new URI(getURIBuilder().setPath(REPORT_DEFINITIONS_LIST_API).toString()));</span>
+<span class="nc" id="L1152">			uriBuilder.queryParam(&quot;pageSize&quot;, DEFAULT_PAGE_SIZE);</span>
+<span class="nc" id="L1153">			URI restUri = uriBuilder.build().toUri();</span>
+<span class="nc" id="L1154">			response = restTemplate.exchange(restUri, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L1155">		} catch (HttpClientErrorException e) {</span>
+<span class="nc bnc" id="L1156" title="All 2 branches missed.">			if (HttpStatus.NOT_FOUND.equals(e.getStatusCode())) {</span>
+<span class="nc" id="L1157">				return retVal;</span>
+			}
+<span class="nc" id="L1159">			throw new RuntimeException(</span>
+<span class="nc" id="L1160">					String.format(&quot;Error occurred when trying to fetch report definitions. Message: %s, Server error: %s&quot;, e.getMessage(), e.getStatusText()));</span>
+<span class="nc" id="L1161">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L1162">			throw new RuntimeException(String.format(&quot;Error occurred when trying to build REST URI to fetch report definitions. Message: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L1163">		}</span>
+		try {
+<span class="nc" id="L1165">			retVal = mapper.readValue(response.getBody(), ReportDefinitionDTO.class);</span>
+<span class="nc" id="L1166">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L1167">			throw new RuntimeException(String.format(&quot;JSON mapping error while parsing the report definitions response. Message: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L1168">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L1169">			throw new RuntimeException(</span>
+<span class="nc" id="L1170">					String.format(&quot;JSON processing error while parsing the supermetrics list report definitions response. Message: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L1171">		}</span>
+		// Unescape special html characters in the names (returned by rest service)
+<span class="nc" id="L1173">		retVal.getReportDefinitions().forEach(report -&gt; report.setName(StringEscapeUtils.unescapeHtml4(report.getName())));</span>
+
+<span class="nc" id="L1175">		return retVal;</span>
+	}
+
+	/**
+	 * Get all vROPs auth groups.
+	 * 
+	 * @return list of AuthGroupDTO
+	 */
+	public List&lt;AuthGroupDTO&gt; findAllAuthGroups() {
+<span class="nc" id="L1184">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L1185">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L1186">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+		ResponseEntity&lt;String&gt; response;
+<span class="nc" id="L1188">		List&lt;AuthGroupDTO&gt; retVal = new ArrayList&lt;&gt;();</span>
+		try {
+<span class="nc" id="L1190">			UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUri(new URI(getURIBuilder().setPath(AUTH_GROUPS_API).toString()));</span>
+<span class="nc" id="L1191">			uriBuilder.queryParam(&quot;pageSize&quot;, DEFAULT_PAGE_SIZE);</span>
+<span class="nc" id="L1192">			URI restUri = uriBuilder.build().toUri();</span>
+<span class="nc" id="L1193">			response = restTemplate.exchange(restUri, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L1194">		} catch (HttpClientErrorException e) {</span>
+<span class="nc bnc" id="L1195" title="All 2 branches missed.">			if (HttpStatus.NOT_FOUND.equals(e.getStatusCode())) {</span>
+<span class="nc" id="L1196">				return retVal;</span>
+			}
+<span class="nc" id="L1198">			throw new RuntimeException(</span>
+<span class="nc" id="L1199">					String.format(&quot;Error occurred when trying to fetch auth groups. Message: %s, Server error: %s&quot;, e.getMessage(), e.getStatusText()));</span>
+<span class="nc" id="L1200">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L1201">			throw new RuntimeException(String.format(&quot;Error occurred when trying to build REST URI to auth groups. Message: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L1202">		}</span>
+		try {
+<span class="nc" id="L1204">			AuthGroupsDTO authGroupDto = mapper.readValue(response.getBody(), AuthGroupsDTO.class);</span>
+<span class="nc bnc" id="L1205" title="All 2 branches missed.">			return authGroupDto == null ? retVal : authGroupDto.getUserGroups();</span>
+
+<span class="nc" id="L1207">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L1208">			throw new RuntimeException(String.format(&quot;JSON mapping error while parsing the auth groups response. Message: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L1209">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L1210">			throw new RuntimeException(String.format(&quot;JSON processing error while parsing the auth groups response. Message: %s&quot;, e.getMessage()));</span>
+		}
+	}
+
+	/**
+	 * Get all vROPs auth users.
+	 * 
+	 * @return list of AuthUserDTO
+	 */
+	public List&lt;AuthUserDTO&gt; findAllAuthUsers() {
+<span class="nc" id="L1220">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L1221">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L1222">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+		ResponseEntity&lt;String&gt; response;
+<span class="nc" id="L1224">		List&lt;AuthUserDTO&gt; retVal = new ArrayList&lt;&gt;();</span>
+		try {
+<span class="nc" id="L1226">			UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUri(new URI(getURIBuilder().setPath(AUTH_USERS_API).toString()));</span>
+<span class="nc" id="L1227">			uriBuilder.queryParam(&quot;pageSize&quot;, DEFAULT_PAGE_SIZE);</span>
+<span class="nc" id="L1228">			URI restUri = uriBuilder.build().toUri();</span>
+<span class="nc" id="L1229">			response = restTemplate.exchange(restUri, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L1230">		} catch (HttpClientErrorException e) {</span>
+<span class="nc bnc" id="L1231" title="All 2 branches missed.">			if (HttpStatus.NOT_FOUND.equals(e.getStatusCode())) {</span>
+<span class="nc" id="L1232">				return retVal;</span>
+			}
+<span class="nc" id="L1234">			throw new RuntimeException(</span>
+<span class="nc" id="L1235">					String.format(&quot;Error occurred when trying to fetch auth users. Message: %s, Server error: %s&quot;, e.getMessage(), e.getStatusText()));</span>
+<span class="nc" id="L1236">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L1237">			throw new RuntimeException(String.format(&quot;Error occurred when trying to build REST URI to auth users. Message: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L1238">		}</span>
+		try {
+<span class="nc" id="L1240">			AuthUsersDTO authUsersDto = mapper.readValue(response.getBody(), AuthUsersDTO.class);</span>
+<span class="nc bnc" id="L1241" title="All 2 branches missed.">			return authUsersDto == null ? retVal : authUsersDto.getUsers();</span>
+
+<span class="nc" id="L1243">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L1244">			throw new RuntimeException(String.format(&quot;JSON mapping error while parsing the auth users response. Message: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L1245">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L1246">			throw new RuntimeException(String.format(&quot;JSON processing error while parsing the auth users response. Message: %s&quot;, e.getMessage()));</span>
+		}
+	}
+
+	/**
+	 * Get vROPs auth user by name.
+	 * 
+	 * @param name
+	 * 
+	 * @return AuthUserDTO
+	 */
+	public AuthUserDTO findAllAuthUserByName(String name) {
+<span class="nc" id="L1258">		List&lt;AuthUserDTO&gt; allAuthUsers = this.findAllAuthUsers();</span>
+
+<span class="nc" id="L1260">		return allAuthUsers.stream().filter(item -&gt; name.equals(item.getUsername())).findAny().orElse(null);</span>
+	}
+
+	/**
+	 * Get vROPs auth group by name.
+	 * 
+	 * @param name
+	 * 
+	 * @return AuthGroupDTO
+	 */
+	public AuthGroupDTO findAuthGroupByName(String name) {
+<span class="nc" id="L1271">		List&lt;AuthGroupDTO&gt; allAuthGroups = this.findAllAuthGroups();</span>
+
+<span class="nc" id="L1273">		return allAuthGroups.stream().filter(item -&gt; name.equals(item.getDisplayName())).findAny().orElse(null);</span>
+	}
+
+	/**
+	 * Get all vROPs auth groups by name.
+	 * 
+	 * @param names
+	 * 
+	 * @return list of AuthGroupDTO
+	 */
+	public List&lt;AuthGroupDTO&gt; findAuthGroupsByNames(List&lt;String&gt; names) {
+<span class="nc" id="L1284">		List&lt;AuthGroupDTO&gt; allAuthGroups = this.findAllAuthGroups();</span>
+
+<span class="nc" id="L1286">		return allAuthGroups.stream().filter(item -&gt; names.contains(item.getDisplayName())).collect(Collectors.toList());</span>
+	}
+
+	/**
+	 * Get all vROPs auth users by name.
+	 * 
+	 * @param names
+	 * 
+	 * @return list of AuthUserDTO
+	 */
+	public List&lt;AuthUserDTO&gt; findAuthUsersByNames(List&lt;String&gt; names) {
+<span class="nc" id="L1297">		List&lt;AuthUserDTO&gt; allAuthUsers = this.findAllAuthUsers();</span>
+
+<span class="nc" id="L1299">		return allAuthUsers.stream().filter(item -&gt; names.contains(item.getUsername())).collect(Collectors.toList());</span>
+	}
+
+	/**
+	 * Searches for vROPs policy by name.
+	 * 
+	 * @param policyName
+	 * 
+	 * @return PolicyDTO.Policy object
+	 */
+	private PolicyDTO.Policy findPolicyByName(String policyName) {
+		// get all available policies in the target system
+<span class="nc" id="L1311">		List&lt;PolicyDTO.Policy&gt; policies = getAllPolicies();</span>
+
+<span class="nc bnc" id="L1313" title="All 4 branches missed.">		if (policies == null || policies.isEmpty()) {</span>
+<span class="nc" id="L1314">			throw new RuntimeException(&quot;Unable to retrieve policies from the target system&quot;);</span>
+		}
+<span class="nc" id="L1316">		Optional&lt;PolicyDTO.Policy&gt; foundPolicy = policies.stream().filter(item -&gt; item.getName().equalsIgnoreCase(policyName)).findFirst();</span>
+<span class="nc bnc" id="L1317" title="All 2 branches missed.">		if (!foundPolicy.isPresent()) {</span>
+<span class="nc" id="L1318">			throw new RuntimeException(String.format(&quot;Policy '%s' could not be found on the target system&quot;, policyName));</span>
+		}
+
+<span class="nc" id="L1321">		return foundPolicy.get();</span>
+	}
+
+	/**
+	 * Filter policies by set of names.
+	 * 
+	 * @param policyEntries
+	 * 
+	 * @return a list of PolicyDTO.Policy object
+	 */
+	private List&lt;PolicyDTO.Policy&gt; filterPoliciesByName(List&lt;String&gt; policyEntries) {
+<span class="nc" id="L1332">		List&lt;PolicyDTO.Policy&gt; policies = getAllPolicies();</span>
+<span class="nc bnc" id="L1333" title="All 4 branches missed.">		if (policies == null || policies.isEmpty()) {</span>
+<span class="nc" id="L1334">			return Collections.emptyList();</span>
+		}
+
+<span class="nc" id="L1337">		return policies.stream().filter(policy -&gt; policyEntries.stream().anyMatch(entry -&gt; entry.equalsIgnoreCase(policy.getName())))</span>
+<span class="nc" id="L1338">				.collect(Collectors.toList());</span>
+	}
+
+	/**
+	 * Update policy for custom group.
+	 * 
+	 * @param customGroupPayload
+	 * @param policyIdMap
+	 */
+	private void updateCustomGroupPolicy(String customGroupPayload, Map&lt;String, String&gt; policyIdMap) {
+<span class="nc" id="L1348">		CustomGroupDTO.Group customGroup = serializeCustomGroup(customGroupPayload);</span>
+<span class="nc bnc" id="L1349" title="All 2 branches missed.">		if (customGroup == null) {</span>
+<span class="nc" id="L1350">			return;</span>
+		}
+
+<span class="nc" id="L1353">		String policyId = customGroup.getPolicy();</span>
+<span class="nc bnc" id="L1354" title="All 2 branches missed.">		if (StringUtils.isEmpty(policyId)) {</span>
+<span class="nc" id="L1355">			return;</span>
+		}
+
+<span class="nc" id="L1358">		String customGroupName = customGroup.getResourceKey().getName();</span>
+		// throw an exception if the custom group has a policy but it cannot be found in
+		// the mapping data
+<span class="nc bnc" id="L1361" title="All 2 branches missed.">		if (!policyIdMap.containsKey(policyId)) {</span>
+<span class="nc" id="L1362">			throw new RuntimeException(String.format(&quot;The policy for custom group '%s' could not be found in the policy metadata file&quot;, customGroupName));</span>
+		}
+
+		// find the custom group in the target system
+<span class="nc" id="L1366">		customGroup = findCustomGroupByName(customGroupName);</span>
+<span class="nc bnc" id="L1367" title="All 2 branches missed.">		if (customGroup == null) {</span>
+<span class="nc" id="L1368">			throw new RuntimeException(String.format(&quot;Custom group '%s' cannot be found on the target system&quot;, customGroupName));</span>
+		}
+
+		// find policy in the target system
+<span class="nc" id="L1372">		String policyName = policyIdMap.get(policyId);</span>
+<span class="nc" id="L1373">		PolicyDTO.Policy policy = findPolicyByName(policyName);</span>
+<span class="nc" id="L1374">		customGroup.setPolicy(policy.getId());</span>
+
+		// prepare rest call payload
+<span class="nc" id="L1377">		customGroupPayload = deserializeCustomGroup(customGroup);</span>
+
+<span class="nc" id="L1379">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L1380">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L1381">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(customGroupPayload, headers);</span>
+		ResponseEntity&lt;String&gt; responseEntity;
+<span class="nc" id="L1383">		logger.info(&quot;Setting policy for custom group '{}' to '{}'&quot;, customGroupName, policyName);</span>
+		try {
+<span class="nc" id="L1385">			URI restUri = new URI(getURIBuilder().setPath(CUSTOM_GROUPS_UPDATE_API).toString());</span>
+<span class="nc" id="L1386">			responseEntity = restTemplate.exchange(restUri, HttpMethod.PUT, entity, String.class);</span>
+<span class="nc" id="L1387">		} catch (RestClientException e) {</span>
+<span class="nc" id="L1388">			throw new RuntimeException(String.format(&quot;Unable to update policy for custom group '%s' : %s&quot;, customGroupName, e.getMessage()), e);</span>
+<span class="nc" id="L1389">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L1390">			throw new RuntimeException(</span>
+<span class="nc" id="L1391">					String.format(&quot;Unable to determine REST endpoint for updating policy for custom group '%s' : %s&quot;, customGroupName, e.getMessage()), e);</span>
+<span class="nc" id="L1392">		}</span>
+
+<span class="nc bnc" id="L1394" title="All 2 branches missed.">		if (!HttpStatus.OK.equals(responseEntity.getStatusCode())) {</span>
+<span class="nc" id="L1395">			throw new RuntimeException(String.format(&quot;Error updating policy for custom group '%s': Remote REST service returned status code %s&quot;,</span>
+<span class="nc" id="L1396">					customGroupName, responseEntity.getStatusCode()));</span>
+		}
+<span class="nc" id="L1398">	}</span>
+
+	/**
+	 * Set the customer group id to null (required by vROPs API).
+	 * 
+	 * @param customGroupPayload
+	 * @return JSON string of custom group
+	 */
+	private String setCustomGroupIdToNull(final String customGroupPayload) {
+<span class="nc" id="L1407">		CustomGroupDTO.Group customGroup = serializeCustomGroup(customGroupPayload);</span>
+<span class="nc bnc" id="L1408" title="All 2 branches missed.">		if (customGroup == null) {</span>
+<span class="nc" id="L1409">			return customGroupPayload;</span>
+		}
+<span class="nc" id="L1411">		customGroup.setId(null);</span>
+<span class="nc" id="L1412">		customGroup.setIdentifier(null);</span>
+
+<span class="nc" id="L1414">		return deserializeCustomGroup(customGroup);</span>
+	}
+
+	/**
+	 * Update the customer group id (required by vROPs API).
+	 * 
+	 * @param customGroup
+	 * @param customGroupPayload
+	 * @return JSON string of custom group
+	 */
+	private String updateCustomGroupId(CustomGroupDTO.Group customGroup, String customGroupPayload) {
+<span class="nc" id="L1425">		CustomGroupDTO.Group serializedCustomGroup = serializeCustomGroup(customGroupPayload);</span>
+<span class="nc bnc" id="L1426" title="All 4 branches missed.">		if (customGroup == null || serializedCustomGroup == null) {</span>
+<span class="nc" id="L1427">			return customGroupPayload;</span>
+		}
+<span class="nc" id="L1429">		CustomGroupDTO.Group existingCustomGroup = findCustomGroupByName(customGroup.getResourceKey().getName());</span>
+<span class="nc bnc" id="L1430" title="All 2 branches missed.">		if (existingCustomGroup != null) {</span>
+			// vROPs complains if in the membership rules' stat condition rules both
+			// stringValue and doubleValue are set in this case set the doubleValue to null
+			// and leave the stringValue set only
+			// (used for bacward compatibility with older versions of Build Tools for VMware
+			// Aria)
+<span class="nc bnc" id="L1436" title="All 2 branches missed.">			if (serializedCustomGroup.getMembershipDefinition() != null) {</span>
+<span class="nc" id="L1437">				serializedCustomGroup.getMembershipDefinition().getRules().stream().forEach(rule -&gt; {</span>
+<span class="nc" id="L1438">					rule.getStatConditionRules().forEach(statCondition -&gt; {</span>
+<span class="nc bnc" id="L1439" title="All 4 branches missed.">						if (statCondition.getDoubleValue() != null &amp;&amp; !StringUtils.isEmpty(statCondition.getStringValue())) {</span>
+<span class="nc" id="L1440">							statCondition.setDoubleValue(null);</span>
+						}
+<span class="nc" id="L1442">					});</span>
+<span class="nc" id="L1443">				});</span>
+			}
+
+<span class="nc" id="L1446">			serializedCustomGroup.setId(existingCustomGroup.getId());</span>
+<span class="nc" id="L1447">			serializedCustomGroup.setIdentifier(existingCustomGroup.getId());</span>
+		}
+
+<span class="nc" id="L1450">		return deserializeCustomGroup(serializedCustomGroup);</span>
+	}
+
+	/**
+	 * serializeCustomGroup.
+	 * 
+	 * @param customGroupPayload
+	 * @return JSON string of custom group
+	 */
+	private CustomGroupDTO.Group serializeCustomGroup(String customGroupPayload) {
+		try {
+<span class="nc" id="L1461">			return mapper.readValue(customGroupPayload, CustomGroupDTO.Group.class);</span>
+<span class="nc" id="L1462">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L1463">			logger.warn(&quot;Failed to serialize custom group, mapping error: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L1464">			return null;</span>
+<span class="nc" id="L1465">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L1466">			logger.warn(&quot;Failed to serialize custom group, JSON processing error: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L1467">			return null;</span>
+		}
+	}
+
+	/**
+	 * deserializeCustomGroup.
+	 * 
+	 * @param customGroup
+	 * @return JSON string of custom group
+	 */
+	private String deserializeCustomGroup(CustomGroupDTO.Group customGroup) {
+		try {
+<span class="nc" id="L1479">			return mapper.writeValueAsString(customGroup);</span>
+<span class="nc" id="L1480">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L1481">			logger.warn(&quot;Failed to de-serialize custom group, JSON mapping error: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L1482">			return null;</span>
+<span class="nc" id="L1483">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L1484">			logger.warn(&quot;Failed to de-serialize custom group, JSON processing error: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L1485">			return null;</span>
+		}
+	}
+
+	/**
+	 * deserializeCustomGroupType.
+	 * 
+	 * @param customGroupType
+	 * @return JSON string of custom group
+	 */
+	private String deserializeCustomGroupType(CustomGroupTypeDTO customGroupType) {
+		try {
+<span class="nc" id="L1497">			return mapper.writeValueAsString(customGroupType);</span>
+<span class="nc" id="L1498">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L1499">			logger.warn(&quot;Failed to de-serialize custom group type, JSON mapping error: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L1500">			return null;</span>
+<span class="nc" id="L1501">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L1502">			logger.warn(&quot;Failed to de-serialize custom group type, JSON processing error: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L1503">			return null;</span>
+		}
+	}
+
+	/**
+	 * customGroupExists.
+	 * 
+	 * @param customGroupPayload
+	 * @return true if exists
+	 */
+	private boolean customGroupExists(String customGroupPayload) {
+<span class="nc" id="L1514">		CustomGroupDTO.Group customGroup = serializeCustomGroup(customGroupPayload);</span>
+<span class="nc bnc" id="L1515" title="All 2 branches missed.">		if (customGroup == null) {</span>
+<span class="nc" id="L1516">			return false;</span>
+		}
+
+<span class="nc bnc" id="L1519" title="All 2 branches missed.">		return findCustomGroupByName(customGroup.getResourceKey().getName()) != null;</span>
+	}
+
+	/**
+	 * Find vROPS custom group by name.
+	 * 
+	 * @param customGroupNames names of the custom groups
+	 * @return List&lt;CustomGroupDTO.CustomGroup&gt; - list of the found custom groups
+	 */
+	private List&lt;CustomGroupDTO.Group&gt; findCustomGroupsByNames(List&lt;String&gt; customGroupNames) {
+<span class="nc" id="L1529">		List&lt;CustomGroupDTO.Group&gt; retVal = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L1530">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L1531">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L1532">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+<span class="nc" id="L1533">		ResponseEntity&lt;String&gt; response = new ResponseEntity&lt;&gt;(HttpStatus.OK);</span>
+<span class="nc bnc" id="L1534" title="All 4 branches missed.">		String groupInfo = customGroupNames != null &amp;&amp; !customGroupNames.isEmpty() ? customGroupNames.stream().collect(Collectors.joining(&quot;,&quot;)) : &quot;&quot;;</span>
+		try {
+<span class="nc" id="L1536">			UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUri(new URI(getURIBuilder().setPath(CUSTOM_GROUPS_FETCH_API).toString()));</span>
+<span class="nc" id="L1537">			uriBuilder.queryParam(&quot;pageSize&quot;, DEFAULT_PAGE_SIZE);</span>
+<span class="nc" id="L1538">			uriBuilder.queryParam(&quot;includePolicy&quot;, Boolean.TRUE.toString());</span>
+<span class="nc" id="L1539">			URI restUri = uriBuilder.build().toUri();</span>
+<span class="nc" id="L1540">			response = restTemplate.exchange(restUri, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L1541">		} catch (HttpClientErrorException e) {</span>
+<span class="nc bnc" id="L1542" title="All 2 branches missed.">			if (HttpStatus.NOT_FOUND.equals(e.getStatusCode())) {</span>
+<span class="nc" id="L1543">				return new ArrayList&lt;&gt;();</span>
+			}
+<span class="nc" id="L1545">			throw new RuntimeException(String.format(&quot;Error ocurred trying to find custom groups %s. Message: %s, Server error: %s&quot;, groupInfo, e.getMessage(),</span>
+<span class="nc" id="L1546">					e.getStatusText()));</span>
+<span class="nc" id="L1547">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L1548">			throw new RuntimeException(String.format(&quot;Error building REST URI to find custom groups %s. Message: %s&quot;, groupInfo, e.getMessage()));</span>
+<span class="nc" id="L1549">		}</span>
+<span class="nc" id="L1550">		CustomGroupDTO customGroup = new CustomGroupDTO();</span>
+		try {
+<span class="nc" id="L1552">			customGroup = mapper.readValue(response.getBody(), CustomGroupDTO.class);</span>
+<span class="nc" id="L1553">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L1554">			throw new RuntimeException(String.format(&quot;JSON mapping error while parsing custom group response: %s&quot;, e.getMessage()), e);</span>
+<span class="nc" id="L1555">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L1556">			throw new RuntimeException(String.format(&quot;JSON processing error while parsing custom group response: %s&quot;, e.getMessage()), e);</span>
+<span class="nc" id="L1557">		}</span>
+
+		// if no filtering groups are specified return all
+<span class="nc bnc" id="L1560" title="All 4 branches missed.">		if (customGroupNames == null || customGroupNames.isEmpty()) {</span>
+<span class="nc" id="L1561">			return customGroup.getGroups();</span>
+		}
+
+<span class="nc bnc" id="L1564" title="All 2 branches missed.">		for (String name : customGroupNames) {</span>
+<span class="nc" id="L1565">			List&lt;CustomGroupDTO.Group&gt; foundGroups = customGroup.getGroups().stream().filter(item -&gt; name.equalsIgnoreCase(item.getResourceKey().getName()))</span>
+<span class="nc" id="L1566">					.collect(Collectors.toList());</span>
+<span class="nc bnc" id="L1567" title="All 2 branches missed.">			if (foundGroups.isEmpty()) {</span>
+<span class="nc" id="L1568">				continue;</span>
+			}
+<span class="nc" id="L1570">			retVal.addAll(foundGroups);</span>
+<span class="nc" id="L1571">		}</span>
+
+<span class="nc" id="L1573">		return retVal;</span>
+	}
+
+	private CustomGroupDTO.Group findCustomGroupByName(String customGroupName) {
+<span class="nc bnc" id="L1577" title="All 2 branches missed.">		if (StringUtils.isEmpty(customGroupName)) {</span>
+<span class="nc" id="L1578">			return null;</span>
+		}
+<span class="nc" id="L1580">		List&lt;CustomGroupDTO.Group&gt; foundGroups = findCustomGroupsByNames(Arrays.asList(new String[] { customGroupName }));</span>
+
+<span class="nc bnc" id="L1582" title="All 2 branches missed.">		return foundGroups.stream().findFirst().isPresent() ? foundGroups.stream().findFirst().get() : null;</span>
+	}
+
+	private void importDefinitionToVrops(Object definition, VropsPackageMemberType definitionType, Map&lt;String, Object&gt; dependentDefinitions) {
+		// validate definition sanity
+<span class="nc bnc" id="L1587" title="All 2 branches missed.">		if (!validateDefinition(definition, definitionType, dependentDefinitions)) {</span>
+<span class="nc" id="L1588">			logger.warn(&quot;Invalid definition of type {}, import will be skipped&quot;, definitionType);</span>
+<span class="nc" id="L1589">			return;</span>
+		}
+
+<span class="nc" id="L1592">		URI restUri = getDefinitionUri(definitionType, &quot;&quot;);</span>
+
+		// get definition Id on the target system
+<span class="nc" id="L1595">		String definitionId = getDefinitionId(definition, definitionType);</span>
+<span class="nc" id="L1596">		HttpMethod method = HttpMethod.POST;</span>
+<span class="nc bnc" id="L1597" title="All 2 branches missed.">		if (!StringUtils.isEmpty(definitionId)) {</span>
+<span class="nc" id="L1598">			updateDefinitionId(definition, definitionType, definitionId);</span>
+<span class="nc" id="L1599">			method = HttpMethod.PUT;</span>
+		}
+
+		// update dependent definitions if any
+<span class="nc" id="L1603">		updateDependentDefinitions(definition, definitionType, dependentDefinitions);</span>
+
+		// If HTTP method is POST the id has to be removed from the pay load (limitation
+		// of the vROps REST API)
+<span class="nc bnc" id="L1607" title="All 2 branches missed.">		if (method.equals(HttpMethod.POST)) {</span>
+<span class="nc" id="L1608">			removeIdFromDefinitionPayload(definition, definitionType);</span>
+		}
+
+		// If the resourceKindKey is missing definition cannot be created.
+		// In case of custom resourceKindKey it must be created as a new custom group
+		// type
+<span class="nc" id="L1614">		String adapterKindKey = getDefinitionAdapterKindKey(definition, definitionType);</span>
+<span class="nc" id="L1615">		String resourceKindKey = getDefinitionResourceKindKey(definition, definitionType);</span>
+<span class="nc bnc" id="L1616" title="All 6 branches missed.">		if (adapterKindKey != null &amp;&amp; resourceKindKey != null &amp;&amp; !resourceKindExists(resourceKindKey, adapterKindKey)) {</span>
+<span class="nc" id="L1617">			createCustomGroupType(resourceKindKey);</span>
+		}
+
+		String definitionPayload;
+		try {
+<span class="nc" id="L1622">			definitionPayload = mapper.writeValueAsString(definition);</span>
+<span class="nc" id="L1623">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L1624">			throw new RuntimeException(String.format(&quot;Error serializing definition type %s JSON mapping error : %s&quot;, definitionType, e.getMessage()), e);</span>
+<span class="nc" id="L1625">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L1626">			throw new RuntimeException(String.format(&quot;Error serializing definition type %s JSON processing error: %s&quot;, definitionType, e.getMessage()), e);</span>
+<span class="nc" id="L1627">		}</span>
+
+<span class="nc" id="L1629">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L1630">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L1631">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(definitionPayload, headers);</span>
+<span class="nc" id="L1632">		ResponseEntity&lt;String&gt; responseEntity = new ResponseEntity&lt;&gt;(HttpStatus.OK);</span>
+<span class="nc" id="L1633">		String definitionName = getDefinitionName(definition, definitionType);</span>
+
+		try {
+<span class="nc" id="L1636">			responseEntity = restTemplate.exchange(restUri, method, entity, String.class);</span>
+<span class="nc" id="L1637">		} catch (RestClientException e) {</span>
+<span class="nc bnc" id="L1638" title="All 2 branches missed.">			if (e.getMessage().contains(HttpStatus.NOT_FOUND.toString())) {</span>
+<span class="nc" id="L1639">				throw new RuntimeException(String.format(&quot;Error importing %s of type %s to vROPS, the REST service could not validate definition data : %s&quot;,</span>
+<span class="nc" id="L1640">						definitionName, definitionType, e.getMessage()), e);</span>
+
+			}
+<span class="nc" id="L1643">			throw new RuntimeException(String.format(&quot;Error importing %s of type %s to vROPS : %s&quot;, definitionName, definitionType, e.getMessage()), e);</span>
+<span class="nc" id="L1644">		}</span>
+
+<span class="nc bnc" id="L1646" title="All 4 branches missed.">		if (HttpMethod.POST.equals(method) &amp;&amp; !HttpStatus.CREATED.equals(responseEntity.getStatusCode())) {</span>
+<span class="nc" id="L1647">			throw new RuntimeException(String.format(&quot;Error creating %s %s: remote REST service returned status code %s&quot;, definitionType, definitionName,</span>
+<span class="nc" id="L1648">					responseEntity.getStatusCode()));</span>
+		}
+<span class="nc bnc" id="L1650" title="All 4 branches missed.">		if (HttpMethod.PUT.equals(method) &amp;&amp; !HttpStatus.OK.equals(responseEntity.getStatusCode())) {</span>
+<span class="nc" id="L1651">			throw new RuntimeException(String.format(&quot;Error updating %s %s: remote REST service returned status code %s&quot;, definitionType, definitionName,</span>
+<span class="nc" id="L1652">					responseEntity.getStatusCode()));</span>
+		}
+<span class="nc" id="L1654">	}</span>
+
+	private String getDefinitionAdapterKindKey(Object definition, VropsPackageMemberType definitionType) {
+<span class="nc bnc" id="L1657" title="All 4 branches missed.">		switch (definitionType) {</span>
+			case ALERT_DEFINITION: {
+<span class="nc" id="L1659">				return ((AlertDefinitionDTO.AlertDefinition) definition).getAdapterKindKey();</span>
+			}
+			case SYMPTOM_DEFINITION: {
+<span class="nc" id="L1662">				return ((SymptomDefinitionDTO.SymptomDefinition) definition).getAdapterKindKey();</span>
+			}
+			case RECOMMENDATION: {
+<span class="nc" id="L1665">				return null;</span>
+			}
+			default: {
+<span class="nc" id="L1668">				logger.warn(&quot;Invalid definition type {}&quot;, definitionType);</span>
+			}
+		}
+
+<span class="nc" id="L1672">		return null;</span>
+	}
+
+	private String getDefinitionResourceKindKey(Object definition, VropsPackageMemberType definitionType) {
+<span class="nc bnc" id="L1676" title="All 4 branches missed.">		switch (definitionType) {</span>
+			case ALERT_DEFINITION: {
+<span class="nc" id="L1678">				return ((AlertDefinitionDTO.AlertDefinition) definition).getResourceKindKey();</span>
+			}
+			case SYMPTOM_DEFINITION: {
+<span class="nc" id="L1681">				return ((SymptomDefinitionDTO.SymptomDefinition) definition).getResourceKindKey();</span>
+			}
+			case RECOMMENDATION: {
+<span class="nc" id="L1684">				return null;</span>
+			}
+			default: {
+<span class="nc" id="L1687">				logger.warn(&quot;Invalid definition type {}&quot;, definitionType);</span>
+			}
+		}
+
+<span class="nc" id="L1691">		return null;</span>
+	}
+
+	private String getDefinitionName(Object definition, VropsPackageMemberType definitionType) {
+<span class="nc bnc" id="L1695" title="All 4 branches missed.">		switch (definitionType) {</span>
+			case ALERT_DEFINITION: {
+<span class="nc" id="L1697">				return ((AlertDefinitionDTO.AlertDefinition) definition).getName();</span>
+			}
+			case SYMPTOM_DEFINITION: {
+<span class="nc" id="L1700">				return ((SymptomDefinitionDTO.SymptomDefinition) definition).getName();</span>
+			}
+			case RECOMMENDATION: {
+<span class="nc" id="L1703">				return ((RecommendationDTO.Recommendation) definition).getDescription();</span>
+			}
+			default: {
+<span class="nc" id="L1706">				logger.warn(&quot;Invalid definition type {}&quot;, definitionType);</span>
+			}
+		}
+
+<span class="nc" id="L1710">		return null;</span>
+	}
+
+	private boolean validateDefinition(Object definition, VropsPackageMemberType definitionType, Map&lt;String, Object&gt; dependentDefinitions) {
+<span class="nc bnc" id="L1714" title="All 2 branches missed.">		if (VropsPackageMemberType.SYMPTOM_DEFINITION.equals(definitionType)) {</span>
+<span class="nc" id="L1715">			return validateSymptomDefinition(definition);</span>
+		}
+<span class="nc bnc" id="L1717" title="All 2 branches missed.">		if (VropsPackageMemberType.ALERT_DEFINITION.equals(definitionType)) {</span>
+<span class="nc" id="L1718">			return validateAlertDefinition(definition, dependentDefinitions);</span>
+		}
+
+<span class="nc" id="L1721">		return true;</span>
+	}
+
+	private boolean validateSymptomDefinition(Object definition) {
+<span class="nc bnc" id="L1725" title="All 2 branches missed.">		if (!(definition instanceof SymptomDefinitionDTO.SymptomDefinition)) {</span>
+<span class="nc" id="L1726">			return false;</span>
+		}
+<span class="nc bnc" id="L1728" title="All 2 branches missed.">		String adapterKind = ((SymptomDefinitionDTO.SymptomDefinition) definition).getAdapterKindKey() != null</span>
+<span class="nc" id="L1729">				? ((SymptomDefinitionDTO.SymptomDefinition) definition).getAdapterKindKey().trim()</span>
+<span class="nc" id="L1730">				: null;</span>
+<span class="nc bnc" id="L1731" title="All 2 branches missed.">		String resourceKind = ((SymptomDefinitionDTO.SymptomDefinition) definition).getResourceKindKey() != null</span>
+<span class="nc" id="L1732">				? ((SymptomDefinitionDTO.SymptomDefinition) definition).getResourceKindKey().trim()</span>
+<span class="nc" id="L1733">				: null;</span>
+
+		// check whether adapter kind is present
+<span class="nc bnc" id="L1736" title="All 2 branches missed.">		if (adapterKind == null) {</span>
+<span class="nc" id="L1737">			logger.error(&quot;Invalid Symptom definition: adapterKindKeyNode field is required and must be a string value. Symptom definition: '{}'&quot;,</span>
+<span class="nc" id="L1738">					((SymptomDefinitionDTO.SymptomDefinition) definition).getName());</span>
+<span class="nc" id="L1739">			return false;</span>
+		}
+
+		// adapterKindKeyNode equals to all is not supported by the vROps Rest API
+		// (version 8.0.0.14857692), it responds with httpStatusCode: 404, &quot;message&quot;:&quot;No
+		// such Adapter Kind - All.&quot;
+<span class="nc bnc" id="L1745" title="All 2 branches missed.">		if (&quot;all&quot;.equalsIgnoreCase(adapterKind)) {</span>
+<span class="nc" id="L1746">			logger.error(&quot;Symptoms definitions for all the adapter types are not supported. Symptom definition: '{}'&quot;,</span>
+<span class="nc" id="L1747">					((SymptomDefinitionDTO.SymptomDefinition) definition).getName());</span>
+<span class="nc" id="L1748">			return false;</span>
+		}
+
+		// check whether the adapter kind exists on the target system
+<span class="nc bnc" id="L1752" title="All 2 branches missed.">		if (!adapterKindKeyExists(adapterKind)) {</span>
+<span class="nc" id="L1753">			logger.error(</span>
+					&quot;Adapter kind key '{}' for symptom definition '{}' is not present on the target system, please check whether content pack containing adapter kind '{}' is installed there&quot;,
+<span class="nc" id="L1755">					adapterKind, ((SymptomDefinitionDTO.SymptomDefinition) definition).getName(), adapterKind);</span>
+<span class="nc" id="L1756">			return false;</span>
+		}
+
+		// check whether the resource kind exists on the target system
+<span class="nc bnc" id="L1760" title="All 2 branches missed.">		if (!resourceKindExists(resourceKind, adapterKind)) {</span>
+<span class="nc" id="L1761">			logger.warn(</span>
+					&quot;Resource kind key '{}' for symptom definition '{}' with adapter kind '{}' is not present on the target system, please check whether content pack containing resource kind '{}' is installed there&quot;,
+<span class="nc" id="L1763">					resourceKind, ((SymptomDefinitionDTO.SymptomDefinition) definition).getName(), adapterKind, resourceKind);</span>
+		}
+
+<span class="nc" id="L1766">		return true;</span>
+	}
+
+	private boolean validateAlertDefinition(Object definition, Map&lt;String, Object&gt; dependentDefinitions) {
+<span class="nc bnc" id="L1770" title="All 2 branches missed.">		if (!(definition instanceof AlertDefinitionDTO.AlertDefinition)) {</span>
+<span class="nc" id="L1771">			return false;</span>
+		}
+<span class="nc bnc" id="L1773" title="All 2 branches missed.">		String resourceKind = ((AlertDefinitionDTO.AlertDefinition) definition).getResourceKindKey() != null</span>
+<span class="nc" id="L1774">				? ((AlertDefinitionDTO.AlertDefinition) definition).getResourceKindKey().trim()</span>
+<span class="nc" id="L1775">				: null;</span>
+<span class="nc bnc" id="L1776" title="All 2 branches missed.">		String adapterKind = ((AlertDefinitionDTO.AlertDefinition) definition).getAdapterKindKey() != null</span>
+<span class="nc" id="L1777">				? ((AlertDefinitionDTO.AlertDefinition) definition).getAdapterKindKey().trim()</span>
+<span class="nc" id="L1778">				: null;</span>
+
+		// check whether the adapter kind exists on the target system
+<span class="nc bnc" id="L1781" title="All 2 branches missed.">		if (!adapterKindKeyExists(adapterKind)) {</span>
+<span class="nc" id="L1782">			logger.error(</span>
+					&quot;Adapter kind key '{}' for alert definition '{}' is not present on the target system, please check whether content pack containing adapter kind '{}' is installed there&quot;,
+<span class="nc" id="L1784">					adapterKind, ((AlertDefinitionDTO.AlertDefinition) definition).getName(), adapterKind);</span>
+<span class="nc" id="L1785">			return false;</span>
+		}
+
+		// check whether the resource kind exists on the target system
+<span class="nc bnc" id="L1789" title="All 2 branches missed.">		if (!resourceKindExists(resourceKind, adapterKind)) {</span>
+<span class="nc" id="L1790">			logger.warn(</span>
+					&quot;Resource kind key '{}' for alert definition '{}' with adapter kind '{}' is not present on the target system, please check whether content pack containing resource kind '{}' is installed there&quot;,
+<span class="nc" id="L1792">					resourceKind, ((AlertDefinitionDTO.AlertDefinition) definition).getName(), adapterKind, resourceKind);</span>
+		}
+
+<span class="nc" id="L1795">		return validateDependentDefinitions(definition, dependentDefinitions);</span>
+	}
+
+	private boolean validateDependentDefinitions(Object definition, Map&lt;String, Object&gt; dependentDefinitions) {
+<span class="nc bnc" id="L1799" title="All 2 branches missed.">		if (!(definition instanceof AlertDefinitionDTO.AlertDefinition)) {</span>
+<span class="nc" id="L1800">			return false;</span>
+		}
+<span class="nc bnc" id="L1802" title="All 4 branches missed.">		if (dependentDefinitions == null || dependentDefinitions.isEmpty()) {</span>
+<span class="nc" id="L1803">			return true;</span>
+		}
+<span class="nc" id="L1805">		String alertDefName = ((AlertDefinitionDTO.AlertDefinition) definition).getName();</span>
+<span class="nc bnc" id="L1806" title="All 2 branches missed.">		for (State state : ((AlertDefinitionDTO.AlertDefinition) definition).getStates()) {</span>
+<span class="nc bnc" id="L1807" title="All 2 branches missed.">			if (state.getBaseSymptomSet() == null) {</span>
+<span class="nc" id="L1808">				continue;</span>
+			}
+			// check base symptom set's symptom definition ids
+<span class="nc bnc" id="L1811" title="All 2 branches missed.">			for (String symptomDefinitionId : state.getBaseSymptomSet().getSymptomDefinitionIds()) {</span>
+<span class="nc bnc" id="L1812" title="All 2 branches missed.">				if (!dependentDefinitions.containsKey(symptomDefinitionId)) {</span>
+<span class="nc" id="L1813">					continue;</span>
+				}
+<span class="nc" id="L1815">				Object dependentSymptomDef = dependentDefinitions.get(symptomDefinitionId);</span>
+<span class="nc bnc" id="L1816" title="All 2 branches missed.">				if (!(dependentSymptomDef instanceof SymptomDefinitionDTO.SymptomDefinition)) {</span>
+<span class="nc" id="L1817">					continue;</span>
+				}
+<span class="nc" id="L1819">				String dependentSymptomDefName = ((SymptomDefinitionDTO.SymptomDefinition) dependentSymptomDef).getName();</span>
+<span class="nc" id="L1820">				String dependentSymptomDefId = getDefinitionIdByName(dependentSymptomDefName, VropsPackageMemberType.SYMPTOM_DEFINITION);</span>
+<span class="nc bnc" id="L1821" title="All 2 branches missed.">				if (StringUtils.isEmpty(dependentSymptomDefId)) {</span>
+<span class="nc" id="L1822">					logger.error(&quot;Dependent base symptom definition '{}' for alert definition '{}' is missing on the target system&quot;, dependentSymptomDefName,</span>
+							alertDefName);
+<span class="nc" id="L1824">					return false;</span>
+				}
+<span class="nc" id="L1826">			}</span>
+
+			// check symptom set's symptom definition ids
+<span class="nc bnc" id="L1829" title="All 2 branches missed.">			for (SymptomSet symptomSet : state.getBaseSymptomSet().getSymptomSets()) {</span>
+<span class="nc bnc" id="L1830" title="All 2 branches missed.">				for (String symptomDefinitionId : symptomSet.getSymptomDefinitionIds()) {</span>
+<span class="nc bnc" id="L1831" title="All 2 branches missed.">					if (!dependentDefinitions.containsKey(symptomDefinitionId)) {</span>
+<span class="nc" id="L1832">						continue;</span>
+					}
+<span class="nc" id="L1834">					Object dependentSymptomDef = dependentDefinitions.get(symptomDefinitionId);</span>
+<span class="nc bnc" id="L1835" title="All 2 branches missed.">					if (!(dependentSymptomDef instanceof SymptomDefinitionDTO.SymptomDefinition)) {</span>
+<span class="nc" id="L1836">						continue;</span>
+					}
+<span class="nc" id="L1838">					String dependentSymptomDefName = ((SymptomDefinitionDTO.SymptomDefinition) dependentSymptomDef).getName();</span>
+<span class="nc" id="L1839">					String dependentSymptomDefId = getDefinitionIdByName(dependentSymptomDefName, VropsPackageMemberType.SYMPTOM_DEFINITION);</span>
+<span class="nc bnc" id="L1840" title="All 2 branches missed.">					if (StringUtils.isEmpty(dependentSymptomDefId)) {</span>
+<span class="nc" id="L1841">						logger.error(&quot;Dependent symptom definition '{}' for alert definition '{}' is missing on the target system&quot;, dependentSymptomDefName,</span>
+								alertDefName);
+<span class="nc" id="L1843">						return false;</span>
+					}
+<span class="nc" id="L1845">				}</span>
+<span class="nc" id="L1846">			}</span>
+<span class="nc" id="L1847">		}</span>
+
+<span class="nc" id="L1849">		return true;</span>
+	}
+
+	private boolean adapterKindKeyExists(String adapterKindKey) {
+		// get all adapter kinds on the target system
+<span class="nc" id="L1854">		AdapterKindDTO adapterKindOject = getAllAdapterKindData();</span>
+<span class="nc bnc" id="L1855" title="All 2 branches missed.">		if (adapterKindOject == null) {</span>
+<span class="nc" id="L1856">			return false;</span>
+		}
+<span class="nc bnc" id="L1858" title="All 2 branches missed.">		if (StringUtils.isEmpty(adapterKindKey)) {</span>
+<span class="nc" id="L1859">			return false;</span>
+		}
+
+<span class="nc" id="L1862">		return adapterKindOject.getAdapterKind().stream().anyMatch(item -&gt; adapterKindKey.equalsIgnoreCase(item.getKey()));</span>
+	}
+
+	private AdapterKindDTO getAllAdapterKindData() {
+		URI uri;
+		try {
+<span class="nc" id="L1868">			uri = new URI(getURIBuilder().setPath(ADAPTER_KINDS_API).addParameter(&quot;pageSize&quot;, String.valueOf(DEFAULT_PAGE_SIZE)).toString());</span>
+<span class="nc" id="L1869">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L1870">			throw new RuntimeException(e);</span>
+<span class="nc" id="L1871">		}</span>
+<span class="nc" id="L1872">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L1873">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L1874">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+
+		ResponseEntity&lt;String&gt; response;
+		try {
+<span class="nc" id="L1878">			response = restTemplate.exchange(uri, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L1879">		} catch (RestClientException e) {</span>
+<span class="nc" id="L1880">			throw new RuntimeException(String.format(&quot;Error fetching adapter kinds from target vROPs: %s&quot;, e.getMessage()), e);</span>
+<span class="nc" id="L1881">		}</span>
+
+<span class="nc bnc" id="L1883" title="All 2 branches missed.">		if (!HttpStatus.OK.equals(response.getStatusCode())) {</span>
+<span class="nc" id="L1884">			throw new RuntimeException(</span>
+<span class="nc" id="L1885">					String.format(&quot;Error locating adapter kinds from target vROPs, remote REST service returned: %s&quot;, response.getStatusCode()));</span>
+		}
+		try {
+<span class="nc" id="L1888">			return mapper.readValue(response.getBody(), AdapterKindDTO.class);</span>
+<span class="nc" id="L1889">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L1890">			throw new RuntimeException(String.format(&quot;JSON mapping error during parsing of adapter kind data: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L1891">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L1892">			throw new RuntimeException(String.format(&quot;JSON processing error during parsing of adapter kind data: %s&quot;, e.getMessage()));</span>
+		}
+	}
+
+	private ResourcesDTO.PageInfo getResourcePerAdapterKindPageInfo(String adapterKind) {
+<span class="nc" id="L1897">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L1898">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L1899">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+		ResponseEntity&lt;String&gt; response;
+<span class="nc" id="L1901">		String endpointName = String.format(RESOURCES_LIST_PER_ADAPTER_KIND, adapterKind);</span>
+		try {
+<span class="nc" id="L1903">			UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUri(new URI(getURIBuilder().setPath(endpointName).toString()));</span>
+<span class="nc" id="L1904">			uriBuilder.queryParam(&quot;pageSize&quot;, DEFAULT_PAGE_SIZE);</span>
+<span class="nc" id="L1905">			URI restUri = uriBuilder.build().toUri();</span>
+<span class="nc" id="L1906">			response = restTemplate.exchange(restUri, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L1907">		} catch (HttpClientErrorException e) {</span>
+<span class="nc bnc" id="L1908" title="All 2 branches missed.">			if (HttpStatus.NOT_FOUND.equals(e.getStatusCode())) {</span>
+<span class="nc" id="L1909">				return new ResourcesDTO.PageInfo();</span>
+			}
+<span class="nc" id="L1911">			throw new RuntimeException(</span>
+<span class="nc" id="L1912">					String.format(&quot;Error occurred when trying to fetch resources page info for adapter kind '%s'. Message: %s, Server error: %s&quot;, adapterKind,</span>
+<span class="nc" id="L1913">							e.getMessage(), e.getStatusText()));</span>
+<span class="nc" id="L1914">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L1915">			throw new RuntimeException(</span>
+<span class="nc" id="L1916">					String.format(&quot;Error occurred when trying to build REST URI to fetch resources page info for adapter kind '%s'. Message: %s&quot;, adapterKind,</span>
+<span class="nc" id="L1917">							e.getMessage()));</span>
+<span class="nc" id="L1918">		}</span>
+		try {
+<span class="nc" id="L1920">			ResourcesDTO resource = mapper.readValue(response.getBody(), ResourcesDTO.class);</span>
+<span class="nc bnc" id="L1921" title="All 2 branches missed.">			if (resource == null) {</span>
+<span class="nc" id="L1922">				return new ResourcesDTO.PageInfo();</span>
+			}
+
+<span class="nc" id="L1925">			return resource.getPageInfo();</span>
+<span class="nc" id="L1926">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L1927">			throw new RuntimeException(String.format(&quot;JSON mapping error while parsing the resources page info response for adapter kind '%s'. Message: %s&quot;,</span>
+<span class="nc" id="L1928">					adapterKind, e.getMessage()));</span>
+<span class="nc" id="L1929">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L1930">			throw new RuntimeException(String.format(&quot;JSON processing error while parsing the resources page info response for adapter kind '%s'. Message: %s&quot;,</span>
+<span class="nc" id="L1931">					adapterKind, e.getMessage()));</span>
+		}
+	}
+
+	private ResourcesDTO.PageInfo getResourcePageInfo() {
+<span class="nc" id="L1936">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L1937">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L1938">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+		ResponseEntity&lt;String&gt; response;
+		try {
+<span class="nc" id="L1941">			UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUri(new URI(getURIBuilder().setPath(RESOURCES_LIST_API).toString()));</span>
+<span class="nc" id="L1942">			uriBuilder.queryParam(&quot;pageSize&quot;, DEFAULT_PAGE_SIZE);</span>
+<span class="nc" id="L1943">			URI restUri = uriBuilder.build().toUri();</span>
+<span class="nc" id="L1944">			response = restTemplate.exchange(restUri, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L1945">		} catch (HttpClientErrorException e) {</span>
+<span class="nc bnc" id="L1946" title="All 2 branches missed.">			if (HttpStatus.NOT_FOUND.equals(e.getStatusCode())) {</span>
+<span class="nc" id="L1947">				return new ResourcesDTO.PageInfo();</span>
+			}
+<span class="nc" id="L1949">			throw new RuntimeException(</span>
+<span class="nc" id="L1950">					String.format(&quot;Error occurred when trying to fetch resources page info. Message: %s, Server error: %s&quot;, e.getMessage(), e.getStatusText()));</span>
+<span class="nc" id="L1951">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L1952">			throw new RuntimeException(String.format(&quot;Error occurred when trying to build REST URI to fetch resources page info. Message: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L1953">		}</span>
+		try {
+<span class="nc" id="L1955">			ResourcesDTO resource = mapper.readValue(response.getBody(), ResourcesDTO.class);</span>
+<span class="nc bnc" id="L1956" title="All 2 branches missed.">			if (resource == null) {</span>
+<span class="nc" id="L1957">				return new ResourcesDTO.PageInfo();</span>
+			}
+
+<span class="nc" id="L1960">			return resource.getPageInfo();</span>
+<span class="nc" id="L1961">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L1962">			throw new RuntimeException(String.format(&quot;JSON mapping error while parsing the resources page info response. Message: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L1963">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L1964">			throw new RuntimeException(String.format(&quot;JSON processing error while parsing the resources page info response. Message: %s&quot;, e.getMessage()));</span>
+		}
+	}
+
+	private boolean resourceKindExists(String resourceKindKey, String adapterKindKey) {
+<span class="nc bnc" id="L1969" title="All 4 branches missed.">		if (resourceKindKey.equals(VROPS_KIND_ALL) &amp;&amp; adapterKindKey.equals(VROPS_KIND_ALL)) {</span>
+<span class="nc" id="L1970">			return true;</span>
+		}
+
+<span class="nc bnc" id="L1973" title="All 2 branches missed.">		if (StringUtils.isEmpty(adapterKindKey)) {</span>
+<span class="nc" id="L1974">			return false;</span>
+		}
+
+		// get all resource kinds on the target system
+<span class="nc" id="L1978">		ResourceKindDTO resourceKindObject = getAllResourceKinds(adapterKindKey);</span>
+<span class="nc bnc" id="L1979" title="All 2 branches missed.">		if (resourceKindObject == null) {</span>
+<span class="nc" id="L1980">			return false;</span>
+		}
+
+<span class="nc" id="L1983">		return resourceKindObject.getResourceKind().stream().anyMatch(item -&gt; resourceKindKey.equalsIgnoreCase(item.getKey()));</span>
+	}
+
+	private ResourceKindDTO getAllResourceKinds(String adapterKindKey) {
+<span class="nc bnc" id="L1987" title="All 2 branches missed.">		if (StringUtils.isEmpty(adapterKindKey)) {</span>
+<span class="nc" id="L1988">			return new ResourceKindDTO();</span>
+		}
+
+<span class="nc" id="L1991">		String endpointName = String.format(RESOURCE_KINDS_API, adapterKindKey);</span>
+		URI uri;
+		try {
+<span class="nc" id="L1994">			uri = new URI(getURIBuilder().setPath(endpointName).addParameter(&quot;pageSize&quot;, String.valueOf(DEFAULT_PAGE_SIZE)).toString());</span>
+<span class="nc" id="L1995">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L1996">			throw new RuntimeException(e);</span>
+<span class="nc" id="L1997">		}</span>
+<span class="nc" id="L1998">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L1999">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L2000">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+
+		ResponseEntity&lt;String&gt; response;
+		try {
+<span class="nc" id="L2004">			response = restTemplate.exchange(uri, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L2005">		} catch (RestClientException e) {</span>
+<span class="nc" id="L2006">			throw new RuntimeException(String.format(&quot;Error fetching resource kinds for adapter kind %s from target vROPs: %s&quot;, adapterKindKey, e.getMessage()),</span>
+					e);
+<span class="nc" id="L2008">		}</span>
+
+<span class="nc bnc" id="L2010" title="All 2 branches missed.">		if (!HttpStatus.OK.equals(response.getStatusCode())) {</span>
+<span class="nc" id="L2011">			throw new RuntimeException(String.format(&quot;Error locating resource kinds for adapter kind %s from target vROPs, remote REST service returned: %s&quot;,</span>
+<span class="nc" id="L2012">					adapterKindKey, response.getStatusCode()));</span>
+		}
+		try {
+<span class="nc" id="L2015">			return mapper.readValue(response.getBody(), ResourceKindDTO.class);</span>
+<span class="nc" id="L2016">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L2017">			throw new RuntimeException(String.format(&quot;JSON mapping error during parsing of data for adapter kind %s : %s&quot;, adapterKindKey, e.getMessage()));</span>
+<span class="nc" id="L2018">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L2019">			throw new RuntimeException(String.format(&quot;JSON processing error during parsing of data for adapter kind %s : %s&quot;, adapterKindKey, e.getMessage()));</span>
+		}
+	}
+
+	private void updateDependentDefinitions(Object definition, VropsPackageMemberType definitionType, Map&lt;String, Object&gt; dependentDefinitions) {
+		// Only for alert definitions need to update dependencies
+<span class="nc bnc" id="L2025" title="All 2 branches missed.">		if (!VropsPackageMemberType.ALERT_DEFINITION.equals(definitionType)) {</span>
+<span class="nc" id="L2026">			return;</span>
+		}
+<span class="nc bnc" id="L2028" title="All 2 branches missed.">		if (definition == null) {</span>
+<span class="nc" id="L2029">			return;</span>
+		}
+<span class="nc bnc" id="L2031" title="All 2 branches missed.">		if (!(definition instanceof AlertDefinitionDTO.AlertDefinition)) {</span>
+<span class="nc" id="L2032">			return;</span>
+		}
+
+<span class="nc bnc" id="L2035" title="All 4 branches missed.">		if (dependentDefinitions == null || dependentDefinitions.isEmpty()) {</span>
+<span class="nc" id="L2036">			return;</span>
+		}
+
+<span class="nc bnc" id="L2039" title="All 2 branches missed.">		for (State state : ((AlertDefinitionDTO.AlertDefinition) definition).getStates()) {</span>
+<span class="nc bnc" id="L2040" title="All 2 branches missed.">			if (state.getBaseSymptomSet() == null) {</span>
+<span class="nc" id="L2041">				continue;</span>
+			}
+			// update base symptom set's symptom definition ids
+<span class="nc" id="L2044">			List&lt;String&gt; symptomDefIds = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L2045" title="All 2 branches missed.">			for (String symptomDefinitionId : state.getBaseSymptomSet().getSymptomDefinitionIds()) {</span>
+<span class="nc bnc" id="L2046" title="All 2 branches missed.">				if (!dependentDefinitions.containsKey(symptomDefinitionId)) {</span>
+<span class="nc" id="L2047">					continue;</span>
+				}
+<span class="nc" id="L2049">				Object dependentSymptomDef = dependentDefinitions.get(symptomDefinitionId);</span>
+<span class="nc bnc" id="L2050" title="All 2 branches missed.">				if (!(dependentSymptomDef instanceof SymptomDefinitionDTO.SymptomDefinition)) {</span>
+<span class="nc" id="L2051">					continue;</span>
+				}
+<span class="nc" id="L2053">				String dependentSymptomDefName = ((SymptomDefinitionDTO.SymptomDefinition) dependentSymptomDef).getName();</span>
+<span class="nc" id="L2054">				String dependentSymptomDefId = getDefinitionIdByName(dependentSymptomDefName, VropsPackageMemberType.SYMPTOM_DEFINITION);</span>
+<span class="nc" id="L2055">				symptomDefIds.add(dependentSymptomDefId);</span>
+<span class="nc" id="L2056">			}</span>
+<span class="nc bnc" id="L2057" title="All 2 branches missed.">			if (!symptomDefIds.isEmpty()) {</span>
+<span class="nc" id="L2058">				state.getBaseSymptomSet().setSymptomDefinitionIds(symptomDefIds);</span>
+			}
+
+			// update symptom set's symptom definition ids
+<span class="nc" id="L2062">			List&lt;SymptomSet&gt; targetSymptomSets = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L2063" title="All 2 branches missed.">			for (SymptomSet symptomSet : state.getBaseSymptomSet().getSymptomSets()) {</span>
+<span class="nc" id="L2064">				symptomDefIds = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L2065" title="All 2 branches missed.">				for (String symptomDefinitionId : symptomSet.getSymptomDefinitionIds()) {</span>
+<span class="nc bnc" id="L2066" title="All 2 branches missed.">					if (!dependentDefinitions.containsKey(symptomDefinitionId)) {</span>
+<span class="nc" id="L2067">						continue;</span>
+					}
+<span class="nc" id="L2069">					Object dependentSymptomDef = dependentDefinitions.get(symptomDefinitionId);</span>
+<span class="nc bnc" id="L2070" title="All 2 branches missed.">					if (!(dependentSymptomDef instanceof SymptomDefinitionDTO.SymptomDefinition)) {</span>
+<span class="nc" id="L2071">						continue;</span>
+					}
+<span class="nc" id="L2073">					String dependentSymptomDefName = ((SymptomDefinitionDTO.SymptomDefinition) dependentSymptomDef).getName();</span>
+<span class="nc" id="L2074">					String dependentSymptomDefId = getDefinitionIdByName(dependentSymptomDefName, VropsPackageMemberType.SYMPTOM_DEFINITION);</span>
+<span class="nc" id="L2075">					symptomDefIds.add(dependentSymptomDefId);</span>
+<span class="nc" id="L2076">				}</span>
+<span class="nc bnc" id="L2077" title="All 2 branches missed.">				if (!symptomDefIds.isEmpty()) {</span>
+<span class="nc" id="L2078">					symptomSet.setSymptomDefinitionIds(symptomDefIds);</span>
+				}
+<span class="nc" id="L2080">				targetSymptomSets.add(symptomSet);</span>
+<span class="nc" id="L2081">			}</span>
+<span class="nc bnc" id="L2082" title="All 2 branches missed.">			if (!targetSymptomSets.isEmpty()) {</span>
+<span class="nc" id="L2083">				state.getBaseSymptomSet().setSymptomSets(targetSymptomSets);</span>
+			}
+<span class="nc" id="L2085">		}</span>
+<span class="nc" id="L2086">	}</span>
+
+	private void removeIdFromDefinitionPayload(Object definition, VropsPackageMemberType definitionType) {
+<span class="nc bnc" id="L2089" title="All 4 branches missed.">		switch (definitionType) {</span>
+			case ALERT_DEFINITION: {
+<span class="nc" id="L2091">				((AlertDefinitionDTO.AlertDefinition) definition).setId(null);</span>
+<span class="nc" id="L2092">				break;</span>
+			}
+			case SYMPTOM_DEFINITION: {
+<span class="nc" id="L2095">				((SymptomDefinitionDTO.SymptomDefinition) definition).setId(null);</span>
+<span class="nc" id="L2096">				break;</span>
+			}
+			case RECOMMENDATION: {
+<span class="nc" id="L2099">				((RecommendationDTO.Recommendation) definition).setId(null);</span>
+<span class="nc" id="L2100">				break;</span>
+			}
+			default: {
+<span class="nc" id="L2103">				logger.warn(&quot;Invalid definition type {}&quot;, definitionType);</span>
+			}
+		}
+<span class="nc" id="L2106">	}</span>
+
+	private String getDefinitionId(Object definition, VropsPackageMemberType definitionType) {
+<span class="nc bnc" id="L2109" title="All 4 branches missed.">		switch (definitionType) {</span>
+			case ALERT_DEFINITION: {
+<span class="nc" id="L2111">				return getDefinitionIdByName(((AlertDefinitionDTO.AlertDefinition) definition).getName(), definitionType);</span>
+			}
+			case SYMPTOM_DEFINITION: {
+<span class="nc" id="L2114">				return getDefinitionIdByName(((SymptomDefinitionDTO.SymptomDefinition) definition).getName(), definitionType);</span>
+			}
+			case RECOMMENDATION: {
+<span class="nc" id="L2117">				return getDefinitionIdByName(((RecommendationDTO.Recommendation) definition).getDescription(), definitionType);</span>
+			}
+			default: {
+<span class="nc" id="L2120">				return null;</span>
+			}
+		}
+	}
+
+	private void updateDefinitionId(Object definition, VropsPackageMemberType definitionType, String definitionId) {
+<span class="nc bnc" id="L2126" title="All 4 branches missed.">		switch (definitionType) {</span>
+			case ALERT_DEFINITION: {
+<span class="nc" id="L2128">				((AlertDefinitionDTO.AlertDefinition) definition).setId(definitionId);</span>
+<span class="nc" id="L2129">				break;</span>
+			}
+			case SYMPTOM_DEFINITION: {
+<span class="nc" id="L2132">				((SymptomDefinitionDTO.SymptomDefinition) definition).setId(definitionId);</span>
+<span class="nc" id="L2133">				break;</span>
+			}
+			case RECOMMENDATION: {
+<span class="nc" id="L2136">				((RecommendationDTO.Recommendation) definition).setId(definitionId);</span>
+<span class="nc" id="L2137">				break;</span>
+			}
+			default: {
+<span class="nc" id="L2140">				logger.warn(&quot;Unknown definition type {}&quot;, definitionType);</span>
+			}
+		}
+<span class="nc" id="L2143">	}</span>
+
+	private String getDefinitionIdByName(String definitionName, VropsPackageMemberType definitionType) {
+		String restUri;
+<span class="nc bnc" id="L2147" title="All 4 branches missed.">		switch (definitionType) {</span>
+			case ALERT_DEFINITION: {
+<span class="nc" id="L2149">				restUri = ALERT_DEFS_API;</span>
+<span class="nc" id="L2150">				break;</span>
+			}
+			case SYMPTOM_DEFINITION: {
+<span class="nc" id="L2153">				restUri = SYMPTOM_DEFS_API;</span>
+<span class="nc" id="L2154">				break;</span>
+			}
+			case RECOMMENDATION: {
+<span class="nc" id="L2157">				restUri = RECOMMENDATIONS_API;</span>
+<span class="nc" id="L2158">				break;</span>
+			}
+			default: {
+<span class="nc" id="L2161">				throw new RuntimeException(String.format(&quot;Unsupported definition type %s&quot;, definitionType.name()));</span>
+			}
+		}
+		URI uri;
+		try {
+<span class="nc" id="L2166">			UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUri(new URI(getURIBuilder().setPath(restUri).toString()));</span>
+<span class="nc" id="L2167">			uriBuilder.queryParam(&quot;pageSize&quot;, DEFAULT_PAGE_SIZE);</span>
+<span class="nc" id="L2168">			uri = uriBuilder.build().toUri();</span>
+<span class="nc" id="L2169">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L2170">			throw new RuntimeException(e);</span>
+<span class="nc" id="L2171">		}</span>
+<span class="nc" id="L2172">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L2173">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L2174">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+
+		ResponseEntity&lt;String&gt; response;
+		try {
+<span class="nc" id="L2178">			response = restTemplate.exchange(uri, HttpMethod.GET, entity, String.class);</span>
+<span class="nc" id="L2179">		} catch (RestClientException e) {</span>
+<span class="nc" id="L2180">			throw new RuntimeException(String.format(&quot;Error finding %s of %s: %s&quot;, definitionName, definitionType, e.getMessage()), e);</span>
+<span class="nc" id="L2181">		}</span>
+
+<span class="nc bnc" id="L2183" title="All 2 branches missed.">		if (!HttpStatus.OK.equals(response.getStatusCode())) {</span>
+<span class="nc" id="L2184">			throw new RuntimeException(</span>
+<span class="nc" id="L2185">					String.format(&quot;Error finding %s of type %s: remote REST service returned %s&quot;, definitionType, definitionName, response.getStatusCode()));</span>
+		}
+
+		try {
+<span class="nc bnc" id="L2189" title="All 4 branches missed.">			switch (definitionType) {</span>
+				case ALERT_DEFINITION: {
+<span class="nc" id="L2191">					AlertDefinitionDTO alertDefinitions = mapper.readValue(response.getBody(), AlertDefinitionDTO.class);</span>
+<span class="nc" id="L2192">					List&lt;AlertDefinitionDTO.AlertDefinition&gt; filtered = alertDefinitions.getAlertDefinitions().stream()</span>
+<span class="nc" id="L2193">							.filter(item -&gt; definitionName.equalsIgnoreCase(item.getName())).collect(Collectors.toList());</span>
+<span class="nc" id="L2194">					Optional&lt;AlertDefinitionDTO.AlertDefinition&gt; value = filtered.stream().findFirst();</span>
+
+<span class="nc bnc" id="L2196" title="All 2 branches missed.">					return value.isPresent() ? value.get().getId() : null;</span>
+				}
+				case SYMPTOM_DEFINITION: {
+<span class="nc" id="L2199">					SymptomDefinitionDTO symptomDefinitions = mapper.readValue(response.getBody(), SymptomDefinitionDTO.class);</span>
+<span class="nc" id="L2200">					List&lt;SymptomDefinitionDTO.SymptomDefinition&gt; filtered = symptomDefinitions.getSymptomDefinitions().stream()</span>
+<span class="nc" id="L2201">							.filter(item -&gt; definitionName.equalsIgnoreCase(item.getName())).collect(Collectors.toList());</span>
+<span class="nc" id="L2202">					Optional&lt;SymptomDefinitionDTO.SymptomDefinition&gt; value = filtered.stream().findFirst();</span>
+
+<span class="nc bnc" id="L2204" title="All 2 branches missed.">					return value.isPresent() ? value.get().getId() : null;</span>
+				}
+				case RECOMMENDATION: {
+<span class="nc" id="L2207">					RecommendationDTO recommendations = mapper.readValue(response.getBody(), RecommendationDTO.class);</span>
+<span class="nc" id="L2208">					List&lt;RecommendationDTO.Recommendation&gt; filtered = recommendations.getRecommendations().stream()</span>
+<span class="nc" id="L2209">							.filter(item -&gt; definitionName.equalsIgnoreCase(item.getDescription())).collect(Collectors.toList());</span>
+<span class="nc" id="L2210">					Optional&lt;RecommendationDTO.Recommendation&gt; value = filtered.stream().findFirst();</span>
+
+<span class="nc bnc" id="L2212" title="All 2 branches missed.">					return value.isPresent() ? value.get().getId() : null;</span>
+				}
+				default: {
+<span class="nc" id="L2215">					throw new RuntimeException(String.format(&quot;Unsupported definition type %s&quot;, definitionType.name()));</span>
+				}
+			}
+<span class="nc" id="L2218">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L2219">			throw new RuntimeException(String.format(&quot;JSON mapping error during mapping of definitions data: %s&quot;, e.getMessage()), e);</span>
+<span class="nc" id="L2220">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L2221">			throw new RuntimeException(String.format(&quot;JSON processing error during processing of definitions data: %s&quot;, e.getMessage()), e);</span>
+		}
+	}
+
+	private URI getDefinitionUri(VropsPackageMemberType definitionType, String id) {
+		String restUri;
+<span class="nc bnc" id="L2227" title="All 4 branches missed.">		switch (definitionType) {</span>
+			case ALERT_DEFINITION: {
+<span class="nc" id="L2229">				restUri = ALERT_DEFS_API;</span>
+<span class="nc" id="L2230">				break;</span>
+			}
+			case SYMPTOM_DEFINITION: {
+<span class="nc" id="L2233">				restUri = SYMPTOM_DEFS_API;</span>
+<span class="nc" id="L2234">				break;</span>
+			}
+			case RECOMMENDATION: {
+<span class="nc" id="L2237">				restUri = RECOMMENDATIONS_API;</span>
+<span class="nc" id="L2238">				break;</span>
+			}
+			default: {
+<span class="nc" id="L2241">				throw new RuntimeException(String.format(&quot;Unsupported definition type %s&quot;, definitionType.name()));</span>
+			}
+		}
+<span class="nc" id="L2244">		restUri = restUri + id;</span>
+		try {
+<span class="nc" id="L2246">			return new URI(getURIBuilder().setPath(restUri).toString());</span>
+<span class="nc" id="L2247">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L2248">			throw new RuntimeException(e);</span>
+		}
+	}
+
+	private URI getDefinitionUri(VropsPackageMemberType definitionType) {
+		String restUri;
+<span class="nc bnc" id="L2254" title="All 4 branches missed.">		switch (definitionType) {</span>
+			case ALERT_DEFINITION: {
+<span class="nc" id="L2256">				restUri = ALERT_DEFS_API;</span>
+<span class="nc" id="L2257">				break;</span>
+			}
+			case SYMPTOM_DEFINITION: {
+<span class="nc" id="L2260">				restUri = SYMPTOM_DEFS_API;</span>
+<span class="nc" id="L2261">				break;</span>
+			}
+			case RECOMMENDATION: {
+<span class="nc" id="L2264">				restUri = RECOMMENDATIONS_API;</span>
+<span class="nc" id="L2265">				break;</span>
+			}
+			default: {
+<span class="nc" id="L2268">				throw new RuntimeException(String.format(&quot;Unsupported definition type %s&quot;, definitionType.name()));</span>
+			}
+		}
+		try {
+<span class="nc" id="L2272">			return new URI(getURIBuilder().setPath(restUri).addParameter(&quot;pageSize&quot;, String.valueOf(DEFAULT_PAGE_SIZE)).toString());</span>
+<span class="nc" id="L2273">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L2274">			throw new RuntimeException(e);</span>
+		}
+
+	}
+
+	private PolicyDTO deserializePolicies(String policiesJson) {
+<span class="nc bnc" id="L2280" title="All 2 branches missed.">		if (StringUtils.isEmpty(policiesJson)) {</span>
+<span class="nc" id="L2281">			return null;</span>
+		}
+
+		try {
+<span class="nc" id="L2285">			return mapper.readValue(policiesJson, PolicyDTO.class);</span>
+<span class="nc" id="L2286">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L2287">			throw new RuntimeException(String.format(&quot;Unable to deserialize policies from JSON string, JSON mapping error: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L2288">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L2289">			throw new RuntimeException(String.format(&quot;Unable to deserialize policies from JSON string, JSON processing error: %s&quot;, e.getMessage()));</span>
+		}
+	}
+
+	private Object deserializeDefinitions(VropsPackageMemberType definitionType, String definitionJson) {
+<span class="nc bnc" id="L2294" title="All 2 branches missed.">		if (StringUtils.isEmpty(definitionJson)) {</span>
+<span class="nc" id="L2295">			return null;</span>
+		}
+		try {
+<span class="nc bnc" id="L2298" title="All 4 branches missed.">			switch (definitionType) {</span>
+				case ALERT_DEFINITION: {
+<span class="nc" id="L2300">					return mapper.readValue(definitionJson, AlertDefinitionDTO.class);</span>
+				}
+				case SYMPTOM_DEFINITION: {
+<span class="nc" id="L2303">					return mapper.readValue(definitionJson, SymptomDefinitionDTO.class);</span>
+				}
+				case RECOMMENDATION: {
+<span class="nc" id="L2306">					return mapper.readValue(definitionJson, RecommendationDTO.class);</span>
+				}
+				default: {
+<span class="nc" id="L2309">					throw new RuntimeException(String.format(&quot;Unsupported definition type %s&quot;, definitionType.name()));</span>
+				}
+			}
+<span class="nc" id="L2312">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L2313">			throw new RuntimeException(String.format(&quot;Unable to deserialize definition of type %s from JSON string, JSON mapping error: %s&quot;,</span>
+<span class="nc" id="L2314">					definitionType.name(), e.getMessage()));</span>
+<span class="nc" id="L2315">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L2316">			throw new RuntimeException(String.format(&quot;Unable to deserialize definition of type %s from JSON string, JSON processing error: %s&quot;,</span>
+<span class="nc" id="L2317">					definitionType.name(), e.getMessage()));</span>
+		}
+	}
+
+	private String deserializePolicyCustomGroupAssignmentDto(PolicyCustomGroupAssignmentDTO policyCustomGroupAssignmentDto) {
+		try {
+<span class="nc" id="L2323">			return mapper.writeValueAsString(policyCustomGroupAssignmentDto);</span>
+<span class="nc" id="L2324">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L2325">			throw new RuntimeException(String.format(&quot;Failed to de-serialize policy assignment DTO, JSON mapping error: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L2326">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L2327">			throw new RuntimeException(String.format(&quot;Failed to de-serialize policy assignment DTO, JSON processing error: %s&quot;, e.getMessage()));</span>
+		}
+	}
+
+	/**
+	 * Concatenate list values to a string using a delimiter.
+	 * 
+	 * @param list      the list of strings to be extracted.
+	 * @param delimiter delimiter to be used.
+	 * @return string with concatenated values.
+	 */
+	private String concatenateList(final List&lt;String&gt; list, final String delimiter) {
+<span class="nc bnc" id="L2339" title="All 4 branches missed.">		if (list == null || list.isEmpty()) {</span>
+<span class="nc" id="L2340">			return &quot;&quot;;</span>
+		}
+
+<span class="nc" id="L2343">		return list.stream().map(Object::toString).collect(Collectors.joining(delimiter));</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

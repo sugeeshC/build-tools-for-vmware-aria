@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PackageStoreFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact</a> &gt; <span class="el_source">PackageStoreFactory.java</span></div><h1>PackageStoreFactory.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.vmware.pscoe.iac.artifact.configuration.*;
+import com.vmware.pscoe.iac.artifact.rest.*;
+import com.vmware.pscoe.iac.artifact.rest.client.vrli.RestClientVrliV1;
+import com.vmware.pscoe.iac.artifact.rest.client.vrli.RestClientVrliV2;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.vmware.pscoe.iac.artifact.cli.CliManagerFactory;
+import com.vmware.pscoe.iac.artifact.cli.CliManagerVrops;
+import com.vmware.pscoe.iac.artifact.extentions.PackageStoreExtention;
+import com.vmware.pscoe.iac.artifact.extentions.VraCatalogItemPackageStoreExtention;
+import com.vmware.pscoe.iac.artifact.extentions.VraCustomFormPackageStoreExtention;
+import com.vmware.pscoe.iac.artifact.extentions.VraGlobalPropertyDefinitionPackageStoreExtention;
+import com.vmware.pscoe.iac.artifact.extentions.VraGlobalPropertyGroupPackageStoreExtention;
+import com.vmware.pscoe.iac.artifact.extentions.VraIconPackageStoreExtention;
+import com.vmware.pscoe.iac.artifact.extentions.VraSubscriptionPackageStoreExtention;
+import com.vmware.pscoe.iac.artifact.model.Version;
+import com.vmware.pscoe.iac.artifact.model.vra.VraPackageDescriptor;
+import com.vmware.pscoe.iac.artifact.model.vro.VroPackageDescriptor;
+import com.vmware.pscoe.iac.artifact.strategy.Strategy;
+import com.vmware.pscoe.iac.artifact.strategy.StrategyForceLatestVersions;
+import com.vmware.pscoe.iac.artifact.strategy.StrategySkipOldVersions;
+
+/**
+ * Factory class to create PackageStore instances.
+ */
+public final class PackageStoreFactory {
+
+	/**
+	 * Private constructor to prevent instantiation.
+	 */
+	private PackageStoreFactory() {
+	}
+
+	/**
+	 * Logger instance.
+	 */
+<span class="nc" id="L59">	private static final Logger LOGGER = LoggerFactory.getLogger(VraPackageStore.class);</span>
+
+	/**
+	 * Regarding the strategies, the following rules apply.
+	 * 
+	 * - If forceImportLatestVersions is set, the StrategyForceLatestVersions is used
+	 *   and the importOldVersions flag is ignored.
+	 *
+	 * @param configuration The configuration object.
+	 * @param &lt;T&gt;           The configuration type.
+	 * @return The PackageStore instance.
+	 */
+	public static &lt;T extends Configuration&gt; PackageStore&lt;?&gt; getInstance(T configuration) {
+<span class="nc" id="L72">		List&lt;Strategy&gt; strategies = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L73">		LOGGER.info(&quot;Searching for Package Store for type &quot; + configuration.getPackageType());</span>
+
+		String version;
+
+		// @TODO: You should be able to select a strategy to use, this doesn't make much sense,
+		//   but we have no choice since we want to be backward compatible
+<span class="nc bnc" id="L79" title="All 2 branches missed.">		if (configuration.isForceImportLatestVersions()) { </span>
+<span class="nc" id="L80">			LOGGER.info(&quot;Using StrategyForceLatestVersions&quot;);</span>
+<span class="nc" id="L81">			strategies.add(new StrategyForceLatestVersions());</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">		} else if (!configuration.isImportOldVersions()) {</span>
+<span class="nc" id="L83">			LOGGER.info(&quot;Using StrategySkipOldVersions&quot;);</span>
+<span class="nc" id="L84">			strategies.add(new StrategySkipOldVersions());</span>
+		}
+
+<span class="nc bnc" id="L87" title="All 2 branches missed.">		if (configuration instanceof ConfigurationVroNg) {</span>
+<span class="nc" id="L88">			LOGGER.info(&quot;Detected ConfigurationVroNg&quot;);</span>
+<span class="nc" id="L89">			ConfigurationVroNg config = (ConfigurationVroNg) configuration;</span>
+<span class="nc" id="L90">			RestClientVro restClient = RestClientFactory.getClientVroNg(config);</span>
+<span class="nc" id="L91">			version = restClient.getVersion();</span>
+<span class="nc" id="L92">			LOGGER.info(&quot;Detecting vRO Server version '{}'.&quot;, version);</span>
+<span class="nc" id="L93">			List&lt;PackageStoreExtention&lt;VroPackageDescriptor&gt;&gt; extentions = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L94">			extentions.addAll(loadVroExtensions(version, config, restClient));</span>
+
+<span class="nc" id="L96">			return new VroPackageStore(restClient, strategies, extentions, new Version(version));</span>
+		}
+
+<span class="nc bnc" id="L99" title="All 2 branches missed.">		if (configuration instanceof ConfigurationVro) {</span>
+<span class="nc" id="L100">			LOGGER.info(&quot;Detected ConfigurationVro&quot;);</span>
+<span class="nc" id="L101">			ConfigurationVro config = (ConfigurationVro) configuration;</span>
+<span class="nc" id="L102">			RestClientVro restClient = RestClientFactory.getClientVro(config);</span>
+<span class="nc" id="L103">			version = restClient.getVersion();</span>
+<span class="nc" id="L104">			LOGGER.info(&quot;Detecting vRO Server version '{}'.&quot;, version);</span>
+<span class="nc" id="L105">			List&lt;PackageStoreExtention&lt;VroPackageDescriptor&gt;&gt; extentions = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L106">			extentions.addAll(loadVroExtensions(version, config, restClient));</span>
+
+<span class="nc" id="L108">			return new VroPackageStore(restClient, strategies, extentions, new Version(version));</span>
+		}
+
+<span class="nc bnc" id="L111" title="All 2 branches missed.">		if (configuration instanceof ConfigurationVra) {</span>
+<span class="nc" id="L112">			LOGGER.info(&quot;Detected ConfigurationVra&quot;);</span>
+<span class="nc" id="L113">			ConfigurationVra config = (ConfigurationVra) configuration;</span>
+<span class="nc" id="L114">			RestClientVra restClient = RestClientFactory.getClientVra(config);</span>
+<span class="nc" id="L115">			version = restClient.getVersion();</span>
+<span class="nc" id="L116">			LOGGER.info(&quot;Detecting vRA Server version '{}'.&quot;, version);</span>
+<span class="nc" id="L117">			List&lt;PackageStoreExtention&lt;VraPackageDescriptor&gt;&gt; extentions = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L118">			extentions.addAll(loadVraExtensions(version, config, restClient));</span>
+
+<span class="nc" id="L120">			return new VraPackageStore(restClient, strategies, extentions, new Version(version));</span>
+		}
+
+<span class="nc bnc" id="L123" title="All 2 branches missed.">		if (configuration instanceof ConfigurationAbx) {</span>
+<span class="nc" id="L124">			LOGGER.info(&quot;Detected ConfigurationAbx&quot;);</span>
+<span class="nc" id="L125">			LOGGER.info(&quot;Creating configuration for ABX&quot;);</span>
+<span class="nc" id="L126">			ConfigurationAbx config = (ConfigurationAbx) configuration;</span>
+
+			// ABX service is part of vRA therefore the same REST client is used
+<span class="nc" id="L129">			RestClientVraNg restClient = RestClientFactory.getClientVraNg(config);</span>
+
+			// Specific ABX operations are handled by dedicated ABX package store
+<span class="nc" id="L132">			return new AbxPackageStore(restClient, config);</span>
+		}
+<span class="nc bnc" id="L134" title="All 2 branches missed.">		if (configuration instanceof ConfigurationCs) {</span>
+<span class="nc" id="L135">			LOGGER.info(&quot;Detected ConfigurationCs&quot;);</span>
+<span class="nc" id="L136">			ConfigurationCs config = (ConfigurationCs) configuration;</span>
+<span class="nc" id="L137">			RestClientCs restClient = RestClientFactory.getClientCs(config);</span>
+<span class="nc" id="L138">			LOGGER.info(&quot;Creating configuration for Code Stream&quot;);</span>
+<span class="nc" id="L139">			return new CsPackageStore(restClient, config);</span>
+		}
+
+<span class="nc bnc" id="L142" title="All 2 branches missed.">		if (configuration instanceof ConfigurationVraNg) {</span>
+<span class="nc" id="L143">			LOGGER.info(&quot;Detected ConfigurationVraNg&quot;);</span>
+<span class="nc" id="L144">			ConfigurationVraNg config = (ConfigurationVraNg) configuration;</span>
+<span class="nc" id="L145">			RestClientVraNg restClient = RestClientFactory.getClientVraNg(config);</span>
+<span class="nc" id="L146">			LOGGER.info(&quot;Creating configuration for VRA NG&quot;);</span>
+
+<span class="nc" id="L148">			return new VraNgPackageStore(restClient, config);</span>
+		}
+
+<span class="nc bnc" id="L151" title="All 2 branches missed.">		if (configuration instanceof ConfigurationVcd) {</span>
+<span class="nc" id="L152">			LOGGER.info(&quot;Detected ConfigurationVcd&quot;);</span>
+<span class="nc" id="L153">			ConfigurationVcd config = (ConfigurationVcd) configuration;</span>
+<span class="nc" id="L154">			RestClientVcd restClient = RestClientFactory.getClientVcd(config);</span>
+<span class="nc" id="L155">			version = restClient.getVersion();</span>
+<span class="nc" id="L156">			LOGGER.info(&quot;Detecting vCD Server version '{}'.&quot;, version);</span>
+
+<span class="nc" id="L158">			return new VcdNgPackageStore(restClient, strategies, new Version(version));</span>
+		}
+
+<span class="nc bnc" id="L161" title="All 2 branches missed.">		if (configuration instanceof ConfigurationVrops) {</span>
+<span class="nc" id="L162">			LOGGER.info(&quot;Detected ConfigurationVrops&quot;);</span>
+<span class="nc" id="L163">			ConfigurationVrops config = (ConfigurationVrops) configuration;</span>
+
+<span class="nc" id="L165">			CliManagerVrops cliManager = CliManagerFactory.getVropsCliManager(config);</span>
+<span class="nc" id="L166">			RestClientVrops restClient = RestClientFactory.getClientVrops(config);</span>
+<span class="nc" id="L167">			version = restClient.getVersion();</span>
+<span class="nc" id="L168">			LOGGER.info(&quot;Detecting vROPs Server version '{}'.&quot;, version);</span>
+
+<span class="nc" id="L170">			return new VropsPackageStore(cliManager, restClient, new Version(version));</span>
+		}
+
+<span class="nc bnc" id="L173" title="All 2 branches missed.">		if (configuration instanceof ConfigurationVrli) {</span>
+<span class="nc" id="L174">			LOGGER.info(&quot;Detected ConfigurationVrli&quot;);</span>
+<span class="nc" id="L175">			ConfigurationVrli config = (ConfigurationVrli) configuration;</span>
+<span class="nc" id="L176">			RestClientVrliV1 restClientV1 = RestClientFactory.getClientVrliV1(config);</span>
+<span class="nc" id="L177">			RestClientVrliV2 restClientV2 = RestClientFactory.getClientVrliV2(config);</span>
+
+			try {
+<span class="nc" id="L180">				version = restClientV1.getVersion();</span>
+<span class="nc" id="L181">			} catch (Exception e) {</span>
+<span class="nc" id="L182">				version = restClientV2.getVersion();</span>
+<span class="nc" id="L183">			}</span>
+<span class="nc" id="L184">			LOGGER.info(&quot;Detected vRLI version &quot; + version);</span>
+<span class="nc bnc" id="L185" title="All 4 branches missed.">			if (!StringUtils.isEmpty(version) &amp;&amp; Version.compareSemanticVersions(version, &quot;8.8&quot;) &gt; -1) {</span>
+<span class="nc" id="L186">				LOGGER.info(&quot;Instantiate REST Client v2.&quot;);</span>
+<span class="nc" id="L187">				return new VrliPackageStoreV2(restClientV2);</span>
+			}
+<span class="nc" id="L189">			LOGGER.info(&quot;Instantiate REST Client v1.&quot;);</span>
+<span class="nc" id="L190">			return new VrliPackageStoreV1(restClientV1);</span>
+		}
+
+<span class="nc bnc" id="L193" title="All 2 branches missed.">		if (configuration instanceof ConfigurationSsh) {</span>
+<span class="nc" id="L194">			LOGGER.info(&quot;Detected ConfigurationSsh&quot;);</span>
+<span class="nc" id="L195">			ConfigurationSsh config = (ConfigurationSsh) configuration;</span>
+<span class="nc" id="L196">			return new SshPackageStore(config);</span>
+		}
+
+<span class="nc" id="L199">		throw new RuntimeException(</span>
+<span class="nc" id="L200">				&quot;There is no PackageStore defined for Configuration Type &quot; + configuration.getClass().getSimpleName());</span>
+	}
+
+	private static List&lt;PackageStoreExtention&lt;VraPackageDescriptor&gt;&gt; loadVraExtensions(String vraVersion,
+			ConfigurationVra config, RestClientVra client) {
+<span class="nc" id="L205">		List&lt;PackageStoreExtention&lt;VraPackageDescriptor&gt;&gt; extentions = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L207" title="All 2 branches missed.">		if (new Version(vraVersion).compareTo(new Version(&quot;7.4-SNAPSHOT&quot;)) &gt;= 0) {</span>
+<span class="nc" id="L208">			extentions.add(new VraCustomFormPackageStoreExtention(client));</span>
+		}
+<span class="nc" id="L210">		extentions.add(new VraSubscriptionPackageStoreExtention(client));</span>
+<span class="nc" id="L211">		extentions.add(new VraGlobalPropertyDefinitionPackageStoreExtention(client));</span>
+<span class="nc" id="L212">		extentions.add(new VraGlobalPropertyGroupPackageStoreExtention(client));</span>
+<span class="nc" id="L213">		extentions.add(new VraIconPackageStoreExtention(client));</span>
+<span class="nc" id="L214">		extentions.add(new VraCatalogItemPackageStoreExtention(client));</span>
+
+<span class="nc" id="L216">		return extentions;</span>
+	}
+
+	private static List&lt;PackageStoreExtention&lt;VroPackageDescriptor&gt;&gt; loadVroExtensions(String vroVersion,
+			ConfigurationNg config, RestClientVro client) {
+		// No vRO extensions for now
+<span class="nc" id="L222">		return new ArrayList&lt;&gt;();</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

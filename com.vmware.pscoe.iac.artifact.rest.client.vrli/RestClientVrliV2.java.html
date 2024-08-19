@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RestClientVrliV2.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest.client.vrli</a> &gt; <span class="el_source">RestClientVrliV2.java</span></div><h1>RestClientVrliV2.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.rest.client.vrli;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVrli;
+import com.vmware.pscoe.iac.artifact.rest.RestClientVrops;
+import com.vmware.pscoe.iac.artifact.rest.client.messages.Errors;
+import com.vmware.pscoe.iac.artifact.rest.model.vrli.v2.AlertDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrli.v2.ContentPackDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrli.v2.ContentPackMetadataListDTO;
+import com.vmware.pscoe.iac.artifact.rest.model.vrops.ResourcesDTO;
+
+public class RestClientVrliV2 extends AbstractRestClientVrli {
+	/**
+	 * API_PREFIX.
+	 */
+	private static final String API_PREFIX = &quot;/api/v2&quot;;
+	/**
+	 * RESOURCE_KIND_KEY.
+	 */
+	private static final String RESOURCE_KIND_KEY = &quot;resourceKindKey&quot;;
+	/**
+	 * ADAPTER_KIND_KEY.
+	 */
+	private static final String ADAPTER_KIND_KEY = &quot;adapterKindKey&quot;;
+	/**
+	 * KEYS_SPLIT_KEY.
+	 */
+	private static final String KEYS_SPLIT_KEY = &quot;&amp;&quot;;
+	/**
+	 * KEY_SPLIT_KEY.
+	 */
+	private static final String KEY_SPLIT_KEY = &quot;=&quot;;
+
+	/**
+	 * RestClientVrliV2.
+	 * 
+	 * @param configuration
+	 * @param restTemplate
+	 */
+	public RestClientVrliV2(ConfigurationVrli configuration, RestTemplate restTemplate) {
+<span class="nc" id="L77">		super(API_PREFIX, configuration, restTemplate);</span>
+<span class="nc" id="L78">		logger = LoggerFactory.getLogger(RestClientVrliV2.class);</span>
+<span class="nc" id="L79">	}</span>
+
+	/**
+	 * Returns all alerts in vRLI.
+	 * 
+	 * @return list of AlertDTO
+	 */
+	public List&lt;AlertDTO&gt; getAllAlerts() {
+<span class="nc" id="L87">		URI url = getURI(getURIBuilder().setPath(this.apiPrefix + ALERTS_API));</span>
+<span class="nc" id="L88">		logger.info(&quot;Getting all alerts URL: {}&quot;, url);</span>
+<span class="nc" id="L89">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="nc" id="L91">		return deserializeAlerts(response.getBody());</span>
+	}
+
+	/**
+	 * Returns all content packs in vRLI.
+	 * 
+	 * @return list of ContentPackDTO
+	 */
+	public List&lt;ContentPackDTO&gt; getAllContentPacks() {
+<span class="nc" id="L100">		URI url = getURI(getURIBuilder().setPath(this.apiPrefix + CONTENT_PACKS_API));</span>
+<span class="nc" id="L101">		logger.info(&quot;Getting all content packs URL: {}&quot;, url);</span>
+<span class="nc" id="L102">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="nc" id="L104">		logger.debug(&quot;Content Packs: {}&quot;, response.getBody());</span>
+<span class="nc" id="L105">		return deserializeContentPacks(response.getBody());</span>
+	}
+
+	/**
+	 * Update vRLI alert.
+	 * 
+	 * @param alertToUpdate
+	 * @param existingAlertId
+	 */
+	public void updateAlert(final AlertDTO alertToUpdate, final String existingAlertId) {
+<span class="nc bnc" id="L115" title="All 4 branches missed.">		if (alertToUpdate == null || StringUtils.isEmpty(existingAlertId)) {</span>
+<span class="nc" id="L116">			return;</span>
+		}
+
+<span class="nc" id="L119">		logger.info(&quot;Updating alert '{}'&quot;, alertToUpdate.getName());</span>
+<span class="nc" id="L120">		deleteAlert(existingAlertId);</span>
+<span class="nc" id="L121">		insertAlert(serializeAlert(alertToUpdate));</span>
+<span class="nc" id="L122">	}</span>
+
+	/**
+	 * Import a vRLI alert.
+	 * 
+	 * @param alertJson
+	 */
+	public void importAlert(final String alertJson) {
+<span class="nc bnc" id="L130" title="All 2 branches missed.">		if (StringUtils.isEmpty(alertJson)) {</span>
+<span class="nc" id="L131">			return;</span>
+		}
+
+<span class="nc" id="L134">		AlertDTO alertToUpdate = deserializeAlert(alertJson);</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">		if (alertToUpdate == null) {</span>
+<span class="nc" id="L136">			return;</span>
+		}
+<span class="nc" id="L138">		AlertDTO existingAlert = findAlertByName(alertToUpdate.getName());</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">		if (existingAlert != null) {</span>
+<span class="nc" id="L140">			updateAlert(alertToUpdate, existingAlert.getId());</span>
+<span class="nc" id="L141">			return;</span>
+		}
+
+<span class="nc" id="L144">		insertAlert(alertJson);</span>
+<span class="nc" id="L145">	}</span>
+
+	/**
+	 * Delete a vRLI alert.
+	 * 
+	 * @param alertId
+	 */	
+	public void deleteAlert(final String alertId) {
+<span class="nc bnc" id="L153" title="All 2 branches missed.">		if (StringUtils.isEmpty(alertId)) {</span>
+<span class="nc" id="L154">			return;</span>
+		}
+<span class="nc" id="L156">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L157">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L158">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+		ResponseEntity&lt;String&gt; response;
+<span class="nc" id="L160">		String deleteAlertUri = String.format(this.apiPrefix + ALERTS_API + &quot;/%s&quot;, alertId);</span>
+<span class="nc" id="L161">		logger.info(&quot;Deleting existing alert {}&quot;, alertId);</span>
+		try {
+<span class="nc" id="L163">			URI url = getURIBuilder().setPath(deleteAlertUri).build();</span>
+<span class="nc" id="L164">			logger.info(&quot;Deleting alert URL: {}&quot;, url);</span>
+<span class="nc" id="L165">			response = restTemplate.exchange(url, HttpMethod.DELETE, entity, String.class);</span>
+<span class="nc" id="L166">		} catch (RestClientException e) {</span>
+<span class="nc" id="L167">			throw new RuntimeException(String.format(&quot;Unable to delete alert, error: %s&quot;, e.getMessage()), e);</span>
+<span class="nc" id="L168">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L169">			throw new RuntimeException(String.format(&quot;Unable to determine REST endpoint for deleting alert, error: %s&quot;, e.getMessage()), e);</span>
+<span class="nc" id="L170">		}</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">		if (HttpStatus.NOT_FOUND.equals(response.getStatusCode())) {</span>
+<span class="nc" id="L172">			return;</span>
+		}
+<span class="nc bnc" id="L174" title="All 2 branches missed.">		if (!HttpStatus.OK.equals(response.getStatusCode())) {</span>
+<span class="nc" id="L175">			throw new RuntimeException(String.format(&quot;Unable to delete alert, Remote REST service returned status code %s, with message %s&quot;,</span>
+<span class="nc" id="L176">					response.getStatusCode(), response.getBody()));</span>
+		}
+<span class="nc" id="L178">	}</span>
+
+	/**
+	 * Insert a vRLI alert.
+	 * 
+	 * @param alertJson
+	 */	
+	public void insertAlert(String alertJson) {
+<span class="nc bnc" id="L186" title="All 2 branches missed.">		if (StringUtils.isEmpty(alertJson)) {</span>
+<span class="nc" id="L187">			return;</span>
+		}
+
+<span class="nc" id="L190">		AlertDTO alert = deserializeAlert(alertJson);</span>
+		// rewrite the vcops integration data if needed
+<span class="nc" id="L192">		rewriteVcopsIntegrationInfo(alert);</span>
+<span class="nc" id="L193">		alertJson = serializeAlert(alert);</span>
+
+<span class="nc" id="L195">		logger.info(&quot;Inserting a new alert '{}'&quot;, alert.getName());</span>
+<span class="nc" id="L196">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L197">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="nc" id="L198">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(alertJson, headers);</span>
+		ResponseEntity&lt;String&gt; response;
+		try {
+<span class="nc" id="L201">			URI url = getURIBuilder().setPath(this.apiPrefix + ALERTS_API).build();</span>
+<span class="nc" id="L202">			logger.info(&quot;Inserting alert URL: {}&quot;, url);</span>
+<span class="nc" id="L203">			response = restTemplate.exchange(url, HttpMethod.POST, entity, String.class);</span>
+<span class="nc" id="L204">		} catch (RestClientException e) {</span>
+<span class="nc" id="L205">			throw new RuntimeException(String.format(&quot;Unable to insert/update alert, error: %s&quot;, e.getMessage()), e);</span>
+<span class="nc" id="L206">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L207">			throw new RuntimeException(String.format(&quot;Unable to determine REST endpoint for alert, error: %s&quot;, e.getMessage()), e);</span>
+<span class="nc" id="L208">		}</span>
+<span class="nc bnc" id="L209" title="All 2 branches missed.">		if (!HttpStatus.CREATED.equals(response.getStatusCode())) {</span>
+<span class="nc" id="L210">			throw new RuntimeException(String.format(&quot;Unable to insert/update alert, Remote REST service returned status code %s, with message %s&quot;,</span>
+<span class="nc" id="L211">					response.getStatusCode(), response.getBody()));</span>
+		}
+<span class="nc" id="L213">	}</span>
+
+	/**
+	 * Rewrite the vROPs integration data for vROPs enabled vRLI alerts so that the
+	 * target vROPs integration matches the one defined by vROPs during push. The
+	 * vROPs integration data is retrieved dynamically from vROPs based on the
+	 * configured vROPs integration in the settings.xml (&lt;vrli.vrops*&gt; settings)
+	 *
+	 * @param alert DTO object
+	 * @throws Runtime exception
+	 */
+	private void rewriteVcopsIntegrationInfo(final AlertDTO alert) {
+<span class="nc bnc" id="L225" title="All 2 branches missed.">		if (alert == null) {</span>
+<span class="nc" id="L226">			return;</span>
+		}
+<span class="nc bnc" id="L228" title="All 2 branches missed.">		if (alert.getRecipients().getVrops().getVcopsResourceKindKey() == null) {</span>
+<span class="nc" id="L229">			return;</span>
+		}
+		// fetch the adapter type for alert
+<span class="nc" id="L232">		String alertAdapterType = this.getAdapterTypeForAlert(alert);</span>
+		// fetch the resource type for alert
+<span class="nc" id="L234">		String alertResourceType = this.getResourceTypeForAlert(alert);</span>
+		// retrieve the resources based on the target adapter type (vROPs adapter kind)
+<span class="nc" id="L236">		RestClientVrops restClientVrops = getVropsRestClient();</span>
+		ResourcesDTO resourceDto;
+		try {
+<span class="nc" id="L239">			resourceDto = restClientVrops.getResourcesPerAdapterType(alertAdapterType);</span>
+<span class="nc" id="L240">		} catch (Exception e) {</span>
+<span class="nc" id="L241">			throw new RuntimeException(</span>
+<span class="nc" id="L242">					String.format(&quot;Unable to update vCOPs integration for alert '%s', unable to fetch vROPs resources for adapter type '%s': %s&quot;,</span>
+<span class="nc" id="L243">							alert.getName(), alertAdapterType, e.getMessage()));</span>
+<span class="nc" id="L244">		}</span>
+<span class="nc" id="L245">		Optional&lt;ResourcesDTO.ResourceList&gt; targetResource = resourceDto.getResourceList().stream()</span>
+<span class="nc" id="L246">				.filter(item -&gt; item.getResourceKey().getResourceKindKey().equalsIgnoreCase(alertResourceType)).findFirst();</span>
+<span class="nc bnc" id="L247" title="All 2 branches missed.">		if (!targetResource.isPresent()) {</span>
+<span class="nc" id="L248">			throw new RuntimeException(String.format(</span>
+					&quot;Unable to find resource type '%s' on the target vROPs server for alert: '%s', please check VROPS content pack configuration in VRLI or VROPS configuration&quot;,
+<span class="nc" id="L250">					alertResourceType, alert.getName()));</span>
+		}
+<span class="nc" id="L252">		String resourceName = targetResource.get().getResourceKey().getName();</span>
+<span class="nc" id="L253">		String adapterKindKey = targetResource.get().getResourceKey().getAdapterKindKey();</span>
+<span class="nc" id="L254">		String resourceKindKey = targetResource.get().getResourceKey().getResourceKindKey();</span>
+<span class="nc" id="L255">		List&lt;String&gt; baseResourceKindKeys = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L256">		baseResourceKindKeys.add(&quot;resourceName=&quot; + resourceName);</span>
+<span class="nc" id="L257">		baseResourceKindKeys.add(&quot;adapterKindKey=&quot; + adapterKindKey);</span>
+<span class="nc" id="L258">		baseResourceKindKeys.add(&quot;resourceKindKey=&quot; + resourceKindKey);</span>
+<span class="nc" id="L259">		alert.getRecipients().getVrops().setVcopsResourceName(resourceName);</span>
+
+		// create resource identifiers list
+<span class="nc" id="L262">		List&lt;String&gt; identifiersList = targetResource.get().getResourceKey().getResourceIdentifiers().stream().map(identifier -&gt; {</span>
+<span class="nc" id="L263">			String name = identifier.getIdentifierType().getName();</span>
+<span class="nc" id="L264">			String value = identifier.getValue();</span>
+<span class="nc" id="L265">			return name + &quot;::&quot; + value;</span>
+<span class="nc" id="L266">		}).collect(Collectors.toList());</span>
+
+<span class="nc bnc" id="L268" title="All 2 branches missed.">		if (!identifiersList.isEmpty()) {</span>
+<span class="nc" id="L269">			String identifiers = identifiersList.stream().collect(Collectors.joining(&quot;$$&quot;));</span>
+<span class="nc" id="L270">			baseResourceKindKeys.add(&quot;identifiers=&quot; + identifiers);</span>
+		}
+<span class="nc" id="L272">		logger.info(&quot;Rewriting the vCopsResourceKindKey for alert '{}', using resource name '{}'&quot;, alert.getName(), resourceName);</span>
+<span class="nc" id="L273">		alert.getRecipients().getVrops().setVcopsResourceName(resourceName);</span>
+<span class="nc" id="L274">		alert.getRecipients().getVrops().setVcopsResourceKindKey(baseResourceKindKeys.stream().collect(Collectors.joining(&quot;&amp;&quot;)));</span>
+<span class="nc" id="L275">	}</span>
+
+	/**
+	 * Return the vROPs adapter type for an alert.
+	 * 
+	 * @param alert
+	 * @return adapterType
+	 */	
+	private String getAdapterTypeForAlert(final AlertDTO alert) {
+<span class="nc" id="L284">		String targetResourceKindKeys = alert.getRecipients().getVrops().getVcopsResourceKindKey();</span>
+<span class="nc" id="L285">		List&lt;String&gt; keysSplit = Arrays.asList(targetResourceKindKeys.split(KEYS_SPLIT_KEY));</span>
+<span class="nc" id="L286">		Optional&lt;String&gt; adapterTypeKeys = keysSplit.stream().filter(item -&gt; item.contains(ADAPTER_KIND_KEY)).findFirst();</span>
+
+<span class="nc bnc" id="L288" title="All 2 branches missed.">		if (!adapterTypeKeys.isPresent()) {</span>
+<span class="nc" id="L289">			throw new RuntimeException(String.format(&quot;Unable to find adapter type '%s' for vROPs enabled alert: '%s' on the target vROPs system&quot;,</span>
+<span class="nc" id="L290">					ADAPTER_KIND_KEY, alert.getName()));</span>
+		}
+<span class="nc" id="L292">		List&lt;String&gt; adapterTypes = Arrays.asList(adapterTypeKeys.get().split(KEY_SPLIT_KEY));</span>
+<span class="nc bnc" id="L293" title="All 2 branches missed.">		if (adapterTypes.isEmpty()) {</span>
+<span class="nc" id="L294">			throw new RuntimeException(String.format(&quot;Unable to to extract vROPs adapter kind type for vROPs enabled alert '%s'&quot;, alert.getName()));</span>
+		}
+
+<span class="nc" id="L297">		return adapterTypes.get(adapterTypes.size() - 1);</span>
+	}
+
+	/**
+	 * Return the vROPs resource type for an alert.
+	 * 
+	 * @param alert
+	 * @return resource type
+	 */	
+	private String getResourceTypeForAlert(final AlertDTO alert) {
+<span class="nc" id="L307">		String targetResourceKindKeys = alert.getRecipients().getVrops().getVcopsResourceKindKey();</span>
+<span class="nc" id="L308">		List&lt;String&gt; keysSplit = Arrays.asList(targetResourceKindKeys.split(KEYS_SPLIT_KEY));</span>
+<span class="nc" id="L309">		Optional&lt;String&gt; resourceTypes = keysSplit.stream().filter(item -&gt; item.contains(RESOURCE_KIND_KEY)).findFirst();</span>
+<span class="nc bnc" id="L310" title="All 2 branches missed.">		if (!resourceTypes.isPresent()) {</span>
+<span class="nc" id="L311">			throw new RuntimeException(String.format(&quot;Unable to find resource type '%s' for vROPs enabled alert: '%s' on the target vROPs system&quot;,</span>
+<span class="nc" id="L312">					RESOURCE_KIND_KEY, alert.getName()));</span>
+		}
+<span class="nc" id="L314">		List&lt;String&gt; types = Arrays.asList(resourceTypes.get().split(KEY_SPLIT_KEY));</span>
+<span class="nc bnc" id="L315" title="All 2 branches missed.">		if (types.isEmpty()) {</span>
+<span class="nc" id="L316">			throw new RuntimeException(String.format(&quot;Unable to to extract vROPs resource kind type for vROPs enabled alert '%s'&quot;, alert.getName()));</span>
+		}
+
+<span class="nc" id="L319">		return types.get(types.size() - 1);</span>
+	}
+
+	/**
+	 * Finds alert by name.
+	 * 
+	 * @param alertName
+	 * @return AlertDTO
+	 */	
+	private AlertDTO findAlertByName(final String alertName) {
+<span class="nc" id="L329">		List&lt;AlertDTO&gt; alerts = getAllAlerts();</span>
+<span class="nc bnc" id="L330" title="All 4 branches missed.">		if (alerts == null || alerts.isEmpty()) {</span>
+<span class="nc" id="L331">			return null;</span>
+		}
+<span class="nc" id="L333">		List&lt;AlertDTO&gt; foundAlerts = alerts.stream().filter(alert -&gt; alert.getName().equalsIgnoreCase(alertName)).distinct().collect(Collectors.toList());</span>
+<span class="nc bnc" id="L334" title="All 4 branches missed.">		if (foundAlerts == null || foundAlerts.isEmpty()) {</span>
+<span class="nc" id="L335">			return null;</span>
+		}
+<span class="nc" id="L337">		Optional&lt;AlertDTO&gt; foundAlert = foundAlerts.stream().findFirst();</span>
+<span class="nc bnc" id="L338" title="All 2 branches missed.">		if (foundAlert.isPresent()) {</span>
+<span class="nc" id="L339">			return foundAlert.get();</span>
+		}
+
+<span class="nc" id="L342">		return null;</span>
+	}
+
+	/**
+	 * Deserialize alert.
+	 * 
+	 * @param alertJson
+	 * @return AlertDTO
+	 */	
+	private AlertDTO deserializeAlert(final String alertJson) {
+<span class="nc" id="L352">		ObjectMapper mapper = new ObjectMapper();</span>
+		try {
+<span class="nc" id="L354">			return mapper.readValue(alertJson, AlertDTO.class);</span>
+<span class="nc" id="L355">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L356">			throw new RuntimeException(Errors.MAP_ALERT_DATA_ERROR, e);</span>
+<span class="nc" id="L357">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L358">			throw new RuntimeException(Errors.PROCESS_ALERT_DATA_ERROR, e);</span>
+		}
+	}
+
+	/**
+	 * Deserialize alerts.
+	 * 
+	 * @param alertsJson
+	 * @return list of AlertDTO
+	 */	
+	private List&lt;AlertDTO&gt; deserializeAlerts(final String alertsJson) {
+<span class="nc" id="L369">		ObjectMapper mapper = new ObjectMapper();</span>
+		try {
+<span class="nc" id="L371">			return Arrays.asList(mapper.readValue(alertsJson, AlertDTO[].class));</span>
+<span class="nc" id="L372">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L373">			throw new RuntimeException(Errors.MAP_ALERT_DATA_ERROR, e);</span>
+<span class="nc" id="L374">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L375">			throw new RuntimeException(Errors.PROCESS_ALERT_DATA_ERROR, e);</span>
+		}
+	}
+
+	/**
+	 * Deserialize content packs.
+	 * 
+	 * @param contentPacksJson
+	 * @return list of ContentPackDTO
+	 */	
+	private List&lt;ContentPackDTO&gt; deserializeContentPacks(final String contentPacksJson) {
+<span class="nc" id="L386">		ObjectMapper mapper = new ObjectMapper();</span>
+		try {
+<span class="nc" id="L388">			ContentPackMetadataListDTO contentPackMetadata = mapper.readValue(contentPacksJson, ContentPackMetadataListDTO.class);</span>
+<span class="nc" id="L389">			return contentPackMetadata.getContentPackMetadataList();</span>
+<span class="nc" id="L390">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L391">			throw new RuntimeException(Errors.MAP_CONTENT_PACK_DATA_ERROR, e);</span>
+<span class="nc" id="L392">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L393">			throw new RuntimeException(Errors.PROCESS_CONTENT_PACK_DATA_ERROR, e);</span>
+		}
+	}
+
+	/**
+	 * Serialize alert.
+	 * 
+	 * @param alert
+	 * @return JSON string
+	 */	
+	private String serializeAlert(final AlertDTO alert) {
+<span class="nc" id="L404">		ObjectMapper mapper = new ObjectMapper();</span>
+		try {
+<span class="nc" id="L406">			return mapper.writeValueAsString(alert);</span>
+<span class="nc" id="L407">		} catch (JsonMappingException e) {</span>
+<span class="nc" id="L408">			throw new RuntimeException(Errors.MAP_ALERT_DATA_ERROR, e);</span>
+<span class="nc" id="L409">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L410">			throw new RuntimeException(Errors.PROCESS_ALERT_DATA_ERROR, e);</span>
+		}
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

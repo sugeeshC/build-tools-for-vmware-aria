@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgCustomForm.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.vrang</a> &gt; <span class="el_source">VraNgCustomForm.java</span></div><h1>VraNgCustomForm.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+
+/**
+ * Deserialized Custom Form in a format suitabe for the REST API to work with.
+ * Still to store this form on the file system, please convert it to VraNgCustomFormAndData object first.
+ * @see VraNgCustomForm
+ */
+public class VraNgCustomForm {
+	/**
+	 * id.
+	 */
+	private String id;
+
+	/**
+	 * name.
+	 */
+	private String name;
+	
+	/**
+	 * The form serialized into a string, so when the whole VraNgCustomForm object is serealized on the
+	 * file system repo, it will look as double serialized object such as&quot; &lt;br/&gt;&lt;br/&gt;
+	 * &lt;code&gt;
+	 * {
+	 *   &quot;id&quot;: &quot;e694a748-7067-47d1-91a4-614da73dda03&quot;,
+	 *   &quot;name&quot;: &quot;Test&quot;,
+	 *   &quot;form&quot;: &quot;{\&quot;layout\&quot;: {...},\&quot;schema\&quot;: {...},\&quot;options\&quot;: {...}}&quot;,
+	 *   &quot;styles&quot;: null,
+	 *   &quot;sourceType&quot;: &quot;com.vmw.blueprint&quot;,
+	 *   &quot;sourceId&quot;: &quot;71ac6ebc-6a94-3c5a-8c00-2a44ddf81bce&quot;,
+	 *   &quot;type&quot;: &quot;requestForm&quot;,
+	 *   &quot;status&quot;: &quot;ON&quot;,
+	 *   &quot;formFormat&quot;: &quot;JSON&quot;
+	 * }
+	 * &lt;/code&gt;
+	 * rather than
+	 * &lt;code&gt;
+	 *     {
+	 *   &quot;id&quot;: &quot;e694a748-7067-47d1-91a4-614da73dda03&quot;,
+	 *   &quot;name&quot;: &quot;Test&quot;,
+	 *   &quot;form&quot;: {
+	 *     &quot;layout&quot;: {
+	 *     ...
+	 *     },
+	 *     &quot;schema&quot;: {
+	 *     ...
+	 *     },
+	 *     &quot;options&quot;: {
+	 *     ...
+	 *     }
+	 *   },
+	 *   &quot;styles&quot;: null,
+	 *   &quot;sourceType&quot;: &quot;com.vmw.blueprint&quot;,
+	 *   &quot;sourceId&quot;: &quot;71ac6ebc-6a94-3c5a-8c00-2a44ddf81bce&quot;,
+	 *   &quot;type&quot;: &quot;requestForm&quot;,
+	 *   &quot;status&quot;: &quot;ON&quot;,
+	 *   &quot;formFormat&quot;: &quot;JSON&quot;
+	 * }
+	 * &lt;/code&gt;
+	 */
+	private String form;
+
+	/**
+	 * style.
+	 */
+	private String styles;
+
+	/**
+	 * sourceType.
+	 */
+	private String sourceType;
+
+	/**
+	 * sourceId.
+	 */
+	private String sourceId;
+
+	/**
+	 * type.
+	 */
+	private String type;
+
+	/**
+	 * status.
+	 */
+	private String status;
+
+	/**
+	 * formFormat.
+	 */
+	private String formFormat;
+
+	/**
+	 * Constructor function for VraNgCustomForm. This object is used by the REST API to export/import custom forms
+	 * from/to Aria Automation. Still this is not suitable for serializing and storeing it on the file system as then
+	 * the form field (which has its own internal structure) will be serialized as one line string making it very
+	 * difficult for a human to work with it.
+	 * @param idIn Id value
+	 * @param nameIn name value
+	 * @param formIn form value. This is expected to be a form converted in string format event if it represents a
+	 *               (YAML or JSON) object it will be converted into string. If you serialize this VraNgCustomForm
+	 *               object, it will contain the form field properly serialized as one line string and any new lines
+	 *               properly escaped (\n).
+	 * @param stylesIn form styles
+	 * @param sourceIdIn form source id value
+	 * @param sourceTypeIn form source type value
+	 * @param typeIn form type value
+	 * @param statusIn form status
+	 * @param formFormatIn form format
+	 * @see VraNgCustomForm#form
+	 * @see VraNgCustomFormAndData
+	 * @see VraNgCustomFormAndData#form
+	 */
+	public VraNgCustomForm(final String idIn, final String nameIn, final String formIn, final String stylesIn, final String sourceIdIn, final String sourceTypeIn,
+<span class="fc" id="L133">			final String typeIn, final String statusIn, final String formFormatIn) {</span>
+<span class="fc" id="L134">		this.id = idIn;</span>
+<span class="fc" id="L135">		this.name = nameIn;</span>
+<span class="fc" id="L136">		this.form = formIn;</span>
+<span class="fc" id="L137">		this.styles = stylesIn;</span>
+<span class="fc" id="L138">		this.sourceType = sourceTypeIn;</span>
+<span class="fc" id="L139">		this.sourceId = sourceIdIn;</span>
+<span class="fc" id="L140">		this.type = typeIn;</span>
+<span class="fc" id="L141">		this.status = statusIn;</span>
+<span class="fc" id="L142">		this.formFormat = formFormatIn;</span>
+<span class="fc" id="L143">	}</span>
+	
+	/**
+	 * Construct new VraNgCustomForm suoitable for the REST API, from VraNgCustomFormAndData object which is
+	 * read from the file system repository.
+	 * @param repoForm Form as represented in the file system repository.
+	 * @see VraNgCustomForm#form
+	 * @see VraNgCustomFormAndData
+	 * @see VraNgCustomFormAndData#form
+	 */
+<span class="fc" id="L153">	public VraNgCustomForm(VraNgCustomFormAndData repoForm) {</span>
+<span class="fc" id="L154">		this.id = repoForm.getId();</span>
+<span class="fc" id="L155">		this.name = repoForm.getName();</span>
+<span class="fc" id="L156">		this.styles = repoForm.getStyles();</span>
+<span class="fc" id="L157">		this.sourceType = repoForm.getSourceType();</span>
+<span class="fc" id="L158">		this.sourceId = repoForm.getSourceId();</span>
+<span class="fc" id="L159">		this.type = repoForm.getType();</span>
+<span class="fc" id="L160">		this.status = repoForm.getStatus();</span>
+<span class="fc" id="L161">		this.formFormat = repoForm.getFormFormat();</span>
+<span class="fc" id="L162">		JsonElement json = repoForm.getForm();</span>
+<span class="pc bpc" id="L163" title="2 of 4 branches missed.">		if (json == null || json.isJsonNull()) {</span>
+<span class="nc" id="L164">			return;</span>
+		}
+<span class="pc bpc" id="L166" title="1 of 4 branches missed.">		if (json.isJsonPrimitive() &amp;&amp; json.getAsJsonPrimitive().isString()) {</span>
+<span class="fc" id="L167">			this.form = json.getAsJsonPrimitive().getAsString();</span>
+<span class="pc bpc" id="L168" title="1 of 2 branches missed.">		} else if (json.isJsonObject()) {</span>
+<span class="fc" id="L169">			Gson gson = new GsonBuilder().setLenient().serializeNulls().create();</span>
+<span class="fc" id="L170">			this.form = gson.toJson(json);</span>
+<span class="fc" id="L171">		} else {</span>
+<span class="nc" id="L172">			this.form = json.toString();</span>
+		}
+<span class="fc" id="L174">	}</span>
+
+	/**
+	 * Getter for id.
+	 * @return id String
+	 */
+	public String getId() {
+<span class="fc" id="L181">		return this.id;</span>
+	}
+
+	/**
+	 * Setter for name.
+	 * @param nameIn String
+	 */
+	public void setName(final String nameIn) {
+<span class="fc" id="L189">		this.name = nameIn;</span>
+<span class="fc" id="L190">	}</span>
+
+	/**
+	 * Getter for name.
+	 * @return name String
+	 */
+	public String getName() {
+<span class="fc" id="L197">		return this.name;</span>
+	}
+
+	/**
+	 * Getter for form.
+	 * @return form String
+	 */
+	public String getForm() {
+<span class="fc" id="L205">		return this.form;</span>
+	}
+
+	/**
+	 * Getter for styles.
+	 * @return styles String
+	 */
+	public String getStyles() {
+<span class="fc" id="L213">		return this.styles;</span>
+	}
+
+	/**
+	 * Getter for sourceType.
+	 * @return sourceType String
+	 */
+	public String getSourceType() {
+<span class="fc" id="L221">		return this.sourceType;</span>
+	}
+
+	/**
+	 * Getter for sourceId.
+	 * @return sourceId String
+	 */
+	public String getSourceId() {
+<span class="fc" id="L229">		return this.sourceId;</span>
+	}
+
+	/**
+	 * Setter for sourceId. Override in case of 812 blueprint form version.
+	 * @param sourceIdIn String
+	 */
+	public void setSourceId(final String sourceIdIn) {
+<span class="fc" id="L237">		this.sourceId = sourceIdIn;</span>
+<span class="fc" id="L238">	}</span>
+
+	/**
+	 * Getter for type.
+	 * @return type String
+	 */
+	public String getType() {
+<span class="fc" id="L245">		return this.type;</span>
+	}
+	
+	/**
+	 * sourceType.
+	 *
+	 * @param sourceTypeIn source type
+	 */
+	public void setSourceType(final String sourceTypeIn) {
+<span class="fc" id="L254">		this.sourceType = sourceTypeIn;</span>
+<span class="fc" id="L255">	}</span>
+
+	/**
+	 * Getter for status.
+	 * @return status String
+	 */
+	public String getStatus() {
+<span class="fc" id="L262">		return this.status;</span>
+	}
+
+	/**
+	 * Getter for formFormat.
+	 * @return formFormat String
+	 */
+	public String getFormFormat() {
+<span class="fc" id="L270">		return this.formFormat;</span>
+	}
+
+	/**
+	 * Setter for form.
+	 * @param formIn String
+	 */
+	public void setForm(final String formIn) {
+<span class="nc" id="L278">		this.form = formIn;</span>
+<span class="nc" id="L279">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

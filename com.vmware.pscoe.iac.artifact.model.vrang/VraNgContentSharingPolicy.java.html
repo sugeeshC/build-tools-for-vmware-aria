@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgContentSharingPolicy.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.model.vrang</a> &gt; <span class="el_source">VraNgContentSharingPolicy.java</span></div><h1>VraNgContentSharingPolicy.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.model.vrang;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+/**
+
+*/
+public class VraNgContentSharingPolicy {
+	/**
+	 * Id of the Content Sharing Policy.
+	 */
+	private String id;
+	/**
+	 * Name of the Content Sharing Policy.
+	 */
+	private String name;
+	/**
+	 * TypeId of the Content Sharing Policy.
+	 */
+	private String typeId;
+	/**
+	 * ProjectId of the Content Sharing Policy.
+	 */
+	private String projectId;
+	/**
+	 * Scope of the content sharing policy. The scope is a project name.
+	 */
+	private String scope;
+	/**
+	 * Organization for the content sharing policy.
+	 */
+	private String organization;
+	/**
+	 * OrgId of the Content Sharing Policy.
+	 */
+	private String orgId;
+	/**
+	 * EnforcementType of the Content Sharing Policy.
+	 */
+	private String enforcementType;
+	/**
+	 * Description of the Content Sharing Policy.
+	 */
+	private String description;
+	/**
+	 * Definition of the Content Sharing Policy.
+	 */
+	private VraNgDefinition definition;
+
+	/**
+	 * Constructor VraNgContentSharingPolicy.
+	 */
+<span class="fc" id="L66">	public VraNgContentSharingPolicy() {</span>
+<span class="fc" id="L67">	}</span>
+
+	/**
+	 * Constructor.
+	 * 
+	 * @param id              Id
+	 * @param name            Name
+	 * @param typeId          Typeid
+	 * @param projectId       ProjectId
+	 * @param orgId           OrgId
+	 * @param enforcementType enforcementType
+	 * @param description     description
+	 * @param definition      definition
+	 * @param scope           scope
+	 * @param organization    organization name
+	 */
+	public VraNgContentSharingPolicy(final String id, final String name, final String typeId, final String projectId, final String orgId,
+<span class="fc" id="L84">			final String enforcementType, final String description, final VraNgDefinition definition, final String scope, final String organization) {</span>
+<span class="fc" id="L85">		this.id = id;</span>
+<span class="fc" id="L86">		this.name = name;</span>
+<span class="fc" id="L87">		this.typeId = typeId;</span>
+<span class="fc" id="L88">		this.projectId = projectId;</span>
+<span class="fc" id="L89">		this.scope = scope;</span>
+<span class="fc" id="L90">		this.orgId = orgId;</span>
+<span class="fc" id="L91">		this.enforcementType = enforcementType;</span>
+<span class="fc" id="L92">		this.description = description;</span>
+<span class="fc" id="L93">		this.definition = definition;</span>
+<span class="fc" id="L94">		this.organization = organization;</span>
+<span class="fc" id="L95">	}</span>
+
+	/**
+	 * Get the name of the content sharing policy.
+	 * 
+	 * @return content sharing policy id
+	 */
+	public String getId() {
+<span class="fc" id="L103">		return id;</span>
+	}
+
+	/**
+	 * Set the id of the content sharing policy.
+	 * 
+	 * @param idIn - id of the content sharing policy
+	 */
+	public void setId(final String idIn) {
+<span class="fc" id="L112">		this.id = idIn;</span>
+<span class="fc" id="L113">	}</span>
+
+	/**
+	 * Get the name of the content sharing policy.
+	 * 
+	 * @return content sharing policy name
+	 */
+	public String getName() {
+<span class="fc" id="L121">		return name;</span>
+	}
+
+	/**
+	 * Set the name of the content sharing policy.
+	 * 
+	 * @param nameIn - name of the content sharing policy
+	 */
+	public void setName(final String nameIn) {
+<span class="fc" id="L130">		this.name = nameIn;</span>
+<span class="fc" id="L131">	}</span>
+
+	/**
+	 * Get the name of the content sharing policy.
+	 * 
+	 * @return content sharing policy name
+	 */
+	public String getProjectId() {
+<span class="fc" id="L139">		return this.projectId;</span>
+	}
+
+	/**
+	 * Set the projectId of the content sharing policy.
+	 * 
+	 * @param projectIdIn - project id of the content sharing policy
+	 */
+	public void setProjectId(final String projectIdIn) {
+<span class="fc" id="L148">		this.projectId = projectIdIn;</span>
+<span class="fc" id="L149">	}</span>
+
+	/**
+	 * Get the scope of the content policy which is a vRA project name.
+	 * 
+	 * @return content sharing scope project name.
+	 */
+	public String getScope() {
+<span class="fc" id="L157">		return scope;</span>
+	}
+
+	/**
+	 * Set the scope of the content sharing policy (a vRA project name).
+	 * 
+	 * @param scope - scope of the content sharing policy (should be a vRA project
+	 *              name).
+	 */
+	public void setScope(String scope) {
+<span class="fc" id="L167">		this.scope = scope;</span>
+<span class="fc" id="L168">	}</span>
+
+	/**
+	 * Get the id of the content sharing policy org.
+	 * 
+	 * @return content sharing policy org id
+	 */
+	public String getOrgId() {
+<span class="fc" id="L176">		return this.orgId;</span>
+	}
+
+	/**
+	 * Set the orgId of the content sharing policy.
+	 * 
+	 * @param orgIdIn - Org id of the content sharing policy
+	 */
+	public void setOrgId(final String orgIdIn) {
+<span class="fc" id="L185">		this.orgId = orgIdIn;</span>
+<span class="fc" id="L186">	}</span>
+
+	/**
+	 * Get the organization name for the content sharing policy.
+	 *
+	 * @return organization name for the content sharing policy.
+	 */
+	public String getOrganization() {
+<span class="fc" id="L194">		return organization;</span>
+	}
+
+	/**
+	 * Set the organization name for the content sharing policy.
+	 * 
+	 * @param organization - Organization name for the content sharing policy
+	 */
+	public void setOrganization(String organization) {
+<span class="fc" id="L203">		this.organization = organization;</span>
+<span class="fc" id="L204">	}</span>
+
+	/**
+	 * Get the typeId of the content sharing policy.
+	 * 
+	 * @return content sharing policy typeId
+	 */
+	public String getTypeId() {
+<span class="nc" id="L212">		return typeId;</span>
+	}
+
+	/**
+	 * Set the typeId of the content sharing policy.
+	 * 
+	 * @param typeIdIn - typeId of the content sharing policy
+	 */
+	public void setTypeId(final String typeIdIn) {
+<span class="fc" id="L221">		this.typeId = typeIdIn;</span>
+<span class="fc" id="L222">	}</span>
+
+	/**
+	 * Get the enforcementType of the content sharing policy.
+	 * 
+	 * @return content sharing policy enforcementType
+	 */
+	public String getEnforcementType() {
+<span class="nc" id="L230">		return enforcementType;</span>
+	}
+
+	/**
+	 * Set the enforcementType of the content sharing policy.
+	 * 
+	 * @param enforcementTypeIn - enforcementType of the content sharing policy
+	 */
+	public void setEnforcementType(final String enforcementTypeIn) {
+<span class="fc" id="L239">		this.enforcementType = enforcementTypeIn;</span>
+<span class="fc" id="L240">	}</span>
+
+	/**
+	 * Get the description of the content sharing policy.
+	 * 
+	 * @return content sharing policy description
+	 */
+	public String getDescription() {
+<span class="nc" id="L248">		return description;</span>
+	}
+
+	/**
+	 * Set the description of the content sharing policy.
+	 * 
+	 * @param descriptionIn - description of the content sharing policy
+	 */
+	public void setDescription(final String descriptionIn) {
+<span class="fc" id="L257">		this.description = descriptionIn;</span>
+<span class="fc" id="L258">	}</span>
+
+	/**
+	 * Get the definition of the content sharing policy.
+	 * 
+	 * @return content sharing policy definition
+	 */
+	public VraNgDefinition getDefinition() {
+<span class="fc" id="L266">		return definition;</span>
+	}
+
+	/**
+	 * Set the definition of the content sharing policy.
+	 * 
+	 * @param definitionIn - definition of the content sharing policy
+	 */
+	public void setDefinition(final VraNgDefinition definitionIn) {
+<span class="fc" id="L275">		this.definition = definitionIn;</span>
+<span class="fc" id="L276">	}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

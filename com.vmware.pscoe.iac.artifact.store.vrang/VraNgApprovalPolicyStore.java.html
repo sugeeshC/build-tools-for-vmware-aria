@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>VraNgApprovalPolicyStore.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.vrang</a> &gt; <span class="el_source">VraNgApprovalPolicyStore.java</span></div><h1>VraNgApprovalPolicyStore.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.vrang;
+
+/*-
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 - 2024 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.stream.JsonReader;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgApprovalPolicy;
+import com.vmware.pscoe.iac.artifact.store.filters.CustomFolderFileFilter;
+import com.vmware.pscoe.iac.artifact.utils.VraNgOrganizationUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.HashMap;
+import java.util.List;
+
+import java.util.Map;
+
+
+<span class="fc" id="L41">public final class VraNgApprovalPolicyStore  extends AbstractVraNgStore {</span>
+	/**
+	 * Suffix used for all of the resources saved by this store.
+	 */
+	private static final String CUSTOM_RESOURCE_SUFFIX = &quot;.json&quot;;
+	/**
+	 * Sub folder path for approval policy.
+	 */
+	private static final String APPROVAL = &quot;approval&quot;;
+	/**
+	 * Logger.
+	 */
+<span class="fc" id="L53">	private final Logger logger = LoggerFactory.getLogger(VraNgApprovalPolicyStore.class);</span>
+
+	/**
+	 * Imports policies found in specified folder on server, according to filter specified in content.yml file.
+	 * If there is a list of policy names - import only the specified policies.
+	 * If there is no list, import everything.
+	 * @param sourceDirectory the folder where policy files are stored.
+	 */
+	@Override
+	public void importContent(File sourceDirectory) {
+<span class="fc" id="L63">		logger.info(&quot;Importing files from the '{}' directory&quot;,</span>
+			com.vmware.pscoe.iac.artifact.store.vrang.VraNgDirs.DIR_POLICIES);
+		// verify directory exists
+<span class="fc" id="L66">		File policyFolder = Paths</span>
+<span class="fc" id="L67">			.get(sourceDirectory.getPath(),</span>
+				com.vmware.pscoe.iac.artifact.store.vrang.VraNgDirs.DIR_POLICIES,
+				APPROVAL)
+<span class="fc" id="L70">			.toFile();</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">		if (!policyFolder.exists()) {</span>
+<span class="fc" id="L72">			logger.info(&quot;Approval policy directory not found.&quot;);</span>
+<span class="fc" id="L73">			return;</span>
+		}
+
+<span class="fc" id="L76">		List&lt;String&gt; policies = this.getItemListFromDescriptor();</span>
+
+<span class="fc" id="L78">		File[] approvalPolicyFiles = this.filterBasedOnConfiguration(policyFolder,</span>
+			new CustomFolderFileFilter(policies));
+
+<span class="pc bpc" id="L81" title="2 of 4 branches missed.">		if (approvalPolicyFiles != null &amp;&amp; approvalPolicyFiles.length == 0) {</span>
+<span class="nc" id="L82">			logger.info(&quot;Could not find any Approval Policies.&quot;);</span>
+<span class="nc" id="L83">			return;</span>
+		}
+<span class="fc" id="L85">		logger.info(&quot;Found Approval Policies. Importing ...&quot;);</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">		for (File policyFile : approvalPolicyFiles) {</span>
+			//exclude hidden files e.g. .DS_Store
+			//exclude files that do not end with a '.json' extension as defined in CUSTOM_RESOURCE_SUFFIX
+<span class="fc" id="L89">			String filename = policyFile.getName();</span>
+<span class="pc bpc" id="L90" title="2 of 4 branches missed.">			if (!filename.startsWith(&quot;.&quot;) &amp;&amp; filename.endsWith(CUSTOM_RESOURCE_SUFFIX)) {</span>
+<span class="fc" id="L91">				this.handlePolicyImport(policyFile);</span>
+			} else {
+<span class="nc" id="L93">				logger.warn(&quot;Skipped unexpected file '{}'&quot;, filename);</span>
+			}
+		}
+<span class="fc" id="L96">	}</span>
+
+	/**
+	 * Imports policy file to server , replacing the organization id.
+	 *
+	 * @param approvalPolicyFile   the policy to import.
+	 */
+	private void handlePolicyImport(final File approvalPolicyFile) {
+		//convert file to policy object.
+<span class="fc" id="L105">		VraNgApprovalPolicy policy = jsonFileToVraNgApprovalPolicy(approvalPolicyFile);</span>
+		//replace object organization id with target organization Id
+<span class="fc" id="L107">		String organizationId = VraNgOrganizationUtil.getOrganization(this.restClient, this.config).getId();</span>
+
+<span class="fc" id="L109">		logger.info(&quot;Attempting to import approval policy '{}', from file '{}'&quot;, policy.getName(), approvalPolicyFile.getName());</span>
+
+		//if the policy has a project property, replace it with current project id.
+		//if the policy does not have a project property - replacing it will change the policy,
+		// so do not replace a null or blank value.
+		//also, if the policy organization matches current organization, this means the project also matches either the current project or another project in this organization, no need to overwrite, because it is either the current project, or it is another project in the organization, and the push will fail.
+<span class="pc bpc" id="L115" title="2 of 6 branches missed.">		if (policy.getProjectId() != null &amp;&amp; !(policy.getProjectId().isBlank()) &amp;&amp; !policy.getOrgId().equals(organizationId)) {</span>
+<span class="fc" id="L116">			logger.debug(&quot;Replacing policy projectId with projectId from configuration.&quot;);</span>
+<span class="fc" id="L117">			policy.setProjectId(this.restClient.getProjectId());</span>
+		}
+<span class="fc" id="L119">		policy.setOrgId(organizationId);</span>
+<span class="fc" id="L120">		this.restClient.createApprovalPolicy(policy);</span>
+<span class="fc" id="L121">	}</span>
+
+	/**
+	 * getItemListFromDescriptor.
+	 * @return list of policy names to import or export.
+	 */
+	@Override
+	protected List&lt;String&gt; getItemListFromDescriptor() {
+<span class="pc bpc" id="L129" title="1 of 2 branches missed.">		if (this.vraNgPackageDescriptor.getPolicy() == null) {</span>
+<span class="nc" id="L130">			logger.debug(&quot;Descriptor policy is null&quot;);</span>
+<span class="nc" id="L131">			return null;</span>
+		} else {
+<span class="fc" id="L133">			logger.debug(&quot;Found items {}&quot;, this.vraNgPackageDescriptor.getPolicy().getApproval());</span>
+<span class="fc" id="L134">			return this.vraNgPackageDescriptor.getPolicy().getApproval();</span>
+		}
+	}
+
+	/**
+	 * Exporting every policy of this type found on server.
+	 */
+	@Override
+	protected void exportStoreContent() {
+<span class="fc" id="L143">		this.logger.debug(&quot;{}-&gt;exportStoreContent()&quot;, this.getClass());</span>
+<span class="fc" id="L144">		Path policyFolderPath = getPolicyFolderPath();</span>
+<span class="fc" id="L145">		Map&lt;String, VraNgApprovalPolicy&gt; currentPoliciesOnFileSystem = getCurrentPoliciesOnFileSystem(policyFolderPath);</span>
+<span class="fc" id="L146">		List&lt;VraNgApprovalPolicy&gt; rqPolicies = this.restClient.getApprovalPolicies();</span>
+
+<span class="fc" id="L148">		rqPolicies.forEach(</span>
+			policy -&gt; {
+<span class="fc" id="L150">				logger.debug(&quot;exporting '{}'&quot;, policy.getName());</span>
+<span class="fc" id="L151">				storeApprovalPolicyOnFilesystem(policyFolderPath, policy, currentPoliciesOnFileSystem);</span>
+<span class="fc" id="L152">			});</span>
+<span class="fc" id="L153">	}</span>
+
+
+
+	/**
+	 * Exports all the content for the given project based on the names in content.yaml.
+	 *
+	 * @param itemNames Item names for export
+	 */
+	@Override
+	protected void exportStoreContent(final List&lt;String&gt; itemNames) {
+<span class="fc" id="L164">		this.logger.debug(&quot;{}-&gt;exportStoreContent({})&quot;, this.getClass(), itemNames.toString());</span>
+<span class="fc" id="L165">		List&lt;VraNgApprovalPolicy&gt; policies = this.restClient.getApprovalPolicies();</span>
+<span class="fc" id="L166">		Path policyFolderPath = getPolicyFolderPath();</span>
+<span class="fc" id="L167">		Map&lt;String, VraNgApprovalPolicy&gt; currentPoliciesOnFileSystem = getCurrentPoliciesOnFileSystem(policyFolderPath);</span>
+
+<span class="fc" id="L169">		policies.forEach(</span>
+			policy -&gt; {
+<span class="pc bpc" id="L171" title="1 of 2 branches missed.">				if (itemNames.contains(policy.getName())) {</span>
+<span class="fc" id="L172">					logger.debug(&quot;exporting '{}'&quot;, policy.getName());</span>
+<span class="fc" id="L173">					storeApprovalPolicyOnFilesystem(policyFolderPath, policy,  currentPoliciesOnFileSystem);</span>
+				}
+<span class="fc" id="L175">			});</span>
+<span class="fc" id="L176">	}</span>
+	/**
+	 * Store approval policy in JSON file.
+	 *
+	 * @param policyFolderPath   the folder path where to export.
+	 * @param policy the policy object  to export.
+	 * @param currentPoliciesOnFileSystem  map of other policy files in the same folder, to escape overwriting duplicate files..
+	 */
+	private void storeApprovalPolicyOnFilesystem(final Path policyFolderPath,
+												 final VraNgApprovalPolicy policy,
+												 Map&lt;String, VraNgApprovalPolicy&gt; currentPoliciesOnFileSystem) {
+<span class="fc" id="L187">		logger.info(&quot;Storing  {}&quot;, policy.getName());</span>
+
+<span class="fc" id="L189">		File policyFile = getPolicyFile(policyFolderPath, policy, currentPoliciesOnFileSystem);</span>
+
+		try {
+<span class="fc" id="L192">			Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().create();</span>
+<span class="fc" id="L193">			JsonObject policyJsonObject = gson.fromJson(new Gson().toJson(policy), JsonObject.class);</span>
+
+<span class="fc" id="L195">			logger.info(&quot;Created approval policy file {}&quot;,</span>
+<span class="fc" id="L196">				Files.write(Paths.get(policyFile.getPath()),</span>
+<span class="fc" id="L197">					gson.toJson(policyJsonObject).getBytes(), StandardOpenOption.CREATE));</span>
+			//after write, put currently policy on the map for the next iteration
+<span class="fc" id="L199">			String fileName = policyFile.getName().replace(CUSTOM_RESOURCE_SUFFIX, &quot;&quot;);</span>
+<span class="fc" id="L200">			currentPoliciesOnFileSystem.put(fileName, policy);</span>
+<span class="nc" id="L201">		} catch (IOException e) {</span>
+<span class="nc" id="L202">			logger.error(&quot;Unable to create approval policy  {}&quot;, policyFile.getAbsolutePath());</span>
+<span class="nc" id="L203">			throw new RuntimeException(</span>
+<span class="nc" id="L204">				String.format(</span>
+<span class="nc" id="L205">					&quot;Unable to store approval policy to file %s.&quot;, policyFile.getAbsolutePath()),</span>
+				e);
+<span class="fc" id="L207">		}</span>
+
+<span class="fc" id="L209">	}</span>
+
+	/**
+	 * @param policyFolderPath the correct subfolder path for the policy type.
+	 * @param policy the policy that is exported.
+	 * @param currentPoliciesOnFileSystem  all the other policies currently in the folder.
+	 * @return the file where to store the policy.
+	 */
+
+	private File getPolicyFile(Path policyFolderPath, VraNgApprovalPolicy policy, Map&lt;String, VraNgApprovalPolicy&gt; currentPoliciesOnFileSystem) {
+<span class="fc" id="L219">		String filename = policy.getName();</span>
+<span class="fc" id="L220">		String policyName = policy.getName();</span>
+<span class="pc bpc" id="L221" title="3 of 6 branches missed.">		if (filename.contains(&quot;..&quot;) || filename.contains(&quot;/&quot;) || filename.contains(&quot;\\&quot;)) {</span>
+<span class="nc" id="L222">			throw new IllegalArgumentException(&quot;Invalid filename &quot; + filename);</span>
+		}
+		//see if filename already exists in map.
+<span class="fc" id="L225">		int index = 1;</span>
+<span class="fc" id="L226">		boolean match = false;</span>
+<span class="fc bfc" id="L227" title="All 2 branches covered.">		while (!match) {</span>
+<span class="fc bfc" id="L228" title="All 2 branches covered.">			if (currentPoliciesOnFileSystem.containsKey(filename)) {</span>
+				//check if policy is our policy from previous run or a different one.
+<span class="fc bfc" id="L230" title="All 2 branches covered.">				if (policy.getId().equals(currentPoliciesOnFileSystem.get(filename).getId())) {</span>
+					//if this is the same policy overwrite
+<span class="fc" id="L232">					logger.debug(&quot;Same policy, overwriting file {}.&quot;, filename);</span>
+<span class="fc" id="L233">					match = true;</span>
+				} else {
+<span class="fc" id="L235">					filename = policyName + &quot;_&quot; + index;</span>
+<span class="fc" id="L236">					index++;</span>
+<span class="fc" id="L237">					logger.debug(&quot;Different policy, add index and check the new file name: {}.&quot;, filename);</span>
+				}
+			} else {
+<span class="fc" id="L240">				logger.debug(&quot;File not found in folder, create with {} name.&quot;, filename);</span>
+<span class="fc" id="L241">				match = true;</span>
+			}
+		}
+
+<span class="fc" id="L245">		logger.debug(&quot;Final Filename is {}, for policy with name {}&quot;, filename, policy.getName());</span>
+
+<span class="fc" id="L247">		File policyFile = Paths.get(</span>
+<span class="fc" id="L248">                String.valueOf(policyFolderPath),</span>
+<span class="fc" id="L249">			filename + CUSTOM_RESOURCE_SUFFIX).toFile();</span>
+<span class="fc" id="L250">		return policyFile;</span>
+	}
+
+	/**
+	 * Read the filesystem where policies will be stored, make a map of pre existing files there, to avoid duplication and/or unintentional overwriting.
+	 * @param policyFolderPath get actual path where policies should be stored.
+	 * @return a map of filenames and policies, found in the path.
+	 */
+	private Map&lt;String, VraNgApprovalPolicy&gt; getCurrentPoliciesOnFileSystem(Path policyFolderPath) {
+
+		//First make sure path exists and is a folder.
+<span class="pc bpc" id="L261" title="1 of 2 branches missed.">		if (!policyFolderPath.toFile().isDirectory()</span>
+<span class="nc bnc" id="L262" title="All 2 branches missed.">			&amp;&amp; !policyFolderPath.toFile().mkdirs()) {</span>
+<span class="nc" id="L263">			logger.warn(&quot;Could not create folder: {}&quot;, policyFolderPath.toFile().getAbsolutePath());</span>
+		}
+
+<span class="fc" id="L266">		File[] approvalPolicyFiles = policyFolderPath.toFile().listFiles();</span>
+<span class="fc" id="L267">		Map&lt;String, VraNgApprovalPolicy&gt; currentPoliciesOnFileSystem = new HashMap&lt;&gt;();</span>
+
+<span class="fc bfc" id="L269" title="All 2 branches covered.">		for (File policyFile : approvalPolicyFiles) {</span>
+<span class="fc" id="L270">			String fileNameWithExt = policyFile.getName();</span>
+			//exclude hidden files e.g. .DS_Store
+<span class="pc bpc" id="L272" title="1 of 2 branches missed.">			if (!fileNameWithExt.startsWith(&quot;.&quot;)) {</span>
+<span class="fc" id="L273">				String fileName = fileNameWithExt.replace(CUSTOM_RESOURCE_SUFFIX, &quot;&quot;);</span>
+<span class="fc" id="L274">				currentPoliciesOnFileSystem.put(fileName, this.jsonFileToVraNgApprovalPolicy(policyFile));</span>
+			}
+		}
+<span class="fc" id="L277">		return currentPoliciesOnFileSystem;</span>
+	}
+
+	/**
+	 * Calculate approval policies sub-folder absolute filesystem path.
+	 * @return the approval policies sub-folder absolute filesystem path.
+	 */
+	private Path getPolicyFolderPath() {
+<span class="fc" id="L285">		File store = new File(vraNgPackage.getFilesystemPath());</span>
+
+<span class="fc" id="L287">		Path policyFolderPath = Paths.get(</span>
+<span class="fc" id="L288">			store.getPath(),</span>
+			VraNgDirs.DIR_POLICIES,
+			APPROVAL);
+<span class="fc bfc" id="L291" title="All 2 branches covered.">		if (!policyFolderPath.toFile().isDirectory()</span>
+<span class="pc bpc" id="L292" title="1 of 2 branches missed.">			&amp;&amp; !policyFolderPath.toFile().mkdirs()) {</span>
+<span class="nc" id="L293">			logger.warn(&quot;Could not create folder: {}&quot;, policyFolderPath.getFileName());</span>
+		}
+<span class="fc" id="L295">		return policyFolderPath;</span>
+	}
+
+	/**
+	 * Converts a json catalog item file to VraNgApprovalPolicy.
+	 *
+	 * @param jsonFile
+	 *
+	 * @return VraNgApprovalPolicy
+	 */
+	private VraNgApprovalPolicy jsonFileToVraNgApprovalPolicy(final File jsonFile) {
+<span class="fc" id="L306">		logger.debug(&quot;Converting approval policy file to VraNgApprovalPolicy. Name: '{}'&quot;,</span>
+<span class="fc" id="L307">			jsonFile.getName());</span>
+
+<span class="fc" id="L309">		try (JsonReader reader = new JsonReader(new FileReader(jsonFile.getPath()))) {</span>
+<span class="fc" id="L310">			return new Gson().fromJson(reader, VraNgApprovalPolicy.class);</span>
+<span class="nc" id="L311">		} catch (IOException e) {</span>
+<span class="nc" id="L312">			throw new RuntimeException(String.format(&quot;Error reading from file: %s&quot;, jsonFile.getPath()), e);</span>
+		}
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

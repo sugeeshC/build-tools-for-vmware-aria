@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CustomFolderFileFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.store.filters</a> &gt; <span class="el_source">CustomFolderFileFilter.java</span></div><h1>CustomFolderFileFilter.java</h1><pre class="source lang-java linenums">package com.vmware.pscoe.iac.artifact.store.filters;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ * 
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.  
+ * 
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.FilenameFilter;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class CustomFolderFileFilter implements FilenameFilter {
+	/**
+	 * Descriptor names (content.yaml contents per asset).
+	 */
+	private final List&lt;String&gt; descriptionNames;
+	/**
+	 * Logger instance.
+	 */
+	private final Logger logger;
+
+	/**
+	 * Constructor.
+	 * @param descriptionNames Items as they appear in the content.yaml file.
+	 */	
+	public CustomFolderFileFilter(List&lt;String&gt; descriptionNames) {
+<span class="fc" id="L41">		super();</span>
+		// convert the descriptor content to lower case (in order search to be case insensitive).
+<span class="fc bfc" id="L43" title="All 2 branches covered.">		this.descriptionNames = descriptionNames == null ? null : descriptionNames.stream().map(item -&gt; item.toLowerCase().trim()).collect(Collectors.toList());</span>
+<span class="fc" id="L44">		this.logger = LoggerFactory.getLogger(this.getClass());</span>
+<span class="fc" id="L45">	}</span>
+
+	/**
+	 * Method that filters files based on what is defined in the content.yaml.
+	 * Accepts only files and filters them by name as defined in their respective categories in the content.yaml.
+	 * 
+	 * @param dir File to filter.
+	 * @param name name of the file.
+	 * @return boolean.
+	 */
+	@Override
+	public boolean accept(File dir, String name) {
+<span class="fc" id="L57">		logger.debug(&quot;Process file for filtering '{}/{}'&quot;, dir.getAbsolutePath(), name);</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">		String items = descriptionNames != null ? String.join(&quot;, &quot;, descriptionNames) : &quot;NULL&quot;;</span>
+<span class="fc" id="L59">		logger.debug(&quot;Items in descriptor (content.yaml): {}&quot;, items);</span>
+
+<span class="fc" id="L61">		File currentFile = new File(dir, name);</span>
+		// There are cases where in the main item folder, there is a sub-directory, e.g. catalog-item/forms/.
+<span class="fc bfc" id="L63" title="All 2 branches covered.">		if (currentFile.isDirectory()) { </span>
+<span class="fc" id="L64">			return false;</span>
+		}
+
+		// Following name replace regex, matches the file extension only, by which it enables to have &quot;.&quot; in the names
+		// for the different entities - bps, forms, etc. e.g. Name &quot;RHEL 8.X Family&quot; -&gt; produced &quot;RHEL 8.X Family.json&quot;
+		// -&gt; run replaceFirst [.][^.]+$ = &quot;&quot; -&gt; RHEL 8.X Family, furthermore the search in the descriptor is case insensitive.
+<span class="fc bfc" id="L70" title="All 4 branches covered.">		return descriptionNames == null || descriptionNames.contains(name.replaceFirst(&quot;[.][^.]+$&quot;, &quot;&quot;).toLowerCase().trim());</span>
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

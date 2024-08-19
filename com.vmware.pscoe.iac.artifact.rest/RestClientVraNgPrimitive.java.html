@@ -1,0 +1,3209 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RestClientVraNgPrimitive.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">artifact-manager</a> &gt; <a href="index.source.html" class="el_package">com.vmware.pscoe.iac.artifact.rest</a> &gt; <span class="el_source">RestClientVraNgPrimitive.java</span></div><h1>RestClientVraNgPrimitive.java</h1><pre class="source lang-java linenums">/**
+ * Package.
+ */
+package com.vmware.pscoe.iac.artifact.rest;
+
+/*
+ * #%L
+ * artifact-manager
+ * %%
+ * Copyright (C) 2023 VMware
+ * %%
+ * Build Tools for VMware Aria
+ * Copyright 2023 VMware, Inc.
+ *
+ * This product is licensed to you under the BSD-2 license (the &quot;License&quot;). You may not use this product except in compliance with the BSD-2 License.
+ *
+ * This product may include a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file.
+ * #L%
+ */
+
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.rmi.UnexpectedException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import com.vmware.pscoe.iac.artifact.model.Version;
+import com.vmware.pscoe.iac.artifact.model.abx.AbxAction;
+import com.vmware.pscoe.iac.artifact.model.abx.AbxActionVersion;
+import com.vmware.pscoe.iac.artifact.model.abx.AbxConstant;
+
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgApprovalPolicy;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgBlueprint;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCatalogEntitlement;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCatalogEntitlementDto;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCatalogEntitlementType;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCatalogItem;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCatalogItemType;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCloudAccount;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgContentSharingPolicy;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgContentSource;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgContentSourceBase;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgContentSourceType;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCustomForm;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgCustomResource;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgDay2ActionsPolicy;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgDeploymentLimitPolicy;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgFlavorMapping;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgImageMapping;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgIntegration;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgLeasePolicy;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgOrganization;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgOrganizations;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgProject;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgPropertyGroup;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgRegion;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgResourceAction;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgResourceQuotaPolicy;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgSecret;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgStorageProfile;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgSubscription;
+import com.vmware.pscoe.iac.artifact.model.vrang.VraNgWorkflowContentSource;
+
+import com.vmware.pscoe.iac.artifact.utils.VraNgOrganizationUtil;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonIOException;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
+import com.jayway.jsonpath.JsonPath;
+import com.vmware.pscoe.iac.artifact.configuration.Configuration;
+import com.vmware.pscoe.iac.artifact.configuration.ConfigurationVraNg;
+
+public class RestClientVraNgPrimitive extends RestClient {
+	/**
+	 * logger.
+	 */
+<span class="fc" id="L112">	private static final Logger LOGGER = LoggerFactory.getLogger(RestClientVraNgPrimitive.class);</span>
+	/**
+	 * SERVICE_IAAS_BASE.
+	 */
+	private static final String SERVICE_IAAS_BASE = &quot;/iaas/api&quot;;
+	/**
+	 * API_VERSION.
+	 */
+	private static final String API_VERSION = &quot;/iaas/api/about&quot;;
+	/**
+	 * SERVICE_VERSION.
+	 */
+	private static final String SERVICE_VERSION = &quot;/vco/api/about&quot;;
+	/**
+	 * SERVICE_BLUEPRINT.
+	 */
+	private static final String SERVICE_BLUEPRINT = &quot;/blueprint/api/blueprints&quot;;
+	/**
+	 * SERVICE_BLUEPRINT_VERSIONS.
+	 */
+	private static final String SERVICE_BLUEPRINT_VERSIONS = &quot;/versions&quot;;
+	/**
+	 * SERVICE_BLUEPRINT_UNRELEASE_VERSIONS_ACTION.
+	 */
+	private static final String SERVICE_BLUEPRINT_UNRELEASE_VERSIONS_ACTION = &quot;/actions/unrelease&quot;;
+	/**
+	 * SERVICE_SUBSCRIPTION.
+	 */
+	private static final String SERVICE_SUBSCRIPTION = &quot;/event-broker/api/subscriptions&quot;;
+	/**
+	 * SERVICE_FLAVORS.
+	 */
+	private static final String SERVICE_FLAVORS = &quot;/iaas/api/flavors&quot;;
+	/**
+	 * SERVICE_FLAVOR_PROFILE.
+	 */
+	private static final String SERVICE_FLAVOR_PROFILE = &quot;/iaas/api/flavor-profiles&quot;;
+	/**
+	 * SERVICE_IMAGES.
+	 */
+	private static final String SERVICE_IMAGES = &quot;/iaas/api/images&quot;;
+	/**
+	 * SERVICE_IMAGE_PROFILE.
+	 */
+	private static final String SERVICE_IMAGE_PROFILE = &quot;/iaas/api/image-profiles&quot;;
+	/**
+	 * SERVICE_STORAGE_PROFILE.
+	 */
+	private static final String SERVICE_STORAGE_PROFILE = &quot;/iaas/api/storage-profiles&quot;;
+	/**
+	 * SERVICE_CLOUD_ACCOUNT.
+	 */
+	private static final String SERVICE_CLOUD_ACCOUNT = &quot;/iaas/api/cloud-accounts&quot;;
+	/**
+	 * SERVICE_CLOUD_PROJECT.
+	 */
+	private static final String SERVICE_CLOUD_PROJECT = &quot;/iaas/api/projects&quot;;
+	/**
+	 * SERVICE_REGION.
+	 */
+	private static final String SERVICE_REGION = &quot;/iaas/api/regions&quot;;
+	/**
+	 * SERVICE_CATALOG_ADMIN_ITEMS.
+	 */
+	private static final String SERVICE_CATALOG_ADMIN_ITEMS = &quot;/catalog/api/admin/items&quot;;
+	/**
+	 * SERVICE_CATALOG_ENTITLEMENTS.
+	 */
+	private static final String SERVICE_CATALOG_ENTITLEMENTS = &quot;/catalog/api/admin/entitlements&quot;;
+	/**
+	 * SERVICE_CONTENT_SOURCE.
+	 */
+	private static final String SERVICE_CONTENT_SOURCE = &quot;/catalog/api/admin/sources&quot;;
+	/**
+	 * SERVICE_CUSTOM_FORM.
+	 */
+	private static final String SERVICE_CUSTOM_FORM = &quot;/form-service/api/forms&quot;;
+	/**
+	 * SERVICE_CUSTOM_FORM_BY_SOURCE_AND_TYPE.
+	 */
+	private static final String SERVICE_CUSTOM_FORM_BY_SOURCE_AND_TYPE = &quot;/form-service/api/forms/fetchBySourceAndType&quot;;
+	/**
+	 * FETCH_REQUEST_FORM.
+	 */
+	private static final String FETCH_REQUEST_FORM = &quot;/form-service/api/forms/designer/request&quot;;
+	/**
+	 * SERVICE_VRA_INTEGRATIONS.
+	 */
+	private static final String SERVICE_VRA_INTEGRATIONS = &quot;provisioning/uerp/provisioning/mgmt/endpoints&quot;;
+	/**
+	 * SERVICE_VRA_ORGANIZATIONS.
+	 */
+	private static final String SERVICE_VRA_ORGANIZATIONS = &quot;/csp/gateway/am/api/loggedin/user/orgs&quot;;
+	/**
+	 * SERVICE_VRA_ORGANIZATION.
+	 */
+	private static final String SERVICE_VRA_ORGANIZATION = &quot;/csp/gateway/am/api/orgs/&quot;;
+	/**
+	 * SERVICE_CUSTOM_RESOURCES.
+	 */
+	private static final String SERVICE_CUSTOM_RESOURCES = &quot;/form-service/api/custom/resource-types&quot;;
+	/**
+	 * SERVICE_RESOURCE_ACTIONS.
+	 */
+	private static final String SERVICE_RESOURCE_ACTIONS = &quot;/form-service/api/custom/resource-actions&quot;;
+	/**
+	 * SERVICE_ABX_ACTIONS.
+	 */
+	private static final String SERVICE_ABX_ACTIONS = &quot;/abx/api/resources/actions&quot;;
+	/**
+	 * SERVICE_ABX_CONSTANT.
+	 */
+	private static final String SERVICE_ABX_CONSTANT = &quot;/abx/api/resources/action-secrets&quot;;
+	/**
+	 * SERVICE_ICON_DOWNLOAD.
+	 */
+	private static final String SERVICE_ICON_DOWNLOAD = &quot;/icon/api/icons&quot;;
+	/**
+	 * SERVICE_ICON_UPLOAD.
+	 */
+	private static final String SERVICE_ICON_UPLOAD = &quot;/icon/api/icons&quot;;
+	/**
+	 * SERVICE_CATALOG_ITEM_ICON_UPDATE.
+	 */
+	private static final String SERVICE_CATALOG_ITEM_ICON_UPDATE = &quot;/catalog/api/admin/items&quot;;
+	/**
+	 * SERVICE_GET_PROPERTY_GROUPS.
+	 */
+	private static final String SERVICE_GET_PROPERTY_GROUPS = &quot;/properties/api/property-groups&quot;;
+	/**
+	 * SERVICE_POST_PROPERTY_GROUP.
+	 */
+	private static final String SERVICE_POST_PROPERTY_GROUP = &quot;/properties/api/property-groups&quot;;
+	/**
+	 * SERVICE_PUT_PROPERTY_GROUP.
+	 */
+	private static final String SERVICE_PUT_PROPERTY_GROUP = &quot;/properties/api/property-groups&quot;;
+	/**
+	 * SERVICE_SECRET.
+	 */
+	private static final String SERVICE_SECRET = &quot;/platform/api/secrets&quot;;
+	/**
+	 * SERVICE_POLICIES.
+	 */
+	private static final String SERVICE_POLICIES = &quot;/policy/api/policies&quot;;
+	/**
+	 * VRA_VERSION_MAJOR.
+	 */
+	private static final int VRA_VERSION_MAJOR = 8;
+	/**
+	 * VRA_VERSION_MINOR.
+	 */
+	private static final int VRA_VERSION_MINOR = 1;
+	/**
+	 * VRA_CLOUD_HOSTS.
+	 */
+<span class="fc" id="L268">	private static final List&lt;String&gt; VRA_CLOUD_HOSTS = Arrays.asList(&quot;console.cloud.vmware.com&quot;, &quot;api.mgmt.cloud.vmware.com&quot;);</span>
+	/**
+	 * VRA_CLOUD_VERSION.
+	 */
+	private static final String VRA_CLOUD_VERSION = &quot;cloud&quot;;
+	/**
+	 * CUSTOM_FORM_DEFAULT_FORMAT.
+	 */
+	private static final String CUSTOM_FORM_DEFAULT_FORMAT = &quot;JSON&quot;;
+	/**
+	 * CONTENT_SHARING_POLICY_TYPE.
+	 */
+	private static final String CONTENT_SHARING_POLICY_TYPE = &quot;com.vmware.policy.catalog.entitlement&quot;;
+	/**
+	 * APPROVAL_POLICY_TYPE.
+	 */
+	private static final String APPROVAL_POLICY_TYPE = &quot;com.vmware.policy.approval&quot;;
+	/**
+	 * DAY2_ACTION_POLICY_TYPE.
+	 */
+	private static final String DAY2_ACTION_POLICY_TYPE = &quot;com.vmware.policy.deployment.action&quot;;
+	/**
+	 * LEASE_POLICY_TYPE.
+	 */
+	private static final String LEASE_POLICY_TYPE = &quot;com.vmware.policy.deployment.lease&quot;;
+	/**
+	 * DEPLOYMENT_LIMIT_POLICY_TYPE.
+	 */
+	private static final String DEPLOYMENT_LIMIT_POLICY_TYPE = &quot;com.vmware.policy.deployment.limit&quot;;
+	/**
+	 * RESOURCE_QUOTA_POLICY_TYPE.
+	 */
+	private static final String RESOURCE_QUOTA_POLICY_TYPE = &quot;com.vmware.policy.resource.quota&quot;;
+	/**
+	 * configuration.
+	 */
+	private final ConfigurationVraNg configuration;
+	/**
+	 * restTemplate.
+	 */
+	private final RestTemplate restTemplate;
+	/**
+	 * apiVersion.
+	 */
+	private String apiVersion;
+	/**
+	 * projectId.
+	 */
+	private String projectId;
+	/**
+	 * mapper.
+	 */
+<span class="fc" id="L320">	private final ObjectMapper mapper = new ObjectMapper();</span>
+	/**
+	 * productVersion.
+	 */
+	private Version productVersion;
+	/**
+	 * default page size.
+	 */
+	private static final int PAGE_SIZE = 500;
+	/**
+	 * vRA 8.12 version.
+	 */
+	private static final String VRA_8_12 = &quot;8.12.0.21583018&quot;;
+	/**
+	 * vRA 8.10 version. vRealize Automation 8.10.2.27406 (20867529).
+	 */
+	private static final String VRA_8_10 = &quot;8.10.2.27406&quot;;
+	/**
+	 * Not found error returned by vRA.
+	 */
+	private static final String NOT_FOUND_ERROR = &quot;404 Not Found&quot;;	
+	/**
+	 * isVraAbove812.
+	 */
+	private boolean isVraAbove812;
+	/**
+	 * isVraAbove811.
+	 */
+	private boolean isVraAbove810;
+
+	/**
+	 * RestClientVraNgPrimitive.
+	 *
+	 * @param config   configuration
+	 * @param restTemp restTemplate
+	 */
+<span class="fc" id="L356">	protected RestClientVraNgPrimitive(final ConfigurationVraNg config, final RestTemplate restTemp) {</span>
+<span class="fc" id="L357">		this.configuration = config;</span>
+<span class="fc" id="L358">		this.restTemplate = restTemp;</span>
+<span class="fc" id="L359">		this.productVersion = this.getProductVersion();</span>
+<span class="fc" id="L360">		this.isVraAbove812 = this.isVraAbove(new Version(VRA_8_12));</span>
+<span class="fc" id="L361">		this.isVraAbove810 = this.isVraAbove(new Version(VRA_8_10));</span>
+<span class="fc" id="L362">	}</span>
+
+	/**
+	 * Retrieve Configuration.
+	 *
+	 * @return Configuration
+	 */
+	@Override
+	protected Configuration getConfiguration() {
+<span class="fc" id="L371">		return this.configuration;</span>
+	}
+
+	/**
+	 * Retrieve Version.
+	 *
+	 * @return Version
+	 */
+	@Override
+	public String getVersion() {
+<span class="nc bnc" id="L381" title="All 4 branches missed.">		if (this.apiVersion != null &amp;&amp; !this.apiVersion.isEmpty()) {</span>
+<span class="nc" id="L382">			return this.apiVersion;</span>
+		}
+
+<span class="nc" id="L385">		URI url = getURI(getURIBuilder().setPath(API_VERSION));</span>
+<span class="nc" id="L386">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L387">		this.apiVersion = JsonPath.parse(response.getBody()).read(&quot;$.supportedApis[0].apiVersion&quot;);</span>
+<span class="nc" id="L388">		LOGGER.info(&quot;Detected API Version {}&quot;, this.apiVersion);</span>
+
+<span class="nc" id="L390">		return this.apiVersion;</span>
+	}
+
+	/**
+	 * Retrieve Product Version.
+	 *
+	 * @return Version
+	 */
+	public Version getProductVersion() {
+<span class="nc bnc" id="L399" title="All 2 branches missed.">		if (this.productVersion != null) {</span>
+<span class="nc" id="L400">			return this.productVersion;</span>
+		}
+<span class="nc" id="L402">		URI url = getURI(getURIBuilder().setPath(SERVICE_VERSION));</span>
+<span class="nc bnc" id="L403" title="All 2 branches missed.">		if (this.isVraCloud(url)) {</span>
+			// vRA Cloud doesn't have vRO services, hence the /vco/api/about is not
+			// available
+<span class="nc" id="L406">			this.productVersion = new Version(VRA_CLOUD_VERSION);</span>
+		} else {
+<span class="nc" id="L408">			ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L409">			this.productVersion = new Version(JsonPath.parse(response.getBody()).read(&quot;$.version&quot;));</span>
+		}
+
+<span class="nc" id="L412">		return this.productVersion;</span>
+	}
+
+	/**
+	 * Getter for isVraAbove812.
+	 *
+	 * @return boolean
+	 */
+	public boolean getIsVraAbove812() {
+<span class="nc" id="L421">		return this.isVraAbove812;</span>
+	}
+
+	/**
+	 * Retrieve Project ID.
+	 *
+	 * @return Project ID
+	 */
+	public String getProjectId() {
+<span class="nc bnc" id="L430" title="All 2 branches missed.">		if (StringUtils.isNotEmpty(projectId)) {</span>
+<span class="nc" id="L431">			return this.projectId;</span>
+		}
+
+<span class="nc bnc" id="L434" title="All 2 branches missed.">		if (StringUtils.isNotEmpty(configuration.getProjectId())) {</span>
+<span class="nc" id="L435">			LOGGER.debug(&quot;Using project id defined in configuration: {}&quot;, configuration.getProjectId());</span>
+<span class="nc" id="L436">			this.projectId = this.getProjectIdPrimitive(configuration.getProjectId());</span>
+<span class="nc bnc" id="L437" title="All 2 branches missed.">			if (this.projectId == null) {</span>
+<span class="nc" id="L438">				throw new RuntimeException(String.format(&quot;Project id '%s' could not be found on target system&quot;, configuration.getProjectId()));</span>
+			}
+
+<span class="nc" id="L441">			return this.projectId;</span>
+		}
+<span class="nc" id="L443">		String projectName = configuration.getProjectName();</span>
+<span class="nc bnc" id="L444" title="All 2 branches missed.">		if (StringUtils.isEmpty(projectName)) {</span>
+<span class="nc" id="L445">			throw new RuntimeException(&quot;Either project name or project id must be supplied to the vRA NG configuration.&quot;);</span>
+		}
+<span class="nc" id="L447">		this.projectId = this.getProjectIdPrimitive(projectName);</span>
+<span class="nc bnc" id="L448" title="All 2 branches missed.">		if (this.projectId == null) {</span>
+<span class="nc" id="L449">			throw new RuntimeException(String.format(&quot;Project id for project '%s' could not be found on target system&quot;, configuration.getProjectName()));</span>
+		}
+<span class="nc" id="L451">		LOGGER.info(&quot;Using project name defined in the configuration '{}', project id: '{}'&quot;, projectName, this.projectId);</span>
+
+<span class="nc" id="L453">		return projectId;</span>
+	}
+
+	/**
+	 * Downloads the given icon. The byte array returned by the response must be
+	 * consumed and saved on the fs
+	 *
+	 * @param iconId iconId
+	 * @return entities
+	 */
+	protected ResponseEntity&lt;byte[]&gt; downloadIconPrimitive(final String iconId) {
+<span class="nc" id="L464">		URI url = getURI(getURIBuilder().setPath(SERVICE_ICON_DOWNLOAD + &quot;/&quot; + iconId));</span>
+
+<span class="nc" id="L466">		return restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), byte[].class);</span>
+	}
+
+	/**
+	 * Uploads a File. Service Broker has a limit of 100KB that is NOT enforced
+	 * here.
+	 *
+	 * @param iconFile iconFile
+	 * @return list of responses
+	 */
+	protected ResponseEntity&lt;String&gt; uploadIconPrimitive(final File iconFile) {
+<span class="nc" id="L477">		URI url = getURI(getURIBuilder().setPath(SERVICE_ICON_UPLOAD));</span>
+<span class="nc" id="L478">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L479">		headers.setContentType(MediaType.MULTIPART_FORM_DATA);</span>
+
+<span class="nc" id="L481">		MultiValueMap&lt;String, Object&gt; body = new LinkedMultiValueMap&lt;&gt;();</span>
+<span class="nc" id="L482">		body.add(&quot;file&quot;, new FileSystemResource(iconFile));</span>
+
+<span class="nc" id="L484">		HttpEntity&lt;MultiValueMap&lt;String, Object&gt;&gt; requestEntity = new HttpEntity&lt;&gt;(body, headers);</span>
+
+<span class="nc" id="L486">		return restTemplate.postForEntity(url, requestEntity, String.class);</span>
+	}
+
+	/**
+	 * Patches just the icon of a catalog item. This request can theoretically be
+	 * used for patching limits, it could be extended in the future
+	 *
+	 * @param catalogItem catalogItem
+	 * @param iconId      iconId
+	 * @return list of response entities
+	 */
+	protected ResponseEntity&lt;String&gt; patchCatalogItemIconPrimitive(final VraNgCatalogItem catalogItem, final String iconId) {
+<span class="nc" id="L498">		URI url = getURI(getURIBuilder().setPath(SERVICE_CATALOG_ITEM_ICON_UPDATE + &quot;/&quot; + catalogItem.getId()));</span>
+<span class="nc" id="L499">		Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L500">		map.put(&quot;iconId&quot;, iconId);</span>
+
+<span class="nc" id="L502">		String jsonBody = this.getJsonString(map);</span>
+<span class="nc" id="L503">		return this.postJsonPrimitive(url, HttpMethod.PATCH, jsonBody);</span>
+	}
+
+	/**
+	 * Retrieve list of projects.
+	 *
+	 * @param project Project
+	 * @return list of projects
+	 */
+	protected List&lt;VraNgProject&gt; getProjectsPrimitive(final String project) {
+<span class="nc" id="L513">		List&lt;VraNgProject&gt; allProjects = this.getProjectsPrimitive();</span>
+<span class="nc bnc" id="L514" title="All 4 branches missed.">		if (allProjects == null || allProjects.isEmpty()) {</span>
+<span class="nc" id="L515">			return new ArrayList&lt;&gt;();</span>
+		}
+
+<span class="nc" id="L518">		return allProjects.stream().filter(projectObject -&gt; {</span>
+<span class="nc bnc" id="L519" title="All 4 branches missed.">			return projectObject.getId().equalsIgnoreCase(project) || projectObject.getName().equalsIgnoreCase(project);</span>
+<span class="nc" id="L520">		}).collect(Collectors.toList());</span>
+	}
+
+	/**
+	 * Retrieve list of projects.
+	 *
+	 * @return list of projects
+	 */
+	protected List&lt;VraNgProject&gt; getProjectsPrimitive() {
+<span class="fc" id="L529">		Gson gson = new Gson();</span>
+<span class="fc" id="L530">		List&lt;VraNgProject&gt; projects = this.getTotalElements(SERVICE_CLOUD_PROJECT, new HashMap&lt;&gt;()).stream()</span>
+<span class="fc" id="L531">				.map(jsonOb -&gt; gson.fromJson(jsonOb, VraNgProject.class)).collect(Collectors.toList());</span>
+
+<span class="fc" id="L533">		return projects;</span>
+	}
+
+	/**
+	 * Retrieve Id of the project.
+	 *
+	 * @param project Project Object
+	 * @return Id of the project
+	 */
+	protected String getProjectIdPrimitive(final String project) {
+<span class="nc" id="L543">		List&lt;VraNgProject&gt; projects = getProjectsPrimitive(project);</span>
+
+<span class="nc bnc" id="L545" title="All 2 branches missed.">		return projects.stream().findFirst().isPresent() ? projects.stream().findFirst().get().getId() : null;</span>
+	}
+
+	/**
+	 * Retrieve name of the project.
+	 *
+	 * @param project Project Object
+	 * @return Name of the project
+	 */
+	protected String getProjectNamePrimitive(final String project) {
+<span class="nc" id="L555">		List&lt;VraNgProject&gt; projects = getProjectsPrimitive(project);</span>
+
+<span class="nc bnc" id="L557" title="All 2 branches missed.">		return projects.stream().findFirst().isPresent() ? projects.stream().findFirst().get().getName() : null;</span>
+	}
+
+	/**
+	 * Returns all Blueprints.
+	 *
+	 * @return List of VraNg Blueprint Objects
+	 */
+	public List&lt;VraNgBlueprint&gt; getAllBlueprintsPrimitive() {
+<span class="nc" id="L566">		List&lt;VraNgBlueprint&gt; blueprints = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L567">		List&lt;JsonObject&gt; results = this.getPagedContent(SERVICE_BLUEPRINT, new HashMap&lt;&gt;());</span>
+
+<span class="nc" id="L569">		LOGGER.debug(&quot;Blueprints found on server: {}&quot;, results.size());</span>
+<span class="nc" id="L570">		results.forEach(o -&gt; {</span>
+<span class="nc" id="L571">			JsonObject ob = o.getAsJsonObject();</span>
+<span class="nc" id="L572">			String prjId = ob.get(&quot;projectId&quot;).getAsString();</span>
+<span class="nc bnc" id="L573" title="All 2 branches missed.">			if (getProjectId().equals(prjId)) {</span>
+<span class="nc" id="L574">				blueprints.add(this.getBlueprintPrimitive(ob.get(&quot;id&quot;).getAsString()));</span>
+			}
+<span class="nc" id="L576">		});</span>
+
+<span class="nc" id="L578">		LOGGER.debug(&quot;Blueprints in target project: {}&quot;, blueprints.size());</span>
+
+<span class="nc" id="L580">		return blueprints;</span>
+	}
+
+	/**
+	 * Returns the blueprint.
+	 *
+	 * @param id blueprintId
+	 * @return VraNgBlueprint
+	 */
+	public VraNgBlueprint getBlueprintPrimitive(final String id) {
+<span class="nc" id="L590">		URI url = getURI(getURIBuilder().setPath(SERVICE_BLUEPRINT + &quot;/&quot; + id));</span>
+
+<span class="nc" id="L592">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="nc" id="L594">		return new Gson().fromJson(response.getBody(), VraNgBlueprint.class);</span>
+	}
+
+	/**
+	 * Returns Blueprint Version Content.
+	 *
+	 * @param blueprintId blueprintId
+	 * @param version     version
+	 * @return String
+	 */
+	public String getBlueprintVersionContentPrimitive(final String blueprintId, final String version) {
+<span class="nc" id="L605">		URI url = getURI(getURIBuilder().setPath(SERVICE_BLUEPRINT + &quot;/&quot; + blueprintId + SERVICE_BLUEPRINT_VERSIONS + &quot;/&quot; + version).addParameter(&quot;orderBy&quot;,</span>
+				&quot;updatedAt DESC&quot;));
+
+<span class="nc" id="L608">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="nc" id="L610">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+
+<span class="nc" id="L612">		String content = &quot;&quot;;</span>
+<span class="nc bnc" id="L613" title="All 2 branches missed.">		if (root.isJsonObject()) {</span>
+<span class="nc" id="L614">			JsonObject jsonObject = root.getAsJsonObject();</span>
+<span class="nc bnc" id="L615" title="All 2 branches missed.">			if (isJsonElementPresent(jsonObject.get(&quot;content&quot;))) {</span>
+<span class="nc" id="L616">				content = jsonObject.get(&quot;content&quot;).getAsString();</span>
+			}
+		}
+
+<span class="nc" id="L620">		return content;</span>
+	}
+
+	/**
+	 * Returns the raw string content of a blueprint version details API call.
+	 * &lt;p&gt;
+	 * !!!This will fail if there are more than 1000 blueprints.!!!
+	 *
+	 * @param blueprintId blueprintId
+	 * @return String
+	 */
+	public String getBlueprintVersionsContent(final String blueprintId) {
+<span class="nc" id="L632">		URI url = getURI(getURIBuilder().setPath(SERVICE_BLUEPRINT + &quot;/&quot; + blueprintId + SERVICE_BLUEPRINT_VERSIONS).addParameter(&quot;$top&quot;, &quot;1000&quot;)</span>
+<span class="nc" id="L633">				.addParameter(&quot;orderBy&quot;, &quot;createdAt DESC&quot;));</span>
+
+<span class="nc" id="L635">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="nc" id="L637">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+
+<span class="nc" id="L639">		String content = &quot;&quot;;</span>
+<span class="nc bnc" id="L640" title="All 2 branches missed.">		if (root.isJsonObject()) {</span>
+<span class="nc" id="L641">			JsonObject jsonObject = root.getAsJsonObject();</span>
+<span class="nc bnc" id="L642" title="All 2 branches missed.">			if (isJsonElementPresent(jsonObject.get(&quot;content&quot;))) {</span>
+<span class="nc" id="L643">				content = jsonObject.get(&quot;content&quot;).toString();</span>
+			}
+		}
+
+<span class="nc" id="L647">		return content;</span>
+	}
+
+	/**
+	 * Checks if blueprint version present.
+	 *
+	 * @param blueprintId Blueprint ID
+	 * @param version     Blueprint Version
+	 * @return true if blueprint version present
+	 */
+	public Boolean isBlueprintVersionPresentPrimitive(final String blueprintId, final String version) {
+<span class="nc" id="L658">		URI url = getURI(getURIBuilder().setPath(SERVICE_BLUEPRINT + &quot;/&quot; + blueprintId + SERVICE_BLUEPRINT_VERSIONS + &quot;/&quot; + version));</span>
+
+		try {
+<span class="nc" id="L661">			restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L662">		} catch (Exception e) {</span>
+<span class="nc" id="L663">			return false;</span>
+<span class="nc" id="L664">		}</span>
+
+<span class="nc" id="L666">		return true;</span>
+	}
+
+	/**
+	 * Release Blueprint Version.
+	 *
+	 * @param blueprintId Blueprint ID
+	 * @param version     Blueprint Version
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 */
+	public void releaseBlueprintVersionPrimitive(final String blueprintId, final String version) throws URISyntaxException {
+<span class="nc" id="L677">		URI url = getURI(getURIBuilder().setPath(SERVICE_BLUEPRINT + &quot;/&quot; + blueprintId + SERVICE_BLUEPRINT_VERSIONS));</span>
+
+<span class="nc" id="L679">		Map&lt;String, Object&gt; map = new LinkedHashMap&lt;&gt;();</span>
+<span class="nc" id="L680">		map.put(&quot;version&quot;, version);</span>
+<span class="nc" id="L681">		map.put(&quot;release&quot;, true);</span>
+
+<span class="nc" id="L683">		String jsonBody = this.getJsonString(map);</span>
+<span class="nc" id="L684">		this.postJsonPrimitive(url, HttpMethod.POST, jsonBody);</span>
+<span class="nc" id="L685">	}</span>
+
+	/**
+	 * Unrelease Blueprint Version.
+	 *
+	 * @param blueprintId Blueprint ID
+	 * @param versionId   Blueprint versionId
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 */
+	public void unreleaseBlueprintVersionPrimitive(final String blueprintId, final String versionId) throws URISyntaxException {
+<span class="nc" id="L695">		URI url = getURI(getURIBuilder().setPath(</span>
+				SERVICE_BLUEPRINT + &quot;/&quot; + blueprintId + SERVICE_BLUEPRINT_VERSIONS + &quot;/&quot; + versionId + &quot;/&quot; + SERVICE_BLUEPRINT_UNRELEASE_VERSIONS_ACTION));
+
+		try {
+<span class="nc" id="L699">			this.postJsonPrimitive(url, HttpMethod.POST, &quot;&quot;);</span>
+<span class="nc" id="L700">		} catch (HttpClientErrorException e) {</span>
+<span class="nc" id="L701">			throw new RuntimeException(</span>
+<span class="nc" id="L702">					String.format(&quot;Error ocurred during when unreleasing version %s for blueprint %s. Message: %s&quot;, versionId, blueprintId, e.getMessage()));</span>
+<span class="nc" id="L703">		}</span>
+<span class="nc" id="L704">	}</span>
+
+	/**
+	 * Consuming the vRA REST API endpoint to create a blueprint version with the
+	 * provided details.
+	 *
+	 * @param blueprintId    blueprintId
+	 * @param versionDetails versionDetails
+	 * @throws URISyntaxException exception
+	 */
+	public void createBlueprintVersionPrimitive(final String blueprintId, final Map&lt;String, Object&gt; versionDetails) throws URISyntaxException {
+<span class="nc" id="L715">		URI url = getURI(getURIBuilder().setPath(SERVICE_BLUEPRINT + &quot;/&quot; + blueprintId + SERVICE_BLUEPRINT_VERSIONS));</span>
+<span class="nc" id="L716">		this.postJsonPrimitive(url, HttpMethod.POST, this.getJsonString(versionDetails));</span>
+<span class="nc" id="L717">	}</span>
+
+	/**
+	 * Create Blueprint from Blueprint object.
+	 *
+	 * @param blueprint Blueprint Object to create
+	 * @return VraNgCustom Form Object.
+	 * @throws URISyntaxException exception
+	 */
+	public String createBlueprintPrimitive(final VraNgBlueprint blueprint) throws URISyntaxException {
+<span class="nc" id="L727">		URI url = getURIBuilder().setPath(SERVICE_BLUEPRINT).build();</span>
+<span class="nc" id="L728">		Map&lt;String, Object&gt; map = this.createBlueprintMap(blueprint);</span>
+<span class="nc" id="L729">		String jsonBody = this.getJsonString(map);</span>
+<span class="nc" id="L730">		ResponseEntity&lt;String&gt; response = this.postJsonPrimitive(url, HttpMethod.POST, jsonBody);</span>
+<span class="nc" id="L731">		return new Gson().fromJson(response.getBody(), VraNgBlueprint.class).getId();</span>
+	}
+
+	/**
+	 * Update Blueprint with Blueprint Object.
+	 *
+	 * @param blueprint Blueprint Object
+	 * @return Blueprint ID.
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 */
+	public String updateBlueprintPrimitive(final VraNgBlueprint blueprint) throws URISyntaxException {
+
+<span class="nc bnc" id="L743" title="All 2 branches missed.">		if (blueprint.getId().isEmpty()) {</span>
+<span class="nc" id="L744">			throw new RuntimeException(&quot;Blueprint id is missing.&quot;);</span>
+		}
+
+<span class="nc" id="L747">		URI url = getURIBuilder().setPath(SERVICE_BLUEPRINT + &quot;/&quot; + blueprint.getId()).build();</span>
+<span class="nc" id="L748">		Map&lt;String, Object&gt; map = this.createBlueprintMap(blueprint);</span>
+<span class="nc" id="L749">		String jsonBody = this.getJsonString(map);</span>
+<span class="nc" id="L750">		ResponseEntity&lt;String&gt; response = this.putJsonPrimitive(url, jsonBody);</span>
+<span class="nc" id="L751">		return new Gson().fromJson(response.getBody(), VraNgBlueprint.class).getId();</span>
+	}
+
+	/**
+	 * Retrieve Blueprint Last updated Version.
+	 *
+	 * @param blueprintId Blueprint ID
+	 * @return Blueprint Version.
+	 */
+	public String getBlueprintLastUpdatedVersionPrimitive(final String blueprintId) {
+<span class="nc" id="L761">		URI url = getURI(getURIBuilder().setPath(SERVICE_BLUEPRINT + &quot;/&quot; + blueprintId + SERVICE_BLUEPRINT_VERSIONS).addParameter(&quot;orderBy&quot;, &quot;updatedAt DESC&quot;));</span>
+
+<span class="nc" id="L763">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="nc" id="L765">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+
+<span class="nc" id="L767">		String lastVersion = null;</span>
+<span class="nc bnc" id="L768" title="All 2 branches missed.">		if (root.isJsonObject()) {</span>
+<span class="nc" id="L769">			JsonArray responseContent = root.getAsJsonObject().getAsJsonArray(&quot;content&quot;);</span>
+<span class="nc bnc" id="L770" title="All 2 branches missed.">			if (responseContent.size() &gt; 0) {</span>
+<span class="nc" id="L771">				lastVersion = responseContent.get(0).getAsJsonObject().get(&quot;version&quot;).getAsString();</span>
+			}
+		}
+
+<span class="nc" id="L775">		return lastVersion;</span>
+	}
+
+	/**
+	 * Checks Blueprint Release status.
+	 *
+	 * @param blueprintId Blue print ID
+	 * @return True if released else false.
+	 */
+	public boolean isBlueprintReleasedPrimitive(final String blueprintId) {
+
+<span class="nc" id="L786">		final String statusReleased = &quot;RELEASED&quot;;</span>
+
+<span class="nc" id="L788">		URI url = getURI(getURIBuilder().setPath(SERVICE_BLUEPRINT + &quot;/&quot; + blueprintId + SERVICE_BLUEPRINT_VERSIONS).addParameter(&quot;status&quot;, statusReleased));</span>
+
+<span class="nc" id="L790">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="nc" id="L792">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+
+<span class="nc bnc" id="L794" title="All 2 branches missed.">		if (root.isJsonObject()) {</span>
+<span class="nc" id="L795">			JsonArray responseContent = root.getAsJsonObject().getAsJsonArray(&quot;content&quot;);</span>
+<span class="nc bnc" id="L796" title="All 2 branches missed.">			return responseContent.size() &gt; 0;</span>
+		}
+
+<span class="nc" id="L799">		return false;</span>
+	}
+
+	/**
+	 * Create or Update Content Source.
+	 *
+	 * @param contentSource Content Source
+	 * @return Content Source ID.
+	 */
+	public String createOrUpdateContentSourcePrimitive(final VraNgContentSourceBase contentSource) {
+<span class="nc" id="L809">		URI url = getURI(getURIBuilder().setPath(SERVICE_CONTENT_SOURCE));</span>
+<span class="nc" id="L810">		Gson gson = new GsonBuilder().setLenient().serializeNulls().create();</span>
+<span class="nc" id="L811">		ResponseEntity&lt;String&gt; response = this.postJsonPrimitive(url, HttpMethod.POST, gson.toJson(contentSource));</span>
+<span class="nc" id="L812">		return new Gson().fromJson(response.getBody(), contentSource.getType().getTypeClass()).getId();</span>
+	}
+
+	/**
+	 * Retrieve Vra Workflow Custom Form.
+	 *
+	 * @param formName form name
+	 * @return VraNgCustom Form Object.
+	 */
+	protected VraNgCustomForm getVraWorkflowCustomFormPrimitive(final String formName) {
+<span class="nc" id="L822">		VraNgCatalogItem catalogItem = getCatalogItemByBlueprintNamePrimitive(formName);</span>
+<span class="nc bnc" id="L823" title="All 4 branches missed.">		if (catalogItem == null || StringUtils.isEmpty(catalogItem.getId())) {</span>
+<span class="nc" id="L824">			return null;</span>
+		}
+<span class="nc" id="L826">		String customFormType = VraNgContentSourceType.VRO_WORKFLOW.toString();</span>
+<span class="nc" id="L827">		String customFormSourceId = catalogItem.getId();</span>
+
+<span class="nc" id="L829">		return this.getCustomFormByTypeAndSourcePrimitive(customFormType, customFormSourceId);</span>
+	}
+
+	/**
+	 * Retrieve the Cloud Assembly Blueprint content source available for the
+	 * configured project.
+	 *
+	 * @return VraNgContentSource objects.
+	 * @see VraNgContentSource
+	 */
+	protected VraNgContentSource getBlueprintContentSourceForProjectPrimitive() {
+<span class="nc" id="L840">		Gson gson = new Gson();</span>
+
+<span class="nc" id="L842">		Map&lt;String, String&gt; params = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L843">		String projectIdentifier = getProjectId();</span>
+<span class="nc" id="L844">		params.put(&quot;projectId&quot;, projectIdentifier);</span>
+<span class="nc" id="L845">		return this.getPagedContent(SERVICE_CONTENT_SOURCE, params).stream()</span>
+<span class="nc" id="L846">				.filter(jsonOb -&gt; VraNgContentSourceType.BLUEPRINT.toString().equals(jsonOb.get(&quot;typeId&quot;).getAsString()))</span>
+<span class="nc" id="L847">				.map(jsonOb -&gt; gson.fromJson(jsonOb, VraNgContentSource.class)).filter(contentSource -&gt; contentSource.getProjectId().equals(projectIdentifier))</span>
+<span class="nc" id="L848">				.findFirst().orElse(null);</span>
+	}
+
+	/**
+	 * Retrieve all content sources available for the configured project.
+	 *
+	 * @param project project
+	 * @return list of VraNgContentSource objects.
+	 * @see VraNgContentSource
+	 */
+	protected List&lt;VraNgContentSourceBase&gt; getContentSourcesForProjectPrimitive(final String project) {
+<span class="nc" id="L859">		Gson gson = new Gson();</span>
+
+<span class="nc" id="L861">		Map&lt;String, String&gt; params = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L862" title="All 2 branches missed.">		String csProjectId = StringUtils.isEmpty(project) ? getProjectId() : project;</span>
+<span class="nc" id="L863">		params.put(&quot;projectId&quot;, csProjectId);</span>
+
+<span class="nc" id="L865">		return this.getPagedContent(SERVICE_CONTENT_SOURCE, params).stream().map(jsonOb -&gt; {</span>
+<span class="nc" id="L866">			VraNgContentSourceType type = VraNgContentSourceType.fromString(jsonOb.get(&quot;typeId&quot;).getAsString());</span>
+<span class="nc" id="L867">			return gson.fromJson(jsonOb, type.getTypeClass());</span>
+<span class="nc" id="L868">		}).collect(Collectors.toList());</span>
+	}
+
+	/**
+	 * Retrieve Content Sources for the Projects.
+	 *
+	 * @param projects List of projects
+	 * @return list of VraNg Content Source objects.
+	 */
+	protected Map&lt;String, List&lt;VraNgContentSourceBase&gt;&gt; getContentSourcesForProjectsPrimitive(final List&lt;String&gt; projects) {
+<span class="nc" id="L878">		Map&lt;String, List&lt;VraNgContentSourceBase&gt;&gt; retVal = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L879" title="All 2 branches missed.">		for (String project : projects) {</span>
+<span class="nc" id="L880">			List&lt;VraNgContentSourceBase&gt; contentSources = this.getContentSourcesForProjectPrimitive(project);</span>
+<span class="nc bnc" id="L881" title="All 4 branches missed.">			if (contentSources != null &amp;&amp; !contentSources.isEmpty()) {</span>
+<span class="nc" id="L882">				retVal.put(project, contentSources);</span>
+			}
+<span class="nc" id="L884">		}</span>
+
+<span class="nc" id="L886">		return retVal;</span>
+	}
+
+	/**
+	 * Retrieve all catalog items available for the configured project.
+	 *
+	 * @param project project
+	 * @return list of VraNgCatalogItem objects.
+	 * @see VraNgCatalogItem
+	 */
+	protected List&lt;VraNgCatalogItem&gt; getCatalogItemsForProjectPrimitive(final String project) {
+<span class="fc" id="L897">		Gson gson = new Gson();</span>
+
+<span class="fc" id="L899">		Map&lt;String, String&gt; params = new HashMap&lt;&gt;();</span>
+<span class="pc bpc" id="L900" title="1 of 2 branches missed.">		String ciProjectId = StringUtils.isEmpty(project) ? getProjectId() : project;</span>
+<span class="fc" id="L901">		params.put(&quot;projectId&quot;, ciProjectId);</span>
+
+<span class="pc bpc" id="L903" title="1 of 2 branches missed.">		return this.getPagedContent(SERVICE_CATALOG_ADMIN_ITEMS, params).stream().filter(jsonOb -&gt; jsonOb != null)</span>
+<span class="fc" id="L904">				.map(jsonOb -&gt; gson.fromJson(jsonOb.toString(), VraNgCatalogItem.class)).collect(Collectors.toList());</span>
+	}
+
+	/**
+	 * Retrieve Catalog items For Projects.
+	 *
+	 * @param projects List of Projects
+	 * @return VraNg Content Source.
+	 */
+	protected Map&lt;String, List&lt;VraNgCatalogItem&gt;&gt; getCatalogItemsForProjectsPrimitive(final List&lt;String&gt; projects) {
+<span class="nc" id="L914">		Map&lt;String, List&lt;VraNgCatalogItem&gt;&gt; retVal = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L915" title="All 2 branches missed.">		for (String project : projects) {</span>
+<span class="nc" id="L916">			List&lt;VraNgCatalogItem&gt; catalogItems = this.getCatalogItemsForProjectPrimitive(project);</span>
+<span class="nc bnc" id="L917" title="All 4 branches missed.">			if (catalogItems != null &amp;&amp; !catalogItems.isEmpty()) {</span>
+<span class="nc" id="L918">				retVal.put(project, catalogItems);</span>
+			}
+<span class="nc" id="L920">		}</span>
+
+<span class="nc" id="L922">		return retVal;</span>
+	}
+
+	/**
+	 * Import Custom Form.
+	 *
+	 * @param customForm VraNg Custom Form
+	 * @param sourceId   Srouce ID
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 */
+	public void importCustomFormPrimitive(final VraNgCustomForm customForm, final String sourceId) throws URISyntaxException {
+<span class="fc" id="L933">		URI url = getURI(getURIBuilder().setPath(SERVICE_CUSTOM_FORM));</span>
+
+<span class="fc" id="L935">		String customFormFormat = CUSTOM_FORM_DEFAULT_FORMAT; // Some vro versions don't specify the format. Assuming</span>
+		// JSON format as default
+<span class="pc bpc" id="L937" title="1 of 4 branches missed.">		if (customForm.getFormFormat() != null &amp;&amp; !customForm.getFormFormat().equals(&quot;&quot;)) {</span>
+<span class="fc" id="L938">			customFormFormat = customForm.getFormFormat();</span>
+		}
+
+<span class="fc" id="L941">		Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L942">		map.put(&quot;name&quot;, customForm.getName());</span>
+<span class="fc" id="L943">		map.put(&quot;form&quot;, customForm.getForm());</span>
+<span class="fc" id="L944">		map.put(&quot;sourceType&quot;, customForm.getSourceType());</span>
+<span class="fc" id="L945">		map.put(&quot;sourceId&quot;, sourceId);</span>
+<span class="fc" id="L946">		map.put(&quot;type&quot;, customForm.getType());</span>
+<span class="fc" id="L947">		map.put(&quot;status&quot;, customForm.getStatus());</span>
+<span class="fc" id="L948">		map.put(&quot;formFormat&quot;, customFormFormat);</span>
+<span class="fc" id="L949">		map.put(&quot;styles&quot;, customForm.getStyles());</span>
+
+<span class="fc" id="L951">		String jsonBody = this.getJsonString(map);</span>
+
+<span class="fc" id="L953">		this.postJsonPrimitive(url, HttpMethod.POST, jsonBody);</span>
+<span class="fc" id="L954">	}</span>
+
+	/**
+	 * Import Subscriptions.
+	 *
+	 * @param subscriptionName subscription name
+	 * @param subscriptionJson subscription json
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 */
+	protected void importSubscriptionPrimitive(final String subscriptionName, final String subscriptionJson) throws URISyntaxException {
+<span class="nc" id="L964">		URI url = getURIBuilder().setPath(SERVICE_SUBSCRIPTION).build();</span>
+
+<span class="nc" id="L966">		this.postJsonPrimitive(url, HttpMethod.POST, subscriptionJson);</span>
+<span class="nc" id="L967">	}</span>
+
+	/**
+	 * Retrieve All Subscriptions.
+	 *
+	 * @param filter filter
+	 * @return VraNg Subscriptions.
+	 */
+	public Map&lt;String, VraNgSubscription&gt; getAllSubscriptionsPrimitive(final String filter) {
+<span class="nc" id="L976">		LOGGER.debug(&quot;Getting all subscriptions with filter: {}&quot;, filter);</span>
+
+<span class="nc" id="L978">		Map&lt;String, String&gt; params = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L979">		params.put(&quot;$filter&quot;, filter);</span>
+<span class="nc" id="L980">		List&lt;JsonObject&gt; allResults = this.getPagedContent(SERVICE_SUBSCRIPTION, params);</span>
+
+<span class="nc" id="L982">		Map&lt;String, VraNgSubscription&gt; subscriptions = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L983">		String projectIdentifier = getProjectId();</span>
+
+<span class="nc" id="L985">		allResults.forEach(ob -&gt; {</span>
+<span class="nc" id="L986">			Set&lt;String&gt; projectIds = new HashSet&lt;&gt;();</span>
+<span class="nc" id="L987">			JsonElement constraints = ob.get(&quot;constraints&quot;);</span>
+<span class="nc bnc" id="L988" title="All 2 branches missed.">			if (constraints != null) {</span>
+<span class="nc" id="L989">				JsonElement pIds = constraints.getAsJsonObject().get(&quot;projectId&quot;);</span>
+				// Check if object and contents of object are not null
+<span class="nc bnc" id="L991" title="All 4 branches missed.">				if (pIds != null &amp;&amp; !pIds.isJsonNull()) {</span>
+<span class="nc" id="L992">					pIds.getAsJsonArray().forEach(pId -&gt; projectIds.add(pId.getAsString()));</span>
+				}
+			}
+
+<span class="nc" id="L996">			JsonElement id = ob.get(&quot;id&quot;);</span>
+<span class="nc" id="L997">			JsonElement name = ob.get(&quot;name&quot;);</span>
+
+<span class="nc bnc" id="L999" title="All 8 branches missed.">			if (projectIds.isEmpty() || (projectIds.contains(projectIdentifier) &amp;&amp; id != null &amp;&amp; name != null)) {</span>
+<span class="nc" id="L1000">				String json = ob.toString();</span>
+<span class="nc" id="L1001">				subscriptions.put(id.getAsString(), new VraNgSubscription(id.getAsString(), name.getAsString(), json));</span>
+			}
+<span class="nc" id="L1003">		});</span>
+
+<span class="nc" id="L1005">		return subscriptions;</span>
+	}
+
+	/**
+	 * Retrieve All Cloud Accounts.
+	 *
+	 * @return List of Cloud accounts.
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 */
+	protected List&lt;VraNgCloudAccount&gt; getAllCloudAccounts() throws URISyntaxException {
+<span class="fc" id="L1015">		List&lt;VraNgCloudAccount&gt; retVal = new ArrayList&lt;&gt;();</span>
+
+<span class="fc" id="L1017">		URI url = getURIBuilder().setPath(SERVICE_CLOUD_ACCOUNT).setParameter(&quot;apiVersion&quot;, this.getVersion()).build();</span>
+<span class="fc" id="L1018">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="fc" id="L1019">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+
+<span class="pc bpc" id="L1021" title="1 of 2 branches missed.">		if (!root.isJsonObject()) {</span>
+<span class="nc" id="L1022">			return retVal;</span>
+		}
+<span class="fc" id="L1024">		String organizationId = VraNgOrganizationUtil.getOrganization(this, configuration).getId();</span>
+<span class="fc" id="L1025">		root.getAsJsonObject().getAsJsonArray(&quot;content&quot;).forEach(o -&gt; {</span>
+<span class="fc" id="L1026">			JsonObject ob = o.getAsJsonObject();</span>
+
+<span class="fc" id="L1028">			JsonElement id = ob.get(&quot;id&quot;);</span>
+<span class="fc" id="L1029">			JsonElement name = ob.get(&quot;name&quot;);</span>
+<span class="fc" id="L1030">			JsonElement orgId = ob.get(&quot;orgId&quot;);</span>
+<span class="fc" id="L1031">			JsonElement type = ob.get(&quot;cloudAccountType&quot;);</span>
+<span class="fc" id="L1032">			JsonElement tagsElement = ob.get(&quot;tags&quot;);</span>
+<span class="fc" id="L1033">			JsonElement linksElement = ob.get(&quot;_links&quot;);</span>
+
+<span class="pc bpc" id="L1035" title="1 of 2 branches missed.">			if (orgId.getAsString().equals(organizationId)) {</span>
+<span class="fc" id="L1036">				List&lt;String&gt; tags = this.getTags(tagsElement);</span>
+<span class="fc" id="L1037">				List&lt;String&gt; regionIds = this.getRegions(linksElement);</span>
+<span class="fc" id="L1038">				retVal.add(new VraNgCloudAccount(id.getAsString(), name.getAsString(), type.getAsString(), regionIds, tags));</span>
+			}
+<span class="fc" id="L1040">		});</span>
+
+<span class="fc" id="L1042">		return retVal;</span>
+	}
+
+	/**
+	 * Retrieve a cloud account by its id.
+	 *
+	 * @param id cloud account id
+	 * @return VraNgRegion
+	 */
+	protected VraNgCloudAccount getCloudAccountPrimitive(final String id) {
+<span class="nc" id="L1052">		URI url = getURI(getURIBuilder().setPath(SERVICE_CLOUD_ACCOUNT + &quot;/&quot; + id));</span>
+<span class="nc" id="L1053">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L1054">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+
+<span class="nc bnc" id="L1056" title="All 2 branches missed.">		if (root.isJsonObject()) {</span>
+<span class="nc" id="L1057">			JsonObject ob = root.getAsJsonObject();</span>
+
+<span class="nc" id="L1059">			String cloudAccountId = ob.get(&quot;id&quot;).getAsString();</span>
+<span class="nc" id="L1060">			String name = ob.get(&quot;name&quot;).getAsString();</span>
+<span class="nc" id="L1061">			String type = ob.get(&quot;cloudAccountType&quot;).getAsString();</span>
+<span class="nc" id="L1062">			JsonElement tagsElement = ob.get(&quot;tags&quot;);</span>
+<span class="nc" id="L1063">			JsonElement linkElement = ob.get(&quot;_links&quot;);</span>
+
+<span class="nc" id="L1065">			List&lt;String&gt; tags = this.getTags(tagsElement);</span>
+<span class="nc" id="L1066">			List&lt;String&gt; regionIds = this.getRegions(linkElement);</span>
+
+<span class="nc" id="L1068">			return new VraNgCloudAccount(cloudAccountId, name, type, regionIds, tags);</span>
+		}
+<span class="nc" id="L1070">		return null;</span>
+	}
+
+	/**
+	 * Retrieve a region by its id.
+	 *
+	 * @param id region id
+	 * @return VraNgRegion
+	 */
+	protected VraNgRegion getRegionPrimitive(final String id) {
+<span class="nc" id="L1080">		URI url = getURI(getURIBuilder().setPath(SERVICE_REGION + &quot;/&quot; + id));</span>
+<span class="nc" id="L1081">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L1082">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+
+<span class="nc bnc" id="L1084" title="All 2 branches missed.">		if (root.isJsonObject()) {</span>
+<span class="nc" id="L1085">			JsonObject ob = root.getAsJsonObject();</span>
+<span class="nc" id="L1086">			String cloudAccountId = getLinkCloudAccountId(ob);</span>
+<span class="nc" id="L1087">			String regionid = ob.get(&quot;id&quot;).getAsString();</span>
+<span class="nc" id="L1088">			return new VraNgRegion(regionid, cloudAccountId);</span>
+		}
+<span class="nc" id="L1090">		return null;</span>
+	}
+
+	/**
+	 * Retrieve Secret by name (name is unique for secrets).
+	 *
+	 * @param name of the secret
+	 * @return VraNgSecret item
+	 */
+	protected VraNgSecret getSecretPrimitive(final String name) {
+<span class="nc" id="L1100">		String queryString = String.format(&quot;$filter=name eq '%s' and projectId eq '%s'&quot;, name, getProjectId());</span>
+<span class="nc" id="L1101">		URI url = getURI(getURIBuilder().setPath(SERVICE_SECRET).setCustomQuery(queryString));</span>
+<span class="nc" id="L1102">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="nc" id="L1104">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+<span class="nc" id="L1105">		JsonObject ob = root.getAsJsonObject();</span>
+
+<span class="nc bnc" id="L1107" title="All 2 branches missed.">		if (ob.get(&quot;numberOfElements&quot;).getAsInt() &gt; 0) {</span>
+<span class="nc" id="L1108">			JsonArray entities = ob.get(&quot;content&quot;).getAsJsonArray();</span>
+
+<span class="nc bnc" id="L1110" title="All 2 branches missed.">			if (entities.size() &gt; 0) {</span>
+<span class="nc" id="L1111">				return new Gson().fromJson(entities.get(0).getAsJsonObject(), VraNgSecret.class);</span>
+			}
+		}
+
+<span class="nc" id="L1115">		return null;</span>
+	}
+
+	/**
+	 * Retrieve Catalog Item By Blueprint Name.
+	 *
+	 * @param blueprintName Blueprint name
+	 * @return VraNg Content Source.
+	 */
+	protected VraNgCatalogItem getCatalogItemByBlueprintNamePrimitive(final String blueprintName) {
+<span class="fc" id="L1125">		Map&lt;String, String&gt; params = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L1126">		params.put(&quot;search&quot;, blueprintName.trim());</span>
+
+<span class="fc" id="L1128">		List&lt;JsonObject&gt; results = this.getPagedContent(SERVICE_CATALOG_ADMIN_ITEMS, params);</span>
+		// filter the results matching the blueprintName
+<span class="fc" id="L1130">		JsonObject result = results.stream().filter(item -&gt; {</span>
+<span class="fc" id="L1131">			JsonObject ob = item.getAsJsonObject();</span>
+<span class="pc bpc" id="L1132" title="1 of 2 branches missed.">			if (ob == null) {</span>
+<span class="nc" id="L1133">				return Boolean.FALSE;</span>
+			}
+<span class="fc" id="L1135">			String name = ob.get(&quot;name&quot;).getAsString().trim();</span>
+<span class="fc" id="L1136">			return name.equalsIgnoreCase(blueprintName.trim());</span>
+<span class="fc" id="L1137">		}).findFirst().orElse(null);</span>
+
+		// return null if the blueprint is not found
+<span class="pc bpc" id="L1140" title="1 of 2 branches missed.">		if (result == null) {</span>
+<span class="nc" id="L1141">			return null;</span>
+		}
+
+		// construct the retrieved blueprint object
+<span class="fc" id="L1145">		String id = result.get(&quot;id&quot;).getAsString();</span>
+<span class="fc" id="L1146">		String sourceId = result.get(&quot;sourceId&quot;).getAsString();</span>
+<span class="fc" id="L1147">		String sourceName = result.get(&quot;sourceName&quot;).getAsString();</span>
+<span class="fc" id="L1148">		JsonObject typeObj = result.get(&quot;type&quot;).getAsJsonObject();</span>
+		// additional sanity check
+<span class="pc bpc" id="L1150" title="1 of 2 branches missed.">		if (typeObj == null) {</span>
+<span class="nc" id="L1151">			throw new RuntimeException(String.format(&quot;Unable to extract catalog item type for blueprint '%s'&quot;, blueprintName));</span>
+		}
+<span class="fc" id="L1153">		VraNgCatalogItemType type = new Gson().fromJson(typeObj, VraNgCatalogItemType.class);</span>
+
+<span class="fc" id="L1155">		return new VraNgCatalogItem(id, sourceId, result.get(&quot;name&quot;).getAsString().trim(), sourceName, type);</span>
+	}
+
+	/**
+	 * Common retriever for paged content. It performs GET requests against the
+	 * given path until the final page has been reached.
+	 *
+	 * @param path      URL path
+	 * @param paramsMap any number of query paramters
+	 * @return combined results
+	 */
+	private List&lt;JsonObject&gt; getPagedContent(final String path, final Map&lt;String, String&gt; paramsMap) {
+<span class="fc" id="L1167">		URIBuilder uriBuilder = getURIBuilder().setPath(String.format(path)).setParameter(&quot;page&quot;, &quot;0&quot;).setParameter(&quot;size&quot;, String.valueOf(PAGE_SIZE));</span>
+
+		// add arbitrary parameters
+<span class="fc bfc" id="L1170" title="All 2 branches covered.">		for (Map.Entry&lt;String, String&gt; entry : paramsMap.entrySet()) {</span>
+<span class="fc" id="L1171">			uriBuilder.setParameter(entry.getKey(), entry.getValue());</span>
+<span class="fc" id="L1172">		}</span>
+<span class="fc" id="L1173">		URI uri = getURI(uriBuilder);</span>
+<span class="fc" id="L1174">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(uri, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="pc bpc" id="L1175" title="1 of 2 branches missed.">		if (response == null) {</span>
+<span class="nc" id="L1176">			return Collections.emptyList();</span>
+		}
+<span class="fc" id="L1178">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+<span class="pc bpc" id="L1179" title="1 of 2 branches missed.">		if (root == null) {</span>
+<span class="nc" id="L1180">			return Collections.emptyList();</span>
+		}
+<span class="fc" id="L1182">		List&lt;JsonObject&gt; allResults = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L1183">		Integer totalPages = root.getAsJsonObject().get(&quot;totalPages&quot;).getAsInt();</span>
+<span class="pc bpc" id="L1184" title="1 of 2 branches missed.">		for (int page = 0; page &lt; totalPages; page++) {</span>
+<span class="fc" id="L1185">			JsonArray content = root.getAsJsonObject().get(&quot;content&quot;).getAsJsonArray();</span>
+<span class="fc bfc" id="L1186" title="All 2 branches covered.">			for (int i = 0; i &lt; content.size(); i++) {</span>
+<span class="fc" id="L1187">				allResults.add(content.get(i).getAsJsonObject());</span>
+			}
+			// no further REST call is needed if all results are on one page
+<span class="pc bpc" id="L1190" title="1 of 2 branches missed.">			if (totalPages == 1) {</span>
+<span class="fc" id="L1191">				return allResults;</span>
+			}
+<span class="nc" id="L1193">			uriBuilder.setParameter(&quot;page&quot;, String.valueOf(page + 1));</span>
+<span class="nc" id="L1194">			response = restTemplate.exchange(getURI(uriBuilder), HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L1195">			root = JsonParser.parseString(response.getBody());</span>
+		}
+
+<span class="nc" id="L1198">		return allResults;</span>
+	}
+
+	/**
+	 * Retriever for paged content based on totalElements and numberOfElements.
+	 *
+	 * @param path      URL path
+	 * @param paramsMap any number of query paramters
+	 * @return combined results
+	 */
+	private List&lt;JsonObject&gt; getTotalElements(final String path, final Map&lt;String, String&gt; paramsMap) {
+
+<span class="fc" id="L1210">		URIBuilder uriBuilder = getURIBuilder().setPath(String.format(path)).setParameter(&quot;$top&quot;, String.valueOf(PAGE_SIZE)).setParameter(&quot;$skip&quot;,</span>
+<span class="fc" id="L1211">				String.valueOf(0));</span>
+
+		// add arbitrary parameters
+<span class="pc bpc" id="L1214" title="1 of 2 branches missed.">		for (Map.Entry&lt;String, String&gt; entry : paramsMap.entrySet()) {</span>
+<span class="nc" id="L1215">			uriBuilder.setParameter(entry.getKey(), entry.getValue());</span>
+<span class="nc" id="L1216">		}</span>
+
+<span class="fc" id="L1218">		List&lt;JsonObject&gt; allResults = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L1219">		int page = 0;</span>
+<span class="fc" id="L1220">		Integer totalElements = 0;</span>
+<span class="fc" id="L1221">		Integer numberOfElements = 0;</span>
+		do {
+<span class="fc" id="L1223">			uriBuilder.setParameter(&quot;$skip&quot;, String.valueOf(PAGE_SIZE * (page)));</span>
+<span class="fc" id="L1224">			ResponseEntity&lt;String&gt; response = restTemplate.exchange(getURI(uriBuilder), HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="fc" id="L1226">			JsonElement root = JsonParser.parseString(response.getBody());</span>
+
+<span class="fc" id="L1228">			totalElements = root.getAsJsonObject().get(&quot;totalElements&quot;).getAsInt();</span>
+<span class="fc" id="L1229">			numberOfElements = root.getAsJsonObject().get(&quot;numberOfElements&quot;).getAsInt();</span>
+<span class="fc" id="L1230">			LOGGER.debug(String.format(&quot;Page %d number of elements: %d&quot;, page, numberOfElements));</span>
+<span class="fc" id="L1231">			JsonArray content = root.getAsJsonObject().get(&quot;content&quot;).getAsJsonArray();</span>
+
+<span class="fc bfc" id="L1233" title="All 2 branches covered.">			for (int i = 0; i &lt; content.size(); i++) {</span>
+<span class="fc" id="L1234">				allResults.add(content.get(i).getAsJsonObject());</span>
+			}
+
+<span class="fc" id="L1237">			page += 1;</span>
+<span class="fc bfc" id="L1238" title="All 2 branches covered.">		} while ((page * PAGE_SIZE) &lt; totalElements);</span>
+
+<span class="fc" id="L1240">		LOGGER.debug(String.format(&quot;Total pages: %d, Total elements: %d&quot;, page, totalElements));</span>
+<span class="fc" id="L1241">		return allResults;</span>
+	}
+
+	/**
+	 * Retrieve Vra Workflow Content Source.
+	 *
+	 * @param id ID
+	 * @return VraNg Workflow Content Source.
+	 */
+	protected VraNgWorkflowContentSource getVraWorkflowContentSourcePrimitive(final String id) {
+<span class="nc" id="L1251">		URI url = getURI(getURIBuilder().setPath(SERVICE_CONTENT_SOURCE + &quot;/&quot; + id));</span>
+
+<span class="nc" id="L1253">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc bnc" id="L1254" title="All 2 branches missed.">		if (StringUtils.isEmpty(response.getBody())) {</span>
+<span class="nc" id="L1255">			return null;</span>
+		}
+<span class="nc" id="L1257">		VraNgWorkflowContentSource retVal = null;</span>
+		try {
+<span class="nc" id="L1259">			retVal = mapper.readValue(response.getBody(), VraNgWorkflowContentSource.class);</span>
+<span class="nc" id="L1260">		} catch (JsonProcessingException e) {</span>
+<span class="nc" id="L1261">			throw new RuntimeException(e);</span>
+<span class="nc" id="L1262">		}</span>
+
+<span class="nc" id="L1264">		return retVal;</span>
+	}
+
+	/**
+	 * Retrieve Content Source.
+	 *
+	 * @param id ID
+	 * @return VraNg Content Source.
+	 */
+	protected VraNgContentSourceBase getContentSourcePrimitive(final String id) {
+<span class="nc" id="L1274">		URI url = getURI(getURIBuilder().setPath(SERVICE_CONTENT_SOURCE + &quot;/&quot; + id));</span>
+<span class="nc" id="L1275">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L1276">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+<span class="nc bnc" id="L1277" title="All 2 branches missed.">		if (!root.isJsonObject()) {</span>
+<span class="nc" id="L1278">			return null;</span>
+		}
+<span class="nc" id="L1280">		JsonObject ob = root.getAsJsonObject();</span>
+<span class="nc" id="L1281">		VraNgContentSourceType type = VraNgContentSourceType.fromString(ob.get(&quot;typeId&quot;).getAsString());</span>
+<span class="nc" id="L1282">		VraNgContentSourceBase result = new Gson().fromJson(root, type.getTypeClass());</span>
+<span class="nc" id="L1283">		return result;</span>
+	}
+
+	/**
+	 * Retrieve all catalog entitlements for the configured project.
+	 *
+	 * @param project Project
+	 * @return list of VraNgCatalogEntitlement objects.
+	 * @see VraNgCatalogEntitlement
+	 */
+	private VraNgCatalogEntitlementDto[] getCatalogEntitlementsPerProject(final String project) {
+<span class="nc" id="L1294">		LOGGER.debug(&quot;Fetching catalog entitlement for project '{}'&quot;, project);</span>
+
+<span class="nc" id="L1296">		URI url = getURI(getURIBuilder().setPath(SERVICE_CATALOG_ENTITLEMENTS).addParameter(&quot;projectId&quot;, project));</span>
+<span class="nc" id="L1297">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L1298">		Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="nc" id="L1299">		VraNgCatalogEntitlementDto[] entitlements = gson.fromJson(response.getBody(), VraNgCatalogEntitlementDto[].class);</span>
+<span class="nc" id="L1300">		return entitlements;</span>
+	}
+
+	/**
+	 * Retrieve all catalog entitlements by name for all of the configured projects.
+	 *
+	 * @return list of VraNgCatalogEntitlement objects that are shared for all of
+	 *         the configured projects.
+	 * @see VraNgCatalogEntitlement
+	 */
+	protected List&lt;VraNgCatalogEntitlement&gt; getAllCatalogEntitlementsPrimitive() {
+<span class="nc" id="L1311">		LOGGER.debug(&quot;Fetching all available catalog entitlements&quot;);</span>
+<span class="nc" id="L1312">		List&lt;VraNgProject&gt; allProjects = this.getProjectsPrimitive();</span>
+<span class="nc bnc" id="L1313" title="All 4 branches missed.">		if (allProjects == null || allProjects.isEmpty()) {</span>
+<span class="nc" id="L1314">			return new ArrayList&lt;&gt;();</span>
+		}
+
+<span class="nc" id="L1317">		Map&lt;String, List&lt;VraNgCatalogEntitlementDto&gt;&gt; allEntitlements = allProjects.stream()</span>
+<span class="nc" id="L1318">				.map(project -&gt; this.getCatalogEntitlementsPerProject(project.getId())).flatMap(Arrays::stream)</span>
+<span class="nc" id="L1319">				.collect(Collectors.groupingBy(el -&gt; el.getDefinition().get(&quot;name&quot;), Collectors.toList()));</span>
+<span class="nc" id="L1320">		return allEntitlements.values().stream().map(entitlementsGroup -&gt; {</span>
+<span class="nc" id="L1321">			VraNgCatalogEntitlementDto modelEntitlement = entitlementsGroup.get(0);</span>
+<span class="nc" id="L1322">			List&lt;String&gt; projectIds = entitlementsGroup.stream().map(ent -&gt; ent.getProjectId()).collect(Collectors.toList());</span>
+
+<span class="nc" id="L1324">			VraNgCatalogEntitlement entitlement = new VraNgCatalogEntitlement(modelEntitlement.getId(), null, modelEntitlement.getDefinition().get(&quot;name&quot;),</span>
+<span class="nc" id="L1325">					projectIds, VraNgCatalogEntitlementType.fromString(modelEntitlement.getDefinition().get(&quot;type&quot;)),</span>
+<span class="nc" id="L1326">					VraNgContentSourceType.fromString(modelEntitlement.getDefinition().get(&quot;sourceType&quot;)));</span>
+<span class="nc" id="L1327">			String iconId = modelEntitlement.getDefinition().get(&quot;iconId&quot;);</span>
+<span class="nc bnc" id="L1328" title="All 2 branches missed.">			if (iconId != null) {</span>
+<span class="nc" id="L1329">				entitlement.setIconId(iconId);</span>
+			}
+<span class="nc" id="L1331">			return entitlement;</span>
+<span class="nc" id="L1332">		}).collect(Collectors.toList());</span>
+
+	}
+
+	/**
+	 * Create new entitlement.
+	 *
+	 * @param entitlement - the entitlement definition to be created.
+	 * @param project     - project id of where to share the entitlement definition.
+	 * @throws URISyntaxException exception, RuntimeException
+	 */
+	protected void createCatalogEntitlementPrimitive(final VraNgCatalogEntitlement entitlement, final String project) throws URISyntaxException {
+<span class="nc" id="L1344">		URI url = getURIBuilder().setPath(SERVICE_CATALOG_ENTITLEMENTS).build();</span>
+
+		// prepare payload
+<span class="nc" id="L1347">		Map&lt;String, Object&gt; definition = new LinkedHashMap&lt;&gt;();</span>
+<span class="nc" id="L1348">		definition.put(&quot;id&quot;, entitlement.getSourceId());</span>
+<span class="nc" id="L1349">		definition.put(&quot;name&quot;, entitlement.getName());</span>
+<span class="nc" id="L1350">		definition.put(&quot;type&quot;, entitlement.getType());</span>
+<span class="nc" id="L1351">		definition.put(&quot;sourceType&quot;, entitlement.getSourceType().toString());</span>
+<span class="nc bnc" id="L1352" title="All 2 branches missed.">		definition.put(&quot;iconId&quot;, entitlement.getIconId() == null ? null : entitlement.getIconId());</span>
+
+<span class="nc" id="L1354">		Map&lt;String, Object&gt; payload = new LinkedHashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L1355" title="All 2 branches missed.">		if (!StringUtils.isEmpty(entitlement.getId())) {</span>
+<span class="nc" id="L1356">			payload.put(&quot;id&quot;, entitlement.getId());</span>
+		}
+<span class="nc" id="L1358">		payload.put(&quot;projectId&quot;, project);</span>
+<span class="nc" id="L1359">		payload.put(&quot;definition&quot;, definition);</span>
+
+		// prepare request
+<span class="nc" id="L1362">		String jsonBody = this.getJsonString(payload);</span>
+		ResponseEntity&lt;String&gt; response;
+		try {
+<span class="nc" id="L1365">			response = this.postJsonPrimitive(url, HttpMethod.POST, jsonBody);</span>
+<span class="nc" id="L1366">		} catch (HttpClientErrorException e) {</span>
+<span class="nc" id="L1367">			throw new RuntimeException(String.format(&quot;Error ocurred during creating of catalog entitlement. Message: %s&quot;, e.getMessage()));</span>
+<span class="nc" id="L1368">		}</span>
+
+<span class="nc bnc" id="L1370" title="All 2 branches missed.">		if (!HttpStatus.CREATED.equals(response.getStatusCode())) {</span>
+<span class="nc" id="L1371">			throw new RuntimeException(String.format(&quot;Error ocurred during creating of catalog entitlement. HTTP Status code %s : ( %s )&quot;,</span>
+<span class="nc" id="L1372">					response.getStatusCodeValue(), response.getBody()));</span>
+		}
+<span class="nc" id="L1374">	}</span>
+
+	/**
+	 * getCatalogItemVersionsPrimitive.
+	 *
+	 * @param catalogItemId catalog item id.
+	 * @return catalogItemVersions JsonArray
+	 */
+	protected JsonArray getCatalogItemVersionsPrimitive(final String catalogItemId) {
+<span class="nc" id="L1383">		String path = SERVICE_CATALOG_ADMIN_ITEMS + &quot;/&quot; + catalogItemId + &quot;/versions&quot;;</span>
+<span class="nc" id="L1384">		URI url = getURI(getURIBuilder().setPath(path));</span>
+		try {
+<span class="nc" id="L1386">			ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L1387">			JsonElement root = JsonParser.parseString(response.getBody());</span>
+<span class="nc bnc" id="L1388" title="All 2 branches missed.">			if (root.isJsonObject()) {</span>
+<span class="nc" id="L1389">				return root.getAsJsonObject().getAsJsonArray(&quot;content&quot;);</span>
+			}
+<span class="nc" id="L1391">		} catch (RestClientException e) {</span>
+<span class="nc" id="L1392">			LOGGER.info(&quot;No versions found for catalog item id '{}'&quot;, catalogItemId);</span>
+<span class="nc" id="L1393">		}</span>
+
+<span class="nc" id="L1395">		return null;</span>
+	}
+
+	/**
+	 * fetchRequestFormPrimitive.
+	 *
+	 * @param sourceType source type
+	 * @param sourceId   source id
+	 * @param formId     form id
+	 * @return customForm VraNgCustomForm
+	 */
+	protected VraNgCustomForm fetchRequestFormPrimitive(final String sourceType, final String sourceId, final String formId) {
+<span class="nc" id="L1407">		final String formType = &quot;requestForm&quot;;</span>
+<span class="nc" id="L1408">		URI url = getURI(getURIBuilder().setPath(FETCH_REQUEST_FORM).setParameter(&quot;formType&quot;, formType).setParameter(&quot;sourceId&quot;, sourceId)</span>
+<span class="nc" id="L1409">				.setParameter(&quot;sourceType&quot;, sourceType).setParameter(&quot;formId&quot;, formId));</span>
+<span class="nc" id="L1410">		Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L1411">		map.put(&quot;type&quot;, &quot;object&quot;);</span>
+		try {
+<span class="nc" id="L1413">			ResponseEntity&lt;String&gt; response = this.postJsonPrimitive(url, HttpMethod.POST, this.getJsonString(map));</span>
+<span class="nc" id="L1414">			JsonElement root = JsonParser.parseString(response.getBody());</span>
+<span class="nc bnc" id="L1415" title="All 2 branches missed.">			if (root.isJsonObject()) {</span>
+<span class="nc" id="L1416">				return new Gson().fromJson(root.getAsJsonObject(), VraNgCustomForm.class);</span>
+			}
+<span class="nc" id="L1418">		} catch (RestClientException e) {</span>
+<span class="nc" id="L1419">			LOGGER.info(&quot;No custom form found for source id '{}' and source type '{}'&quot;, sourceId, sourceType, e);</span>
+<span class="nc" id="L1420">		}</span>
+
+<span class="nc" id="L1422">		return null;</span>
+	}
+
+	/**
+	 * Get Custom Form By Type And Source.
+	 *
+	 * @param sourceType Source Type
+	 * @param sourceId   Source ID
+	 * @return VraNg Custom Form.
+	 */
+	protected VraNgCustomForm getCustomFormByTypeAndSourcePrimitive(final String sourceType, final String sourceId) {
+<span class="nc" id="L1433">		final String formType = &quot;requestForm&quot;;</span>
+<span class="nc" id="L1434">		URI url = getURI(getURIBuilder().setPath(SERVICE_CUSTOM_FORM_BY_SOURCE_AND_TYPE).setParameter(&quot;formType&quot;, formType).setParameter(&quot;sourceId&quot;, sourceId)</span>
+<span class="nc" id="L1435">				.setParameter(&quot;sourceType&quot;, sourceType));</span>
+
+		try {
+<span class="nc" id="L1438">			ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L1439">			JsonElement root = JsonParser.parseString(response.getBody());</span>
+<span class="nc bnc" id="L1440" title="All 2 branches missed.">			if (root.isJsonObject()) {</span>
+<span class="nc" id="L1441">				return new Gson().fromJson(root.getAsJsonObject(), VraNgCustomForm.class);</span>
+			}
+<span class="nc" id="L1443">		} catch (RestClientException e) {</span>
+<span class="nc" id="L1444">			LOGGER.info(&quot;No custom form found for source id '{}' and source type '{}'&quot;, sourceId, sourceType);</span>
+<span class="nc" id="L1445">		}</span>
+
+<span class="nc" id="L1447">		return null;</span>
+	}
+
+	/**
+	 * Parse links element for regions and take their ids.
+	 *
+	 * @param linksElement link element
+	 * @return list of region ids
+	 */
+	private List&lt;String&gt; getRegions(final JsonElement linksElement) {
+<span class="fc" id="L1457">		List&lt;String&gt; regionIds = new ArrayList&lt;&gt;();</span>
+
+<span class="pc bpc" id="L1459" title="1 of 2 branches missed.">		if (isJsonElementPresent(linksElement)) {</span>
+<span class="fc" id="L1460">			JsonElement regions = linksElement.getAsJsonObject().get(&quot;regions&quot;);</span>
+<span class="pc bpc" id="L1461" title="1 of 2 branches missed.">			if (isJsonElementPresent(regions)) {</span>
+<span class="nc" id="L1462">				JsonElement hrefs = regions.getAsJsonObject().get(&quot;hrefs&quot;);</span>
+<span class="nc bnc" id="L1463" title="All 2 branches missed.">				if (isJsonElementPresent(hrefs)) {</span>
+<span class="nc" id="L1464">					hrefs.getAsJsonArray().forEach(h -&gt; {</span>
+<span class="nc" id="L1465">						String href = h.getAsString();</span>
+<span class="nc" id="L1466">						String regionId = href.substring(href.lastIndexOf('/') + 1);</span>
+<span class="nc" id="L1467">						regionIds.add(regionId);</span>
+<span class="nc" id="L1468">					});</span>
+				}
+			}
+		}
+
+<span class="fc" id="L1473">		return regionIds;</span>
+	}
+
+	private List&lt;String&gt; getTags(final JsonElement tagsElement) {
+<span class="fc" id="L1477">		List&lt;String&gt; tags = new ArrayList&lt;&gt;();</span>
+
+<span class="pc bpc" id="L1479" title="1 of 2 branches missed.">		if (isJsonElementPresent(tagsElement)) {</span>
+<span class="fc" id="L1480">			tagsElement.getAsJsonArray().forEach(tag -&gt; {</span>
+<span class="fc" id="L1481">				JsonObject tagObj = tag.getAsJsonObject();</span>
+<span class="fc" id="L1482">				String key = tagObj.get(&quot;key&quot;).getAsString();</span>
+<span class="fc" id="L1483">				String value = tagObj.get(&quot;value&quot;).getAsString();</span>
+<span class="fc" id="L1484">				String result = key;</span>
+<span class="fc bfc" id="L1485" title="All 2 branches covered.">				if (StringUtils.isNotEmpty(value)) {</span>
+<span class="fc" id="L1486">					result = result + &quot;:&quot; + value;</span>
+				}
+
+<span class="fc" id="L1489">				tags.add(result);</span>
+<span class="fc" id="L1490">			});</span>
+		}
+
+<span class="fc" id="L1493">		return tags;</span>
+	}
+
+	// =================================================
+	// FLAVOR PROFILES OPERATIONS
+	// =================================================
+
+	/**
+	 * Retrieve a flavor profile by id.
+	 *
+	 * @param id profile id
+	 * @return REST response payload
+	 * @throws URISyntaxException exception
+	 */
+	protected ResponseEntity&lt;String&gt; getFlavorProfileById(final String id) throws URISyntaxException {
+<span class="nc" id="L1508">		URI url = getURIBuilder().setPath(SERVICE_FLAVOR_PROFILE + &quot;/&quot; + id).setParameter(&quot;apiVersion&quot;, this.getVersion()).build();</span>
+
+<span class="nc" id="L1510">		return restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+	}
+
+	/**
+	 * Retrieve all flavor mappings grouped by region and group them by region id.
+	 *
+	 * @return map with key=region, value=list of VraNgFlavorMapping.
+	 * @see VraNgFlavorMapping
+	 */
+	protected Map&lt;String, List&lt;VraNgFlavorMapping&gt;&gt; getAllFlavorMappingsByRegionPrimitive() {
+<span class="fc" id="L1520">		URI url = getURI(getURIBuilder().setPath(SERVICE_FLAVORS));</span>
+
+<span class="fc" id="L1522">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="fc" id="L1524">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+
+<span class="fc" id="L1526">		Map&lt;String, List&lt;VraNgFlavorMapping&gt;&gt; flavorMappingsByRegion = new HashMap&lt;&gt;();</span>
+
+<span class="pc bpc" id="L1528" title="1 of 2 branches missed.">		if (root.isJsonObject()) {</span>
+<span class="fc" id="L1529">			root.getAsJsonObject().getAsJsonArray(&quot;content&quot;).forEach(o -&gt; {</span>
+<span class="fc" id="L1530">				JsonObject ob = o.getAsJsonObject();</span>
+<span class="fc" id="L1531">				LOGGER.debug(&quot;Obtaining data from getAllFlavorMappingsByRegionPrimitive&quot;);</span>
+<span class="pc bpc" id="L1532" title="1 of 2 branches missed.">				if (!this.jsonObjectValid(ob)) {</span>
+<span class="nc" id="L1533">					String regionId = this.getLinkRegionId(ob);</span>
+<span class="nc bnc" id="L1534" title="All 2 branches missed.">					if (!flavorMappingsByRegion.containsKey(regionId)) {</span>
+<span class="nc" id="L1535">						flavorMappingsByRegion.put(regionId, new ArrayList&lt;&gt;());</span>
+					}
+
+<span class="nc" id="L1538">					JsonObject mappingsJson = ob.get(&quot;mapping&quot;).getAsJsonObject();</span>
+<span class="nc" id="L1539">					List&lt;VraNgFlavorMapping&gt; mappings = this.getFlavorMappings(mappingsJson);</span>
+<span class="nc" id="L1540">					flavorMappingsByRegion.get(regionId).addAll(mappings);</span>
+<span class="nc" id="L1541">				} else {</span>
+<span class="fc" id="L1542">					LOGGER.warn(&quot;Obtaining data from getAllFlavorMappingsByRegionPrimitive returns empty objects.&quot;);</span>
+				}
+<span class="fc" id="L1544">			});</span>
+		}
+
+<span class="fc" id="L1547">		return flavorMappingsByRegion;</span>
+	}
+
+	/**
+	 * Retrieve all flavor profile IDs grouped by region.
+	 *
+	 * @return map with key=region, value=list of flavor profile IDs.
+	 */
+	protected Map&lt;String, List&lt;String&gt;&gt; getAllFlavorProfilesByRegionPrimitive() {
+<span class="fc" id="L1556">		URI url = getURI(getURIBuilder().setPath(SERVICE_FLAVOR_PROFILE));</span>
+
+<span class="fc" id="L1558">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="fc" id="L1560">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+
+<span class="fc" id="L1562">		Map&lt;String, List&lt;String&gt;&gt; flavorProfileIdsByRegion = new HashMap&lt;&gt;();</span>
+
+<span class="pc bpc" id="L1564" title="1 of 2 branches missed.">		if (root.isJsonObject()) {</span>
+<span class="fc" id="L1565">			root.getAsJsonObject().getAsJsonArray(&quot;content&quot;).forEach(o -&gt; {</span>
+<span class="fc" id="L1566">				JsonObject ob = o.getAsJsonObject();</span>
+<span class="fc" id="L1567">				LOGGER.debug(&quot;Obtaining data from getAllFlavorProfilesByRegionPrimitive&quot;);</span>
+<span class="pc bpc" id="L1568" title="1 of 2 branches missed.">				if (!this.jsonObjectValid(ob)) {</span>
+<span class="nc" id="L1569">					String regionId = this.getLinkRegionId(ob);</span>
+<span class="nc" id="L1570">					String flavorProfileId = ob.get(&quot;id&quot;).getAsString();</span>
+
+<span class="nc bnc" id="L1572" title="All 2 branches missed.">					if (!flavorProfileIdsByRegion.containsKey(regionId)) {</span>
+<span class="nc" id="L1573">						flavorProfileIdsByRegion.put(regionId, new ArrayList&lt;&gt;());</span>
+					}
+
+<span class="nc" id="L1576">					flavorProfileIdsByRegion.get(regionId).add(flavorProfileId);</span>
+<span class="nc" id="L1577">				} else {</span>
+<span class="fc" id="L1578">					LOGGER.warn(&quot;Obtaining data from getAllFlavorProfilesByRegionPrimitive returns empty objects&quot;);</span>
+				}
+<span class="fc" id="L1580">			});</span>
+		}
+
+<span class="fc" id="L1583">		return flavorProfileIdsByRegion;</span>
+	}
+
+	/**
+	 * Extract flavor mapping definition out of REST response body.
+	 *
+	 * @param mappingsJson flavor mapping structure
+	 * @return Flavor mappings
+	 */
+	private List&lt;VraNgFlavorMapping&gt; getFlavorMappings(final JsonObject mappingsJson) {
+<span class="nc" id="L1593">		List&lt;VraNgFlavorMapping&gt; mappings = new ArrayList&lt;&gt;();</span>
+		// will return members of your object
+<span class="nc" id="L1595">		Set&lt;Map.Entry&lt;String, JsonElement&gt;&gt; entries = mappingsJson.entrySet();</span>
+<span class="nc bnc" id="L1596" title="All 2 branches missed.">		for (Map.Entry&lt;String, JsonElement&gt; entry : entries) {</span>
+<span class="nc" id="L1597">			String name = entry.getKey();</span>
+<span class="nc" id="L1598">			String json = entry.getValue().getAsJsonObject().toString();</span>
+<span class="nc" id="L1599">			mappings.add(new VraNgFlavorMapping(name, json));</span>
+<span class="nc" id="L1600">		}</span>
+
+<span class="nc" id="L1602">		return mappings;</span>
+	}
+
+	/**
+	 * Create a new flavor profile.
+	 *
+	 * @param regionId          region id
+	 * @param flavorProfileName profile name
+	 * @param flavorMappings    list of flavor mappings
+	 * @throws URISyntaxException exception
+	 */
+	protected void createFlavorPrimitive(final String regionId, final String flavorProfileName, final List&lt;VraNgFlavorMapping&gt; flavorMappings)
+			throws URISyntaxException {
+
+<span class="nc" id="L1616">		URI url = getURIBuilder().setPath(SERVICE_FLAVOR_PROFILE).setParameter(&quot;apiVersion&quot;, this.getVersion()).build();</span>
+
+<span class="nc" id="L1618">		Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L1619">		Map&lt;String, Object&gt; mappings = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L1620">		flavorMappings.forEach(fm -&gt; {</span>
+<span class="nc" id="L1621">			mappings.put(fm.getName(), JsonParser.parseString(fm.getJson()));</span>
+<span class="nc" id="L1622">		});</span>
+
+<span class="nc" id="L1624">		map.put(&quot;name&quot;, flavorProfileName);</span>
+<span class="nc" id="L1625">		map.put(&quot;regionId&quot;, regionId);</span>
+<span class="nc" id="L1626">		map.put(&quot;flavorMapping&quot;, mappings);</span>
+
+<span class="nc" id="L1628">		String jsonBody = this.getJsonString(map);</span>
+<span class="nc" id="L1629">		this.postJsonPrimitive(url, HttpMethod.POST, jsonBody);</span>
+<span class="nc" id="L1630">	}</span>
+
+	/**
+	 * Update existing flavor profile with flavor mappings.
+	 *
+	 * @param flavorProfileId profile id
+	 * @param flavorMappings  list of flavor mappings
+	 * @throws URISyntaxException  exception
+	 * @throws UnexpectedException exception
+	 */
+	protected void updateFlavorPrimitive(final String flavorProfileId, final List&lt;VraNgFlavorMapping&gt; flavorMappings)
+			throws URISyntaxException, UnexpectedException {
+
+<span class="nc" id="L1643">		URI url = getURIBuilder().setPath(SERVICE_FLAVOR_PROFILE + &quot;/&quot; + flavorProfileId).setParameter(&quot;apiVersion&quot;, this.getVersion()).build();</span>
+<span class="nc" id="L1644">		List&lt;VraNgFlavorMapping&gt; flavorMappingsToImport = this.getFlavorMappingsToImport(flavorProfileId, flavorMappings);</span>
+
+<span class="nc bnc" id="L1646" title="All 2 branches missed.">		if (flavorMappingsToImport.size() == 0) {</span>
+<span class="nc" id="L1647">			return;</span>
+		}
+
+<span class="nc" id="L1650">		Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L1651">		Map&lt;String, Object&gt; flavorMapping = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L1652">		map.put(&quot;flavorMapping&quot;, new HashMap&lt;&gt;());</span>
+<span class="nc" id="L1653">		flavorMappingsToImport.forEach(fm -&gt; {</span>
+<span class="nc" id="L1654">			flavorMapping.put(fm.getName(), JsonParser.parseString(fm.getJson()));</span>
+<span class="nc" id="L1655">		});</span>
+
+<span class="nc" id="L1657">		map.put(&quot;flavorMapping&quot;, flavorMapping);</span>
+
+<span class="nc" id="L1659">		String jsonBody = this.getJsonString(map);</span>
+<span class="nc" id="L1660">		this.postJsonPrimitive(url, HttpMethod.PATCH, jsonBody);</span>
+<span class="nc" id="L1661">	}</span>
+
+	/**
+	 * Flavor mappings reconciliation. Added some extra checks if the
+	 * getFlavorProfileById returns unexpected response due to NullPointerException
+	 * (IAC-458)
+	 *
+	 * @param flavorProfileId profile id
+	 * @param flavorMappings  list of flavor mappings
+	 * @return list of flavor mappings
+	 * @throws JsonSyntaxException exception
+	 * @throws URISyntaxException  exception
+	 * @throws UnexpectedException exception
+	 */
+	private List&lt;VraNgFlavorMapping&gt; getFlavorMappingsToImport(final String flavorProfileId, final List&lt;VraNgFlavorMapping&gt; flavorMappings)
+			throws JsonSyntaxException, URISyntaxException, UnexpectedException {
+<span class="nc" id="L1677">		ResponseEntity&lt;String&gt; flavorProfileById = this.getFlavorProfileById(flavorProfileId);</span>
+
+<span class="nc bnc" id="L1679" title="All 4 branches missed.">		if (flavorProfileById == null || !flavorProfileById.hasBody()) {</span>
+<span class="nc" id="L1680">			throw new UnexpectedException(&quot;Invalid flavor profile response.&quot;);</span>
+		}
+
+<span class="nc" id="L1683">		JsonElement flavorProfileRoot = JsonParser.parseString(flavorProfileById.getBody());</span>
+<span class="nc" id="L1684">		JsonObject flavorProfileObject = flavorProfileRoot.getAsJsonObject();</span>
+
+<span class="nc" id="L1686">		List&lt;VraNgFlavorMapping&gt; flavorMappingsOnServer = (</span>
+		// If the profile has no flavor mappings yet, it would not have that property at
+		// all, so we're
+		// checking if it exists, and if not - defining the variable with a default
+		// value
+<span class="nc bnc" id="L1691" title="All 4 branches missed.">		flavorProfileObject.has(&quot;flavorMappings&quot;) &amp;&amp; flavorProfileObject.get(&quot;flavorMappings&quot;).getAsJsonObject().has(&quot;mapping&quot;))</span>
+<span class="nc" id="L1692">				? (this.getFlavorMappings(flavorProfileObject.get(&quot;flavorMappings&quot;).getAsJsonObject().get(&quot;mapping&quot;).getAsJsonObject()))</span>
+<span class="nc" id="L1693">				: new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L1695">		List&lt;VraNgFlavorMapping&gt; flavorMappingsToImport = new ArrayList&lt;&gt;(flavorMappings);</span>
+<span class="nc" id="L1696">		flavorMappingsOnServer.forEach(fm -&gt; {</span>
+<span class="nc bnc" id="L1697" title="All 2 branches missed.">			if (!flavorMappingsToImport.contains(fm)) {</span>
+<span class="nc" id="L1698">				flavorMappingsToImport.add(fm);</span>
+			}
+<span class="nc" id="L1700">		});</span>
+
+<span class="nc" id="L1702">		return flavorMappingsToImport;</span>
+	}
+
+	// =================================================
+	// IMAGE PROFILES OPERATIONS
+	// =================================================
+
+	/**
+	 * Retrieve an image profile by id.
+	 *
+	 * @param id profile id
+	 * @return REST response payload
+	 * @throws URISyntaxException exception
+	 */
+	protected ResponseEntity&lt;String&gt; getImageProfileById(final String id) throws URISyntaxException {
+<span class="nc" id="L1717">		URI url = getURIBuilder().setPath(SERVICE_IMAGE_PROFILE + &quot;/&quot; + id).setParameter(&quot;apiVersion&quot;, this.getVersion()).build();</span>
+
+<span class="nc" id="L1719">		return restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+	}
+
+	/**
+	 * Retrieve all image mappings for a given region and group them by region id.
+	 *
+	 * @return map with key=region, value=list of VraNgImageMapping.
+	 * @see VraNgImageMapping
+	 */
+	protected Map&lt;String, List&lt;VraNgImageMapping&gt;&gt; getAllImageMappingsByRegionPrimitive() {
+<span class="fc" id="L1729">		URI url = getURI(getURIBuilder().setPath(SERVICE_IMAGES));</span>
+
+<span class="fc" id="L1731">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="fc" id="L1733">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+
+<span class="fc" id="L1735">		Map&lt;String, List&lt;VraNgImageMapping&gt;&gt; imageMappingsByRegion = new HashMap&lt;&gt;();</span>
+
+<span class="pc bpc" id="L1737" title="1 of 2 branches missed.">		if (root.isJsonObject()) {</span>
+<span class="fc" id="L1738">			root.getAsJsonObject().getAsJsonArray(&quot;content&quot;).forEach(o -&gt; {</span>
+<span class="fc" id="L1739">				JsonObject ob = o.getAsJsonObject();</span>
+<span class="fc" id="L1740">				LOGGER.debug(&quot;Obtaining data from getAllImageMappingsByRegionPrimitive&quot;);</span>
+<span class="pc bpc" id="L1741" title="1 of 2 branches missed.">				if (!this.jsonObjectValid(ob)) {</span>
+<span class="nc" id="L1742">					String regionId = this.getLinkRegionId(ob);</span>
+<span class="nc bnc" id="L1743" title="All 2 branches missed.">					if (!imageMappingsByRegion.containsKey(regionId)) {</span>
+<span class="nc" id="L1744">						imageMappingsByRegion.put(regionId, new ArrayList&lt;&gt;());</span>
+					}
+
+<span class="nc" id="L1747">					JsonObject mappingsJson = ob.get(&quot;mapping&quot;).getAsJsonObject();</span>
+<span class="nc" id="L1748">					List&lt;VraNgImageMapping&gt; mappings = this.getImageMappings(mappingsJson);</span>
+<span class="nc" id="L1749">					imageMappingsByRegion.get(regionId).addAll(mappings);</span>
+<span class="nc" id="L1750">				} else {</span>
+<span class="fc" id="L1751">					LOGGER.warn(&quot;Skipped empty data from getAllImageMappingsByRegion. Some items are empty&quot;);</span>
+				}
+<span class="fc" id="L1753">			});</span>
+		}
+
+<span class="fc" id="L1756">		return imageMappingsByRegion;</span>
+	}
+
+	/**
+	 * Checks JSON Object Validity.
+	 *
+	 * @param ob JSON Object
+	 * @return true if valid else false.
+	 */
+	protected boolean jsonObjectValid(final JsonObject ob) {
+<span class="pc bpc" id="L1766" title="2 of 6 branches missed.">		boolean jsonObjectValid = ob.has(&quot;mapping&quot;) &amp;&amp; ob.has(&quot;_links&quot;) &amp;&amp; ob.get(&quot;mapping&quot;).getAsJsonObject().keySet().isEmpty()</span>
+<span class="pc bpc" id="L1767" title="1 of 2 branches missed.">				&amp;&amp; ob.get(&quot;_links&quot;).getAsJsonObject().keySet().isEmpty();</span>
+
+<span class="fc" id="L1769">		LOGGER.debug(String.format(&quot;JSON object is valid: %s&quot;, jsonObjectValid));</span>
+<span class="fc" id="L1770">		return jsonObjectValid;</span>
+	}
+
+	/**
+	 * Retrieve all image profile IDs grouped by region.
+	 *
+	 * @return map with key=region, value=list of image profile IDs.
+	 */
+	protected Map&lt;String, List&lt;String&gt;&gt; getAllImageProfilesByRegionPrimitive() {
+<span class="fc" id="L1779">		URI url = getURI(getURIBuilder().setPath(SERVICE_IMAGE_PROFILE));</span>
+
+<span class="fc" id="L1781">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="fc" id="L1783">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+
+<span class="fc" id="L1785">		Map&lt;String, List&lt;String&gt;&gt; imageProfileIdsByRegion = new HashMap&lt;&gt;();</span>
+
+<span class="pc bpc" id="L1787" title="1 of 2 branches missed.">		if (root.isJsonObject()) {</span>
+<span class="fc" id="L1788">			root.getAsJsonObject().getAsJsonArray(&quot;content&quot;).forEach(o -&gt; {</span>
+<span class="fc" id="L1789">				JsonObject ob = o.getAsJsonObject();</span>
+
+<span class="fc" id="L1791">				LOGGER.debug(&quot;Obtaining data from getAllImageProfilesByRegionPrimitive&quot;);</span>
+<span class="pc bpc" id="L1792" title="1 of 2 branches missed.">				if (!this.jsonObjectValid(ob)) {</span>
+<span class="nc" id="L1793">					String regionId = this.getLinkRegionId(ob);</span>
+<span class="nc" id="L1794">					String imageProfileId = ob.get(&quot;id&quot;).getAsString();</span>
+
+<span class="nc bnc" id="L1796" title="All 2 branches missed.">					if (!imageProfileIdsByRegion.containsKey(regionId)) {</span>
+<span class="nc" id="L1797">						imageProfileIdsByRegion.put(regionId, new ArrayList&lt;&gt;());</span>
+					}
+
+<span class="nc" id="L1800">					imageProfileIdsByRegion.get(regionId).add(imageProfileId);</span>
+<span class="nc" id="L1801">				} else {</span>
+<span class="fc" id="L1802">					LOGGER.warn(&quot;Obtaining data from getAllImageProfilesByRegionPrimitive returns empty objects&quot;);</span>
+				}
+<span class="fc" id="L1804">			});</span>
+		}
+
+<span class="fc" id="L1807">		return imageProfileIdsByRegion;</span>
+	}
+
+	/**
+	 * Extract image mapping definition out of REST response body.
+	 *
+	 * @param mappingsJson image mapping structure
+	 * @return List of VraNG Image Mapping
+	 */
+	private List&lt;VraNgImageMapping&gt; getImageMappings(final JsonObject mappingsJson) {
+<span class="nc" id="L1817">		List&lt;VraNgImageMapping&gt; mappings = new ArrayList&lt;&gt;();</span>
+		// will return members of your object
+<span class="nc" id="L1819">		Set&lt;Map.Entry&lt;String, JsonElement&gt;&gt; entries = mappingsJson.entrySet();</span>
+<span class="nc bnc" id="L1820" title="All 2 branches missed.">		for (Map.Entry&lt;String, JsonElement&gt; entry : entries) {</span>
+<span class="nc" id="L1821">			String name = entry.getKey();</span>
+<span class="nc" id="L1822">			String json = entry.getValue().getAsJsonObject().toString();</span>
+<span class="nc" id="L1823">			mappings.add(new VraNgImageMapping(name, json));</span>
+<span class="nc" id="L1824">		}</span>
+
+<span class="nc" id="L1826">		return mappings;</span>
+	}
+
+	/**
+	 * Create a new image profile.
+	 *
+	 * @param regionId         region id
+	 * @param imageProfileName profile name
+	 * @param imageMappings    list of image mappings
+	 * @throws URISyntaxException exception
+	 */
+	protected void createImageProfilePrimitive(final String regionId, final String imageProfileName, final List&lt;VraNgImageMapping&gt; imageMappings)
+			throws URISyntaxException {
+
+<span class="nc" id="L1840">		URI url = getURIBuilder().setPath(SERVICE_IMAGE_PROFILE).setParameter(&quot;apiVersion&quot;, this.getVersion()).build();</span>
+
+<span class="nc" id="L1842">		Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L1843">		Map&lt;String, Object&gt; mappings = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L1844">		imageMappings.forEach(im -&gt; {</span>
+<span class="nc" id="L1845">			mappings.put(im.getName(), JsonParser.parseString(im.getJson()));</span>
+<span class="nc" id="L1846">		});</span>
+
+<span class="nc" id="L1848">		map.put(&quot;name&quot;, imageProfileName);</span>
+<span class="nc" id="L1849">		map.put(&quot;regionId&quot;, regionId);</span>
+<span class="nc" id="L1850">		map.put(&quot;imageMapping&quot;, mappings);</span>
+
+<span class="nc" id="L1852">		String jsonBody = this.getJsonString(map);</span>
+<span class="nc" id="L1853">		this.postJsonPrimitive(url, HttpMethod.POST, jsonBody);</span>
+<span class="nc" id="L1854">	}</span>
+
+	/**
+	 * Update existing image profile with image mappings.
+	 *
+	 * @param imageProfileId profile id
+	 * @param imageMappings  list of image mappings
+	 * @throws URISyntaxException  exception
+	 * @throws UnexpectedException exception
+	 */
+	protected void updateImageProfilePrimitive(final String imageProfileId, final List&lt;VraNgImageMapping&gt; imageMappings)
+			throws URISyntaxException, UnexpectedException {
+
+<span class="nc" id="L1867">		URI url = getURIBuilder().setPath(SERVICE_IMAGE_PROFILE + &quot;/&quot; + imageProfileId).setParameter(&quot;apiVersion&quot;, this.getVersion()).build();</span>
+<span class="nc" id="L1868">		List&lt;VraNgImageMapping&gt; imageMappingsToImport = this.getImageMappingsToImport(imageProfileId, imageMappings);</span>
+
+<span class="nc bnc" id="L1870" title="All 2 branches missed.">		if (imageMappingsToImport.size() == 0) {</span>
+<span class="nc" id="L1871">			return;</span>
+		}
+
+<span class="nc" id="L1874">		Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L1875">		Map&lt;String, Object&gt; imageMapping = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L1876">		map.put(&quot;imageMapping&quot;, new HashMap&lt;&gt;());</span>
+<span class="nc" id="L1877">		imageMappingsToImport.forEach(im -&gt; {</span>
+<span class="nc" id="L1878">			imageMapping.put(im.getName(), JsonParser.parseString(im.getJson()));</span>
+<span class="nc" id="L1879">		});</span>
+
+<span class="nc" id="L1881">		map.put(&quot;imageMapping&quot;, imageMapping);</span>
+
+<span class="nc" id="L1883">		String jsonBody = this.getJsonString(map);</span>
+<span class="nc" id="L1884">		this.postJsonPrimitive(url, HttpMethod.PATCH, jsonBody);</span>
+<span class="nc" id="L1885">	}</span>
+
+	/**
+	 * Image mappings reconciliation. If the response is empty or contains no
+	 * mappings, an empty List is returned.
+	 *
+	 * @param imageProfileId profile id
+	 * @param imageMappings  list of image mappings
+	 * @return list of image mappings
+	 * @throws JsonSyntaxException exception
+	 * @throws URISyntaxException  exception
+	 * @throws UnexpectedException exception
+	 */
+	private List&lt;VraNgImageMapping&gt; getImageMappingsToImport(final String imageProfileId, final List&lt;VraNgImageMapping&gt; imageMappings)
+			throws JsonSyntaxException, URISyntaxException, UnexpectedException {
+<span class="nc" id="L1900">		ResponseEntity&lt;String&gt; response = this.getImageProfileById(imageProfileId);</span>
+
+<span class="nc bnc" id="L1902" title="All 4 branches missed.">		if (response == null || !response.hasBody()) {</span>
+<span class="nc" id="L1903">			throw new UnexpectedException(&quot;Invalid image profile response.&quot;);</span>
+		}
+
+<span class="nc" id="L1906">		JsonElement imageProfileRoot = JsonParser.parseString(response.getBody());</span>
+<span class="nc" id="L1907">		JsonObject imageProfileObject = imageProfileRoot.getAsJsonObject();</span>
+
+<span class="nc" id="L1909">		List&lt;VraNgImageMapping&gt; imageMappingsOnServer = (</span>
+		// If the profile has no image mappings yet, it would not have that property at
+		// all, so we're
+		// checking if it exists, and if not - defining the variable with a default
+		// value
+<span class="nc bnc" id="L1914" title="All 4 branches missed.">		imageProfileObject.has(&quot;imageMappings&quot;) &amp;&amp; imageProfileObject.get(&quot;imageMappings&quot;).getAsJsonObject().has(&quot;mapping&quot;))</span>
+<span class="nc" id="L1915">				? (this.getImageMappings(imageProfileObject.get(&quot;imageMappings&quot;).getAsJsonObject().get(&quot;mapping&quot;).getAsJsonObject()))</span>
+<span class="nc" id="L1916">				: new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L1918">		List&lt;VraNgImageMapping&gt; imageMappingsToImport = new ArrayList&lt;&gt;(imageMappings);</span>
+<span class="nc" id="L1919">		imageMappingsOnServer.forEach(im -&gt; {</span>
+<span class="nc bnc" id="L1920" title="All 2 branches missed.">			if (!imageMappingsToImport.contains(im)) {</span>
+<span class="nc" id="L1921">				imageMappingsToImport.add(im);</span>
+			}
+<span class="nc" id="L1923">		});</span>
+
+<span class="nc" id="L1925">		return imageMappingsToImport;</span>
+	}
+
+	// =================================================
+	// STORAGE PROFILES OPERATIONS
+	// =================================================
+
+	/**
+	 * Retrieve all storage profiles for a given region and group them by region id.
+	 *
+	 * @return map with key=region, value=list of VraNgStorageProfile.
+	 * @see VraNgStorageProfile
+	 */
+	protected Map&lt;String, List&lt;VraNgStorageProfile&gt;&gt; getAllStorageProfilesByRegionPrimitive() {
+<span class="fc" id="L1939">		URI url = getURI(getURIBuilder().setPath(SERVICE_STORAGE_PROFILE));</span>
+
+<span class="fc" id="L1941">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="fc" id="L1943">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+
+<span class="fc" id="L1945">		Map&lt;String, List&lt;VraNgStorageProfile&gt;&gt; storageProfilesByRegion = new HashMap&lt;&gt;();</span>
+
+<span class="pc bpc" id="L1947" title="1 of 2 branches missed.">		if (root.isJsonObject()) {</span>
+<span class="fc" id="L1948">			root.getAsJsonObject().getAsJsonArray(&quot;content&quot;).forEach(o -&gt; {</span>
+<span class="fc" id="L1949">				JsonObject ob = o.getAsJsonObject();</span>
+<span class="fc" id="L1950">				LOGGER.debug(&quot;Obtaining data from getAllStorageProfilesByRegionPrimitive&quot;);</span>
+<span class="pc bpc" id="L1951" title="1 of 2 branches missed.">				if (!this.jsonObjectValid(ob)) {</span>
+<span class="nc" id="L1952">					String regionId = this.getLinkRegionId(ob);</span>
+<span class="nc bnc" id="L1953" title="All 2 branches missed.">					if (!storageProfilesByRegion.containsKey(regionId)) {</span>
+<span class="nc" id="L1954">						storageProfilesByRegion.put(regionId, new ArrayList&lt;&gt;());</span>
+					}
+
+<span class="nc bnc" id="L1957" title="All 2 branches missed.">					if (ob.has(&quot;name&quot;)) {</span>
+<span class="nc" id="L1958">						String name = ob.get(&quot;name&quot;).getAsString();</span>
+<span class="nc" id="L1959">						String json = ob.toString();</span>
+<span class="nc" id="L1960">						storageProfilesByRegion.get(regionId).add(new VraNgStorageProfile(name, json));</span>
+<span class="nc" id="L1961">					} else {</span>
+<span class="nc" id="L1962">						LOGGER.warn(&quot;Storage Profile has been skipped because don't contains a name definition&quot;);</span>
+<span class="nc bnc" id="L1963" title="All 2 branches missed.">						if (ob.has(&quot;id&quot;)) {</span>
+<span class="nc" id="L1964">							LOGGER.warn(String.format(&quot;Id of the storage profile: %s&quot;, ob.get(&quot;id&quot;).getAsString()));</span>
+						} else {
+<span class="nc" id="L1966">							LOGGER.warn(&quot;Storage Profile don't have a valid id. Unable to track this object.&quot;);</span>
+						}
+					}
+<span class="nc" id="L1969">				} else {</span>
+<span class="fc" id="L1970">					LOGGER.info(&quot;Obtaining data from getAllStorageProfilesByRegionPrimitive returns empty objects&quot;);</span>
+				}
+<span class="fc" id="L1972">			});</span>
+		}
+
+<span class="fc" id="L1975">		return storageProfilesByRegion;</span>
+	}
+
+	/**
+	 * Update existing storage profile.
+	 *
+	 * @param profileId profile id
+	 * @param profile   storage profile
+	 * @throws URISyntaxException exception
+	 */
+	protected void updateStorageProfilePrimitive(final String profileId, final VraNgStorageProfile profile) throws URISyntaxException {
+<span class="nc" id="L1986">		URI url = getURI(getURIBuilder().setPath(SERVICE_STORAGE_PROFILE + &quot;/&quot; + profileId));</span>
+<span class="nc" id="L1987">		this.putJsonPrimitive(url, profile.getJson());</span>
+<span class="nc" id="L1988">	}</span>
+
+	/**
+	 * Create a new storage profile returning its id.
+	 *
+	 * @param profile storage profile
+	 * @return profile
+	 * @throws URISyntaxException exception exception
+	 */
+	protected String createStorageProfilePrimitive(final VraNgStorageProfile profile) throws URISyntaxException {
+<span class="nc" id="L1998">		URI url = getURI(getURIBuilder().setPath(SERVICE_STORAGE_PROFILE));</span>
+<span class="nc" id="L1999">		ResponseEntity&lt;String&gt; response = this.postJsonPrimitive(url, HttpMethod.POST, profile.getJson());</span>
+<span class="nc" id="L2000">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+<span class="nc bnc" id="L2001" title="All 2 branches missed.">		if (root.isJsonObject()) {</span>
+<span class="nc" id="L2002">			return root.getAsJsonObject().get(&quot;id&quot;).getAsString();</span>
+		}
+<span class="nc" id="L2004">		return null;</span>
+	}
+
+	/**
+	 * Get specific storage profile.
+	 *
+	 * @param targetPool target pool of storage profiles
+	 * @param profileId  profile id
+	 * @return storage profile
+	 */
+	protected VraNgStorageProfile getSpecificProfilePrimitive(final String targetPool, final String profileId) {
+<span class="nc" id="L2015">		URI url = getURI(getURIBuilder().setPath(SERVICE_IAAS_BASE + &quot;/&quot; + targetPool + &quot;/&quot; + profileId));</span>
+<span class="nc" id="L2016">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="nc" id="L2018">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+<span class="nc" id="L2019">		JsonObject ob = root.getAsJsonObject();</span>
+
+<span class="nc" id="L2021">		String name = ob.get(&quot;name&quot;).getAsString();</span>
+<span class="nc" id="L2022">		String json = ob.toString();</span>
+<span class="nc" id="L2023">		return new VraNgStorageProfile(name, json);</span>
+	}
+
+	/**
+	 * Alias to getAllPropertyGroupsPrimitive( String nameFilter ) without any
+	 * filter specified.
+	 *
+	 * @return list of property groups
+	 */
+	protected List&lt;VraNgPropertyGroup&gt; getAllPropertyGroupsPrimitive() {
+<span class="nc" id="L2033">		return this.getAllPropertyGroupsPrimitive(null);</span>
+	}
+
+	/**
+	 * Returns a list of all property groups This will keep on making requests until
+	 * all the groups are retrieved. If the nameFilter is null, all will be
+	 * accepted, otherwise only property group names that contain the filter will be
+	 * accepted.
+	 * &lt;p&gt;
+	 * Note: hasMore is retrieved from the &quot;last&quot; property. JsonElement supports a
+	 * getAsBoolean function however it does not cast the strings &quot;true&quot; or &quot;false&quot;
+	 * to boolean.
+	 * &lt;p&gt;
+	 * Note: When doing propertyGroupObject.get( &quot;name&quot; ).toString() the name is
+	 * returned with surrounded '&quot;', so it is trimmed
+	 *
+	 * @param nameFilter filter
+	 * @return list of property groups
+	 */
+	protected List&lt;VraNgPropertyGroup&gt; getAllPropertyGroupsPrimitive(final String nameFilter) {
+<span class="nc" id="L2053">		boolean hasMore = true;</span>
+<span class="nc" id="L2054">		int elementsToSkip = 0;</span>
+<span class="nc" id="L2055">		List&lt;VraNgPropertyGroup&gt; propertyGroups = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L2057" title="All 2 branches missed.">		while (hasMore) {</span>
+<span class="nc" id="L2058">			URI url = getURI(getURIBuilder().setPath(SERVICE_GET_PROPERTY_GROUPS).addParameter(&quot;$skip&quot;, String.valueOf(elementsToSkip)));</span>
+<span class="nc" id="L2059">			ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L2060">			JsonElement jsonElement = JsonParser.parseString(response.getBody());</span>
+<span class="nc" id="L2061">			hasMore = jsonElement.getAsJsonObject().get(&quot;last&quot;).toString().equals(&quot;false&quot;);</span>
+<span class="nc" id="L2062">			JsonArray content = jsonElement.getAsJsonObject().get(&quot;content&quot;).getAsJsonArray();</span>
+<span class="nc" id="L2063">			elementsToSkip += content.size();</span>
+
+<span class="nc bnc" id="L2065" title="All 2 branches missed.">			for (int i = 0; i &lt; content.size(); i++) {</span>
+<span class="nc" id="L2066">				JsonObject propertyGroupObject = content.get(i).getAsJsonObject();</span>
+<span class="nc" id="L2067">				String propertyGroupName = StringUtils.strip(propertyGroupObject.get(&quot;name&quot;).toString(), &quot;\&quot;&quot;);</span>
+
+				// Accept all if null or filter if given
+<span class="nc bnc" id="L2070" title="All 4 branches missed.">				if (nameFilter == null || propertyGroupName.contains(nameFilter)) {</span>
+<span class="nc" id="L2071">					propertyGroups.add(new VraNgPropertyGroup(propertyGroupName, StringUtils.strip(propertyGroupObject.get(&quot;id&quot;).toString(), &quot;\&quot;&quot;),</span>
+<span class="nc" id="L2072">							propertyGroupObject.toString()));</span>
+				}
+			}
+<span class="nc" id="L2075">		}</span>
+
+<span class="nc" id="L2077">		return propertyGroups;</span>
+	}
+
+	/**
+	 * Performs a POST request to create the given property group.
+	 *
+	 * @param propertyGroup - Property group to be posted
+	 */
+	public void createPropertyGroupPrimitive(final VraNgPropertyGroup propertyGroup) {
+<span class="fc" id="L2086">		URI url = getURI(getURIBuilder().setPath(SERVICE_POST_PROPERTY_GROUP));</span>
+<span class="fc" id="L2087">		this.postJsonPrimitive(url, HttpMethod.POST, propertyGroup.getRawData());</span>
+<span class="fc" id="L2088">	}</span>
+
+	/**
+	 * Performs a PUT request to update the given property group.
+	 *
+	 * @param propertyGroup - Property group to update
+	 */
+	public void updatePropertyGroupPrimitive(final VraNgPropertyGroup propertyGroup) {
+<span class="fc" id="L2096">		URI url = getURI(getURIBuilder().setPath(SERVICE_PUT_PROPERTY_GROUP + &quot;/&quot; + propertyGroup.getId()));</span>
+<span class="fc" id="L2097">		this.putJsonPrimitive(url, propertyGroup.getRawData());</span>
+<span class="fc" id="L2098">	}</span>
+
+	/**
+	 * Update specific storage profile.
+	 *
+	 * @param patchTarget patch target
+	 * @param profileId   profile id
+	 * @param profile     storage profile
+	 * @throws URISyntaxException exception
+	 */
+	protected void updateSpecificProfilePrimitive(final String patchTarget, final String profileId, final VraNgStorageProfile profile)
+			throws URISyntaxException {
+<span class="nc" id="L2110">		URI url = getURI(getURIBuilder().setPath(SERVICE_IAAS_BASE + &quot;/&quot; + patchTarget + &quot;/&quot; + profileId));</span>
+<span class="nc" id="L2111">		this.postJsonPrimitive(url, HttpMethod.PATCH, profile.getJson());</span>
+<span class="nc" id="L2112">	}</span>
+
+	/**
+	 * Retrieve fabric entity name. This method calls a requested URL and returns
+	 * the name property of the response.
+	 *
+	 * @param fabricUrl url
+	 * @return fabric entity name
+	 */
+	protected String getFabricEntityNamePrimitive(final String fabricUrl) {
+<span class="nc" id="L2122">		URI url = getURI(getURIBuilder().setPath(fabricUrl));</span>
+<span class="nc" id="L2123">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="nc" id="L2125">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+
+<span class="nc bnc" id="L2127" title="All 2 branches missed.">		if (root.isJsonObject()) {</span>
+<span class="nc" id="L2128">			return root.getAsJsonObject().get(&quot;name&quot;).getAsString();</span>
+		}
+<span class="nc" id="L2130">		return null;</span>
+	}
+
+	/**
+	 * Retreive Fabric Entity ID.
+	 *
+	 * @param fabricType fabric type
+	 * @param fabricName fabric name
+	 * @return Fabric Entity ID
+	 */
+	protected String getFabricEntityIdPrimitive(final String fabricType, final String fabricName) {
+<span class="nc" id="L2141">		String queryString = String.format(&quot;$filter=name eq '%s'&quot;, fabricName);</span>
+<span class="nc" id="L2142">		URI url = getURI(getURIBuilder().setPath(SERVICE_IAAS_BASE + &quot;/&quot; + fabricType).setCustomQuery(queryString));</span>
+<span class="nc" id="L2143">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="nc" id="L2145">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+<span class="nc" id="L2146">		JsonObject ob = root.getAsJsonObject();</span>
+
+		// look for a fabric entity with name equals to the requested name
+<span class="nc bnc" id="L2149" title="All 2 branches missed.">		if (ob.get(&quot;numberOfElements&quot;).getAsInt() &gt; 0) {</span>
+<span class="nc" id="L2150">			JsonArray entities = ob.get(&quot;content&quot;).getAsJsonArray();</span>
+<span class="nc" id="L2151">			Iterator&lt;JsonElement&gt; it = entities.iterator();</span>
+<span class="nc bnc" id="L2152" title="All 2 branches missed.">			while (it.hasNext()) {</span>
+<span class="nc" id="L2153">				JsonObject entity = it.next().getAsJsonObject();</span>
+<span class="nc" id="L2154">				String name = entity.get(&quot;name&quot;).getAsString();</span>
+<span class="nc bnc" id="L2155" title="All 2 branches missed.">				if (name.equals(fabricName)) {</span>
+<span class="nc" id="L2156">					return entity.get(&quot;id&quot;).getAsString();</span>
+				}
+<span class="nc" id="L2158">			}</span>
+		}
+
+<span class="nc" id="L2161">		return null;</span>
+	}
+
+	/**
+	 * Retrieve Organization By Name.
+	 *
+	 * @param organizationName name
+	 * @return VraNgOrganization
+	 */
+	public VraNgOrganization getOrganizationByName(final String organizationName) {
+<span class="nc bnc" id="L2171" title="All 2 branches missed.">		if (StringUtils.isEmpty(organizationName)) {</span>
+<span class="nc" id="L2172">			return null;</span>
+		}
+
+<span class="nc" id="L2175">		URIBuilder uriBuilder = getURIBuilder().setHost(configuration.getAuthHost()).setPath(SERVICE_VRA_ORGANIZATIONS).setParameter(&quot;expand&quot;, &quot;1&quot;);</span>
+
+		URI url;
+<span class="nc" id="L2178">		Optional&lt;VraNgOrganization&gt; result = null;</span>
+		try {
+<span class="nc" id="L2180">			url = uriBuilder.build();</span>
+<span class="nc" id="L2181">			ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L2182">			Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="nc" id="L2183">			VraNgOrganizations organizations = gson.fromJson(response.getBody(), VraNgOrganizations.class);</span>
+<span class="nc" id="L2184">			result = organizations.getItems().stream().filter(vraNgOrganization -&gt; {</span>
+<span class="nc" id="L2185">				return vraNgOrganization.getName().equalsIgnoreCase(organizationName);</span>
+<span class="nc" id="L2186">			}).findFirst();</span>
+<span class="nc" id="L2187">		} catch (URISyntaxException e) {</span>
+<span class="nc" id="L2188">			throw new RuntimeException(String.format(&quot;Unable to build REST URI to fetch organization name %s : %s&quot;, organizationName, e.getMessage()));</span>
+<span class="nc" id="L2189">		} catch (Exception error) {</span>
+<span class="nc" id="L2190">			throw new RuntimeException(&quot;Organization not found by the provided name. Error message: &quot; + error.getMessage(), error);</span>
+<span class="nc" id="L2191">		}</span>
+<span class="nc bnc" id="L2192" title="All 2 branches missed.">		return result.isPresent() ? result.get() : null;</span>
+	}
+
+	/**
+	 * Retrieve Organization By ID.
+	 *
+	 * @param organizationId organizationId
+	 * @return VraNg Organization
+	 */
+	public VraNgOrganization getOrganizationById(final String organizationId) {
+<span class="nc bnc" id="L2202" title="All 2 branches missed.">		if (StringUtils.isEmpty(organizationId)) {</span>
+<span class="nc" id="L2203">			return null;</span>
+		}
+<span class="nc" id="L2205">		VraNgOrganization org = null;</span>
+		try {
+<span class="nc" id="L2207">			URIBuilder uriBuilder = getURIBuilder().setHost(configuration.getAuthHost()).setPath(SERVICE_VRA_ORGANIZATION + organizationId);</span>
+			URI url;
+			try {
+<span class="nc" id="L2210">				url = uriBuilder.build();</span>
+<span class="nc" id="L2211">			} catch (URISyntaxException e) {</span>
+<span class="nc" id="L2212">				throw new RuntimeException(String.format(&quot;Unable to build REST URI to fetch organization with ID %s : %s&quot;, organizationId, e.getMessage()));</span>
+<span class="nc" id="L2213">			}</span>
+<span class="nc" id="L2214">			ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L2215">			Gson gson = new GsonBuilder().setLenient().setPrettyPrinting().serializeNulls().create();</span>
+<span class="nc" id="L2216">			org = gson.fromJson(response.getBody(), VraNgOrganization.class);</span>
+
+<span class="nc" id="L2218">			LOGGER.debug(&quot;Found organization: {}&quot;, gson.toJson(org));</span>
+<span class="nc" id="L2219">		} catch (Exception error) {</span>
+<span class="nc" id="L2220">			throw new Error(&quot;Organization not found by the provided ID. Error message: &quot; + error.getMessage(), error);</span>
+<span class="nc" id="L2221">		}</span>
+<span class="nc" id="L2222">		return org;</span>
+	}
+	// =================================================
+	// WORKFLOW OPERATIONS
+	// =================================================
+
+	/**
+	 * Retrieve Vra Workflow Integrations.
+	 *
+	 * @param name name
+	 * @return Resource Action
+	 */
+	protected VraNgIntegration getVraWorkflowIntegrationPrimitive(final String name) {
+		// for vra 8.0 query string should be: name eq name
+		// for vra 8.1 query string should be: endpointType eq name
+		// for compatibility with both 8.0 and 8.1 the query string should combine both
+<span class="nc" id="L2238">		String queryString = String.format(&quot;expand=true&amp;$filter=name eq '%s' or endpointType eq '%s'&quot;, name, name);</span>
+<span class="nc" id="L2239">		URI url = getURI(getURIBuilder().setPath(SERVICE_VRA_INTEGRATIONS).setCustomQuery(queryString));</span>
+<span class="nc" id="L2240">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="nc" id="L2242">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+<span class="nc" id="L2243">		VraNgIntegration retVal = new VraNgIntegration();</span>
+<span class="nc bnc" id="L2244" title="All 2 branches missed.">		if (!root.isJsonObject()) {</span>
+<span class="nc" id="L2245">			return retVal;</span>
+		}
+
+<span class="nc" id="L2248">		JsonObject jsonObject = root.getAsJsonObject();</span>
+<span class="nc bnc" id="L2249" title="All 2 branches missed.">		if (!isJsonElementPresent(jsonObject)) {</span>
+<span class="nc" id="L2250">			return retVal;</span>
+		}
+
+<span class="nc" id="L2253">		List&lt;String&gt; documentLinks = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L2254">		JsonArray documentLinksObject = jsonObject.getAsJsonArray(&quot;documentLinks&quot;);</span>
+<span class="nc" id="L2255">		documentLinksObject.forEach(link -&gt; documentLinks.add(link.getAsString()));</span>
+<span class="nc bnc" id="L2256" title="All 2 branches missed.">		for (String documentLink : documentLinks) {</span>
+<span class="nc" id="L2257">			JsonElement element = jsonObject.getAsJsonObject(&quot;documents&quot;).get(documentLink);</span>
+<span class="nc bnc" id="L2258" title="All 2 branches missed.">			if (!isJsonElementPresent(element)) {</span>
+<span class="nc" id="L2259">				continue;</span>
+			}
+<span class="nc" id="L2261">			retVal.setEndpointConfigurationLink(documentLink);</span>
+<span class="nc" id="L2262">			retVal.setName(name);</span>
+<span class="nc" id="L2263">			JsonElement endpointElement = element.getAsJsonObject().get(&quot;endpointProperties&quot;);</span>
+<span class="nc bnc" id="L2264" title="All 4 branches missed.">			if (isJsonElementPresent(endpointElement) &amp;&amp; endpointElement != null) {</span>
+<span class="nc" id="L2265">				String endpointUri = endpointElement.getAsJsonObject().get(&quot;hostName&quot;).getAsString();</span>
+<span class="nc" id="L2266">				retVal.setEndpointUri(endpointUri);</span>
+			}
+<span class="nc" id="L2268">		}</span>
+
+<span class="nc" id="L2270">		return retVal;</span>
+	}
+
+	/**
+	 * Retrieve Vra Workflow Integrations.
+	 *
+	 * @return VraNg Integration
+	 */
+	protected List&lt;VraNgIntegration&gt; getVraWorkflowIntegrationsPrimitive() {
+<span class="nc" id="L2279">		URI url = getURI(getURIBuilder().setPath(SERVICE_VRA_INTEGRATIONS).setCustomQuery(&quot;expand=true&quot;));</span>
+<span class="nc" id="L2280">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="nc" id="L2282">		List&lt;VraNgIntegration&gt; retVal = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L2283">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+<span class="nc bnc" id="L2284" title="All 2 branches missed.">		if (!root.isJsonObject()) {</span>
+<span class="nc" id="L2285">			return retVal;</span>
+		}
+
+<span class="nc" id="L2288">		JsonObject jsonObject = root.getAsJsonObject();</span>
+<span class="nc bnc" id="L2289" title="All 2 branches missed.">		if (!isJsonElementPresent(jsonObject)) {</span>
+<span class="nc" id="L2290">			return retVal;</span>
+		}
+
+<span class="nc" id="L2293">		List&lt;String&gt; documentLinks = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L2294">		JsonArray documentLinksObject = jsonObject.getAsJsonArray(&quot;documentLinks&quot;);</span>
+<span class="nc" id="L2295">		documentLinksObject.forEach(link -&gt; documentLinks.add(link.getAsString()));</span>
+<span class="nc bnc" id="L2296" title="All 2 branches missed.">		for (String documentLink : documentLinks) {</span>
+<span class="nc" id="L2297">			JsonElement document = jsonObject.getAsJsonObject(&quot;documents&quot;).get(documentLink);</span>
+<span class="nc bnc" id="L2298" title="All 2 branches missed.">			if (!isJsonElementPresent(document)) {</span>
+<span class="nc" id="L2299">				continue;</span>
+			}
+<span class="nc bnc" id="L2301" title="All 2 branches missed.">			if (document.getAsJsonObject() == null) {</span>
+<span class="nc" id="L2302">				continue;</span>
+			}
+<span class="nc" id="L2304">			String name = document.getAsJsonObject().get(&quot;name&quot;).getAsString();</span>
+<span class="nc bnc" id="L2305" title="All 2 branches missed.">			if (StringUtils.isEmpty(name)) {</span>
+<span class="nc" id="L2306">				continue;</span>
+			}
+
+<span class="nc" id="L2309">			VraNgIntegration integrationItem = new VraNgIntegration();</span>
+<span class="nc" id="L2310">			integrationItem.setEndpointConfigurationLink(documentLink);</span>
+<span class="nc" id="L2311">			integrationItem.setName(name);</span>
+<span class="nc" id="L2312">			JsonElement endpointProperties = document.getAsJsonObject().get(&quot;endpointProperties&quot;);</span>
+<span class="nc bnc" id="L2313" title="All 4 branches missed.">			if (isJsonElementPresent(endpointProperties) &amp;&amp; endpointProperties.getAsJsonObject() != null) {</span>
+				String endpointUri;
+<span class="nc bnc" id="L2315" title="All 2 branches missed.">				if (isJsonElementPresent(endpointProperties.getAsJsonObject().get(&quot;apiEndpoint&quot;))) {</span>
+<span class="nc" id="L2316">					endpointUri = endpointProperties.getAsJsonObject().get(&quot;apiEndpoint&quot;).getAsString();</span>
+<span class="nc bnc" id="L2317" title="All 2 branches missed.">				} else if (isJsonElementPresent(endpointProperties.getAsJsonObject().get(&quot;hostName&quot;))) {</span>
+<span class="nc" id="L2318">					endpointUri = endpointProperties.getAsJsonObject().get(&quot;hostName&quot;).getAsString();</span>
+				} else {
+<span class="nc" id="L2320">					endpointUri = &quot;&quot;;</span>
+				}
+<span class="nc" id="L2322">				integrationItem.setEndpointUri(endpointUri);</span>
+			}
+
+<span class="nc" id="L2325">			retVal.add(integrationItem);</span>
+<span class="nc" id="L2326">		}</span>
+
+<span class="nc" id="L2328">		return retVal;</span>
+	}
+
+	// =================================================
+	// CUSTOM RESOURCES
+	// =================================================
+
+	/**
+	 * Retrieve all Custom Resource.
+	 *
+	 * @return Resource Actions
+	 */
+	protected Map&lt;String, VraNgCustomResource&gt; getAllCustomResourcesPrimitive() {
+<span class="nc" id="L2341">		Map&lt;String, VraNgCustomResource&gt; customResources = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L2342">		List&lt;JsonObject&gt; results = this.getPagedContent(SERVICE_CUSTOM_RESOURCES, new HashMap&lt;&gt;());</span>
+
+<span class="nc bnc" id="L2344" title="All 2 branches missed.">		for (JsonObject o : results) {</span>
+<span class="nc" id="L2345">			JsonObject ob = o.getAsJsonObject();</span>
+<span class="nc" id="L2346">			JsonElement prjId = ob.get(&quot;projectId&quot;);</span>
+<span class="nc bnc" id="L2347" title="All 4 branches missed.">			if (isJsonElementPresent(prjId) &amp;&amp; !getProjectId().equals(prjId.getAsString())) {</span>
+<span class="nc" id="L2348">				continue;</span>
+			}
+
+<span class="nc" id="L2351">			JsonElement id = ob.get(&quot;id&quot;);</span>
+<span class="nc" id="L2352">			JsonElement name = ob.get(&quot;displayName&quot;);</span>
+<span class="nc" id="L2353">			String json = ob.toString();</span>
+<span class="nc" id="L2354">			customResources.put(id.getAsString(), new VraNgCustomResource(id.getAsString(), name.getAsString(), json));</span>
+<span class="nc" id="L2355">		}</span>
+
+<span class="nc" id="L2357">		return customResources;</span>
+	}
+
+	/**
+	 * When importing a custom resource with additionalActions, we first need to
+	 * remove them due to a vRA8 limitations. When creating a CR with
+	 * additionalActions, we create the CR first then we apply the same json but
+	 * with additionalActions added.
+	 *
+	 * @param customResourceJson String containing the raw json content of the
+	 *                           custom resource
+	 * @throws URISyntaxException exception in case of incorrect URI
+	 */
+	protected void importCustomResourcePrimitive(final String customResourceJson) throws URISyntaxException {
+<span class="fc" id="L2371">		URI url = getURIBuilder().setPath(SERVICE_CUSTOM_RESOURCES).build();</span>
+
+		// Strip additionalActions from definition
+<span class="fc" id="L2374">		JsonObject originalCr = JsonParser.parseString(customResourceJson).getAsJsonObject();</span>
+<span class="fc" id="L2375">		JsonArray additionalActions = originalCr.getAsJsonArray(&quot;additionalActions&quot;);</span>
+<span class="fc" id="L2376">		originalCr.remove(&quot;additionalActions&quot;);</span>
+<span class="fc" id="L2377">		originalCr.add(&quot;additionalActions&quot;, new JsonArray());</span>
+
+<span class="fc" id="L2379">		ResponseEntity&lt;String&gt; resp = this.postJsonPrimitive(url, HttpMethod.POST, originalCr.toString());</span>
+
+<span class="pc bpc" id="L2381" title="2 of 6 branches missed.">		if (resp.getStatusCode().is2xxSuccessful() &amp;&amp; additionalActions != null &amp;&amp; additionalActions.size() &gt; 0) {</span>
+			// Add additionalActions to definition and upload again
+<span class="fc" id="L2383">			JsonObject returnedCr = JsonParser.parseString(resp.getBody()).getAsJsonObject();</span>
+<span class="fc" id="L2384">			returnedCr.remove(&quot;additionalActions&quot;);</span>
+<span class="fc" id="L2385">			returnedCr.add(&quot;additionalActions&quot;, additionalActions);</span>
+
+<span class="fc" id="L2387">			ResponseEntity&lt;String&gt; resp2 = this.postJsonPrimitive(url, HttpMethod.POST, returnedCr.toString());</span>
+<span class="fc bfc" id="L2388" title="All 2 branches covered.">			if (!resp2.getStatusCode().is2xxSuccessful()) {</span>
+<span class="fc" id="L2389">				throw new RuntimeException(String.format(&quot;Unable to import additionalActions for %s&quot;, originalCr.get(&quot;displayName&quot;).getAsString()));</span>
+			}
+		}
+<span class="fc" id="L2392">	}</span>
+
+	/**
+	 * Delete Custom Resource.
+	 *
+	 * @param customResourceId Resource Action JSON
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 */
+	protected void deleteCustomResourcePrimitive(final String customResourceId) throws URISyntaxException {
+<span class="nc" id="L2401">		String deleteURL = String.format(SERVICE_CUSTOM_RESOURCES + &quot;/%s&quot;, customResourceId);</span>
+<span class="nc" id="L2402">		URI url = getURIBuilder().setPath(deleteURL).build();</span>
+<span class="nc" id="L2403">		restTemplate.exchange(url, HttpMethod.DELETE, null, Void.class);</span>
+<span class="nc" id="L2404">	}</span>
+
+	// =================================================
+	// RESOURCE ACTIONS
+	// =================================================
+
+	/**
+	 * Retrieve all Resource Actions.
+	 *
+	 * @return Resource Actions
+	 */
+	protected Map&lt;String, VraNgResourceAction&gt; getAllResourceActionsPrimitive() {
+<span class="nc" id="L2416">		Map&lt;String, VraNgResourceAction&gt; resourceActions = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L2417">		List&lt;JsonObject&gt; results = this.getPagedContent(SERVICE_RESOURCE_ACTIONS, new HashMap&lt;&gt;());</span>
+
+<span class="nc bnc" id="L2419" title="All 2 branches missed.">		for (JsonObject o : results) {</span>
+<span class="nc" id="L2420">			JsonObject ob = o.getAsJsonObject();</span>
+<span class="nc" id="L2421">			JsonElement prjId = ob.get(&quot;projectId&quot;);</span>
+<span class="nc bnc" id="L2422" title="All 4 branches missed.">			if (isJsonElementPresent(prjId) &amp;&amp; !getProjectId().equals(prjId.getAsString())) {</span>
+<span class="nc" id="L2423">				continue;</span>
+			}
+
+<span class="nc" id="L2426">			JsonElement id = ob.get(&quot;id&quot;);</span>
+<span class="nc" id="L2427">			JsonElement name = ob.get(&quot;name&quot;);</span>
+<span class="nc" id="L2428">			JsonElement resourceType = ob.get(&quot;resourceType&quot;);</span>
+<span class="nc" id="L2429">			String json = ob.toString();</span>
+<span class="nc" id="L2430">			resourceActions.put(id.getAsString(), new VraNgResourceAction(id.getAsString(), name.getAsString(), json, resourceType.getAsString()));</span>
+<span class="nc" id="L2431">		}</span>
+
+<span class="nc" id="L2433">		return resourceActions;</span>
+	}
+
+	/**
+	 * Import Resource Action.
+	 *
+	 * @param resourceActionJson Resource Action JSON
+	 * @return Resource Action
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 */
+	protected String importResourceActionPrimitive(final String resourceActionJson) throws URISyntaxException {
+<span class="nc" id="L2444">		URI url = getURIBuilder().setPath(SERVICE_RESOURCE_ACTIONS).build();</span>
+<span class="nc" id="L2445">		ResponseEntity&lt;String&gt; result = this.postJsonPrimitive(url, HttpMethod.POST, resourceActionJson);</span>
+
+<span class="nc bnc" id="L2447" title="All 2 branches missed.">		if (result.getStatusCode().is2xxSuccessful()) {</span>
+<span class="nc" id="L2448">			return result.getBody();</span>
+		}
+<span class="nc" id="L2450">		return null;</span>
+	}
+
+	/**
+	 * Delete Resource Action.
+	 *
+	 * @param resourceActionId Resource Action ID to delete
+	 */
+	protected void deleteResourceActionPrimitive(final String resourceActionId) {
+<span class="nc" id="L2459">		String deleteURL = String.format(SERVICE_RESOURCE_ACTIONS + &quot;/%s&quot;, resourceActionId);</span>
+<span class="nc" id="L2460">		URI url = getURI(getURIBuilder().setPath(deleteURL));</span>
+
+<span class="nc" id="L2462">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L2463">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+
+<span class="nc" id="L2465">		restTemplate.exchange(url, HttpMethod.DELETE, null, Void.class);</span>
+<span class="nc" id="L2466">	}</span>
+
+	// =================================================
+	// ABX ACTIONS
+	// =================================================
+
+	/**
+	 * Retrieve all ABX Actions.
+	 *
+	 * @return List of Abx Actions
+	 */
+	public List&lt;AbxAction&gt; getAllAbxActionsPrimitive() {
+<span class="nc" id="L2478">		List&lt;AbxAction&gt; actions = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L2479">		List&lt;JsonObject&gt; results = this.getPagedContent(SERVICE_ABX_ACTIONS, new HashMap&lt;&gt;());</span>
+
+<span class="nc" id="L2481">		LOGGER.debug(&quot;ABX Actions found on server: {}&quot;, results.size());</span>
+<span class="nc" id="L2482">		results.forEach(o -&gt; {</span>
+<span class="nc" id="L2483">			JsonObject ob = o.getAsJsonObject();</span>
+<span class="nc" id="L2484">			String prjId = ob.get(&quot;projectId&quot;).getAsString();</span>
+<span class="nc bnc" id="L2485" title="All 2 branches missed.">			if (getProjectId().equals(prjId)) {</span>
+<span class="nc" id="L2486">				AbxAction action = new AbxAction();</span>
+<span class="nc" id="L2487">				action.id = ob.get(&quot;id&quot;).getAsString();</span>
+<span class="nc" id="L2488">				action.name = ob.get(&quot;name&quot;).getAsString();</span>
+<span class="nc" id="L2489">				actions.add(action);</span>
+			}
+<span class="nc" id="L2491">		});</span>
+<span class="nc" id="L2492">		LOGGER.debug(&quot;Actions in target project: {}&quot;, actions.size());</span>
+
+<span class="nc" id="L2494">		return actions;</span>
+	}
+
+	/**
+	 * Retrieve ABX Constant by name (name is unique for the constants).
+	 *
+	 * @param name of the constant
+	 * @return AbxConstant item
+	 */
+	protected AbxConstant getAbxConstantPrimitive(final String name) {
+<span class="nc" id="L2504">		String queryString = String.format(&quot;$filter=name eq '%s'&quot;, name);</span>
+<span class="nc" id="L2505">		URI url = getURI(getURIBuilder().setPath(SERVICE_ABX_CONSTANT).setCustomQuery(queryString));</span>
+<span class="nc" id="L2506">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="nc" id="L2508">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+<span class="nc" id="L2509">		JsonObject ob = root.getAsJsonObject();</span>
+
+<span class="nc bnc" id="L2511" title="All 2 branches missed.">		if (ob.get(&quot;numberOfElements&quot;).getAsInt() &gt; 0) {</span>
+<span class="nc" id="L2512">			JsonArray entities = ob.get(&quot;content&quot;).getAsJsonArray();</span>
+
+<span class="nc bnc" id="L2514" title="All 2 branches missed.">			if (entities.size() &gt; 0) {</span>
+<span class="nc" id="L2515">				return new Gson().fromJson(entities.get(0).getAsJsonObject(), AbxConstant.class);</span>
+			}
+		}
+
+<span class="nc" id="L2519">		return null;</span>
+	}
+
+	/**
+	 * Create Abx Action.
+	 *
+	 * @param action Abx Action
+	 * @return Abx Action ID
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 * @throws IOException        throws IO exception incase of invalid json
+	 *                            response
+	 */
+	public String createAbxActionPrimitive(final AbxAction action) throws URISyntaxException, IOException {
+<span class="nc" id="L2532">		URI url = getURIBuilder().setPath(SERVICE_ABX_ACTIONS).build();</span>
+
+<span class="nc" id="L2534">		Map&lt;String, Object&gt; map = createAbxActionMap(action);</span>
+
+<span class="nc" id="L2536">		String jsonBody = this.getJsonString(map);</span>
+<span class="nc" id="L2537">		ResponseEntity&lt;String&gt; response = this.postJsonPrimitive(url, HttpMethod.POST, jsonBody);</span>
+<span class="nc" id="L2538">		return new Gson().fromJson(response.getBody(), AbxAction.class).id;</span>
+	}
+
+	/**
+	 * Update Abx Action.
+	 *
+	 * @param id     ID
+	 * @param action Abx Action
+	 * @return Abx Action ID
+	 * @throws URISyntaxException throws URI syntax exception incase of invalid URI
+	 * @throws IOException        throws IO exception incase of invalid json
+	 *                            response
+	 */
+	public String updateAbxActionPrimitive(final String id, final AbxAction action) throws URISyntaxException, IOException {
+<span class="nc" id="L2552">		URI url = getURIBuilder().setPath(SERVICE_ABX_ACTIONS + &quot;/&quot; + id).build();</span>
+
+<span class="nc" id="L2554">		Map&lt;String, Object&gt; map = createAbxActionMap(action);</span>
+
+<span class="nc" id="L2556">		String jsonBody = this.getJsonString(map);</span>
+<span class="nc" id="L2557">		ResponseEntity&lt;String&gt; response = this.postJsonPrimitive(url, HttpMethod.PUT, jsonBody);</span>
+<span class="nc" id="L2558">		return new Gson().fromJson(response.getBody(), AbxAction.class).id;</span>
+	}
+
+	/**
+	 * Retrieve Abx Last updated Version.
+	 *
+	 * @param actionId actionId
+	 * @return Abx Action Version
+	 */
+	public AbxActionVersion getAbxLastUpdatedVersionPrimitive(final String actionId) {
+<span class="nc" id="L2568">		URI url = getURI(getURIBuilder().setPath(SERVICE_ABX_ACTIONS + &quot;/&quot; + actionId + &quot;/versions&quot;).addParameter(&quot;projectId&quot;, getProjectId())</span>
+<span class="nc" id="L2569">				.addParameter(&quot;orderBy&quot;, &quot;createdMillis DESC&quot;));</span>
+
+<span class="nc" id="L2571">		ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+
+<span class="nc" id="L2573">		JsonElement root = JsonParser.parseString(response.getBody());</span>
+
+<span class="nc" id="L2575">		AbxActionVersion lastVersion = null;</span>
+<span class="nc bnc" id="L2576" title="All 2 branches missed.">		if (root.isJsonObject()) {</span>
+<span class="nc" id="L2577">			JsonArray responseContent = root.getAsJsonObject().getAsJsonArray(&quot;content&quot;);</span>
+<span class="nc bnc" id="L2578" title="All 2 branches missed.">			if (responseContent.size() &gt; 0) {</span>
+<span class="nc" id="L2579">				lastVersion = new Gson().fromJson(responseContent.get(0).getAsJsonObject(), AbxActionVersion.class);</span>
+			}
+		}
+
+<span class="nc" id="L2583">		return lastVersion;</span>
+	}
+
+	/**
+	 * Create Abx Version.
+	 *
+	 * @param actionId action ID
+	 * @param version  version
+	 * @return Abx Action Version
+	 */
+	public AbxActionVersion createAbxVersionPrimitive(final String actionId, final String version) {
+<span class="nc" id="L2594">		URI url = getURI(getURIBuilder().setPath(SERVICE_ABX_ACTIONS + &quot;/&quot; + actionId + &quot;/versions&quot;).addParameter(&quot;projectId&quot;, getProjectId()));</span>
+
+<span class="nc" id="L2596">		Map&lt;String, Object&gt; map = new LinkedHashMap&lt;&gt;();</span>
+<span class="nc" id="L2597">		map.put(&quot;name&quot;, version);</span>
+<span class="nc" id="L2598">		String jsonBody = this.getJsonString(map);</span>
+
+<span class="nc" id="L2600">		ResponseEntity&lt;String&gt; response = this.postJsonPrimitive(url, HttpMethod.POST, jsonBody);</span>
+<span class="nc" id="L2601">		return new Gson().fromJson(response.getBody(), AbxActionVersion.class);</span>
+	}
+
+	/**
+	 * Release Abx Version.
+	 *
+	 * @param actionId  action ID
+	 * @param versionId version ID
+	 * @return Abx Action Version
+	 */
+	public AbxActionVersion releaseAbxVersionPrimitive(final String actionId, final String versionId) {
+<span class="nc" id="L2612">		URI url = getURI(getURIBuilder().setPath(SERVICE_ABX_ACTIONS + &quot;/&quot; + actionId + &quot;/release&quot;).addParameter(&quot;projectId&quot;, getProjectId()));</span>
+
+<span class="nc" id="L2614">		Map&lt;String, Object&gt; map = new LinkedHashMap&lt;&gt;();</span>
+<span class="nc" id="L2615">		map.put(&quot;version&quot;, versionId);</span>
+<span class="nc" id="L2616">		String jsonBody = this.getJsonString(map);</span>
+
+<span class="nc" id="L2618">		ResponseEntity&lt;String&gt; response = this.postJsonPrimitive(url, HttpMethod.PUT, jsonBody);</span>
+<span class="nc" id="L2619">		return new Gson().fromJson(response.getBody(), AbxActionVersion.class);</span>
+	}
+
+	// =================================================
+	// UTILITY METHODS
+	// =================================================
+
+	private boolean isJsonElementPresent(final JsonElement jsonElement) {
+<span class="pc bpc" id="L2627" title="1 of 4 branches missed.">		return jsonElement != null &amp;&amp; !jsonElement.isJsonNull();</span>
+	}
+
+	/**
+	 * Extract region id from a link fragment part of REST response body.
+	 *
+	 * @param ob fragment
+	 * @return region id
+	 */
+	private String getLinkRegionId(final JsonObject ob) {
+
+<span class="nc" id="L2638">		LOGGER.debug(&quot;Extracting data: {}&quot;, ob);</span>
+
+<span class="nc" id="L2640">		String regionHref = ob.get(&quot;_links&quot;).getAsJsonObject().get(&quot;region&quot;).getAsJsonObject().get(&quot;href&quot;).getAsString();</span>
+
+<span class="nc" id="L2642">		return regionHref.substring(regionHref.lastIndexOf('/') + 1);</span>
+	}
+
+	/**
+	 * Extract cloud account id from a link fragment part of REST response body.
+	 *
+	 * @param ob fragment
+	 * @return cloud account id
+	 */
+	private String getLinkCloudAccountId(final JsonObject ob) {
+<span class="nc" id="L2652">		String regionHref = ob.get(&quot;_links&quot;).getAsJsonObject().get(&quot;cloud-account&quot;).getAsJsonObject().get(&quot;href&quot;).getAsString();</span>
+
+<span class="nc" id="L2654">		return regionHref.substring(regionHref.lastIndexOf('/') + 1);</span>
+	}
+
+	private Map&lt;String, Object&gt; createBlueprintMap(final VraNgBlueprint blueprint) {
+<span class="nc" id="L2658">		Map&lt;String, Object&gt; map = new LinkedHashMap&lt;&gt;();</span>
+
+<span class="nc" id="L2660">		map.put(&quot;name&quot;, blueprint.getName());</span>
+<span class="nc" id="L2661">		map.put(&quot;content&quot;, blueprint.getContent());</span>
+<span class="nc" id="L2662">		map.put(&quot;description&quot;, blueprint.getDescription());</span>
+<span class="nc" id="L2663">		map.put(&quot;requestScopeOrg&quot;, blueprint.getRequestScopeOrg());</span>
+<span class="nc" id="L2664">		map.put(&quot;projectId&quot;, getProjectId());</span>
+
+<span class="nc" id="L2666">		return map;</span>
+	}
+
+	/**
+	 * Creates ABX Action.
+	 *
+	 * @param action Abx Action.
+	 * @return Object
+	 * @throws IOException throws IO exception incase Faas provider name is not
+	 *                     correct
+	 */
+	protected Map&lt;String, Object&gt; createAbxActionMap(final AbxAction action) throws IOException {
+<span class="fc" id="L2678">		Map&lt;String, Object&gt; map = new LinkedHashMap&lt;&gt;();</span>
+
+<span class="fc" id="L2680">		String[] providers = { &quot;aws&quot;, &quot;azure&quot;, &quot;on-prem&quot; };</span>
+
+<span class="fc" id="L2682">		map.put(&quot;actionType&quot;, &quot;SCRIPT&quot;);</span>
+<span class="fc" id="L2683">		map.put(&quot;name&quot;, action.getName());</span>
+<span class="fc" id="L2684">		map.put(&quot;description&quot;, action.description);</span>
+<span class="fc" id="L2685">		map.put(&quot;projectId&quot;, getProjectId());</span>
+<span class="fc" id="L2686">		map.put(&quot;runtime&quot;, action.platform.runtime);</span>
+<span class="fc" id="L2687">		map.put(&quot;entrypoint&quot;, action.platform.entrypoint);</span>
+<span class="fc" id="L2688">		map.put(&quot;inputs&quot;, action.abx.inputs);</span>
+<span class="fc" id="L2689">		map.put(&quot;compressedContent&quot;, action.getBundleAsB64());</span>
+<span class="fc" id="L2690">		map.put(&quot;shared&quot;, action.abx.shared);</span>
+
+<span class="fc bfc" id="L2692" title="All 4 branches covered.">		if (action.platform.timeoutSec != null &amp;&amp; action.platform.timeoutSec &gt; 0) {</span>
+<span class="fc" id="L2693">			map.put(&quot;timeoutSeconds&quot;, action.platform.timeoutSec);</span>
+		}
+
+<span class="fc bfc" id="L2696" title="All 4 branches covered.">		if (action.platform.memoryLimitMb != null &amp;&amp; action.platform.memoryLimitMb &gt; 0) {</span>
+<span class="fc" id="L2697">			map.put(&quot;memoryInMB&quot;, action.platform.memoryLimitMb);</span>
+		}
+
+<span class="fc bfc" id="L2700" title="All 4 branches covered.">		if (action.platform.provider != null &amp;&amp; Arrays.stream(providers).anyMatch(action.platform.provider::equals)) {</span>
+<span class="fc" id="L2701">			map.put(&quot;provider&quot;, action.platform.provider);</span>
+<span class="fc bfc" id="L2702" title="All 2 branches covered.">		} else if (action.platform.provider != null) {</span>
+<span class="fc" id="L2703">			throw new RuntimeException(&quot;Faas provider name is not correct. Possible values are: &quot; + String.join(&quot;,&quot;, providers));</span>
+		}
+
+<span class="fc" id="L2706">		return map;</span>
+	}
+
+	private String getJsonString(final Map&lt;String, Object&gt; entity) {
+<span class="fc" id="L2710">		Gson gson = new GsonBuilder().setLenient().serializeNulls().create();</span>
+
+<span class="fc" id="L2712">		return gson.toJson(entity);</span>
+	}
+
+	private ResponseEntity&lt;String&gt; postJsonPrimitive(final URI url, final HttpMethod method, final String jsonBody) {
+<span class="fc" id="L2716">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L2717">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="fc" id="L2718">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(jsonBody, headers);</span>
+<span class="fc" id="L2719">		LOGGER.debug(&quot;Executing method {} on URI {} with entity {} &quot;, method, url, entity);</span>
+<span class="fc" id="L2720">		return restTemplate.exchange(url, method, entity, String.class);</span>
+	}
+
+	private ResponseEntity&lt;String&gt; putJsonPrimitive(final URI url, final String jsonBody) {
+<span class="fc" id="L2724">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L2725">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+<span class="fc" id="L2726">		HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(jsonBody, headers);</span>
+
+<span class="fc" id="L2728">		return restTemplate.exchange(url, HttpMethod.PUT, entity, String.class);</span>
+	}
+
+	private List&lt;VraNgContentSourceBase&gt; getContentSources() {
+<span class="nc" id="L2732">		Map&lt;String, String&gt; params = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L2733">		params.put(&quot;projectId&quot;, this.getProjectId());</span>
+
+<span class="nc" id="L2735">		return this.getPagedContent(SERVICE_CONTENT_SOURCE, params).stream().map(contentSource -&gt; {</span>
+<span class="nc" id="L2736">			VraNgContentSourceType type = VraNgContentSourceType.fromString(contentSource.get(&quot;typeId&quot;).getAsString());</span>
+<span class="nc" id="L2737">			return new Gson().fromJson(contentSource, type.getTypeClass());</span>
+<span class="nc" id="L2738">		}).collect(Collectors.toList());</span>
+	}
+
+	/**
+	 * Retrieve Content Source with name.
+	 *
+	 * @param contentSourceName Content Source name.
+	 * @return Retrieved VraNg Content Source
+	 */
+	public VraNgContentSourceBase getContentSourceByName(final String contentSourceName) {
+<span class="nc" id="L2748">		List&lt;VraNgContentSourceBase&gt; contentSources = this.getContentSources();</span>
+
+<span class="nc" id="L2750">		return contentSources.stream().filter(contentSource -&gt; contentSource.getName().equalsIgnoreCase(contentSourceName)).findFirst().orElse(null);</span>
+	}
+
+	/**
+	 * Delete Content Source.
+	 *
+	 * @param contentSourceId Content Source ID to delete.
+	 */
+	public void deleteContentSource(final String contentSourceId) {
+<span class="nc bnc" id="L2759" title="All 2 branches missed.">		if (StringUtils.isEmpty(contentSourceId)) {</span>
+<span class="nc" id="L2760">			return;</span>
+		}
+<span class="nc" id="L2762">		String deleteURL = String.format(SERVICE_CONTENT_SOURCE + &quot;/%s&quot;, contentSourceId);</span>
+<span class="nc" id="L2763">		URI url = getURI(getURIBuilder().setPath(deleteURL));</span>
+
+<span class="nc" id="L2765">		HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L2766">		headers.setContentType(MediaType.APPLICATION_JSON_UTF8);</span>
+
+<span class="nc" id="L2768">		restTemplate.exchange(url, HttpMethod.DELETE, null, String.class);</span>
+<span class="nc" id="L2769">	}</span>
+
+	/**
+	 * Checks VRA Version.
+	 *
+	 * @return true if version above 81 else false.
+	 */
+	public boolean isVraAbove81() {
+<span class="nc bnc" id="L2777" title="All 4 branches missed.">		return productVersion.getMajorVersion() != null &amp;&amp; productVersion.getMajorVersion() &gt;= VRA_VERSION_MAJOR</span>
+<span class="nc bnc" id="L2778" title="All 4 branches missed.">				&amp;&amp; this.productVersion.getMinorVersion() != null &amp;&amp; this.productVersion.getMinorVersion() &gt;= VRA_VERSION_MINOR;</span>
+	}
+
+	/**
+	 * Checks Is VRA Cloud.
+	 *
+	 * @param url
+	 * @return true if VRA Cloud else false.
+	 */
+	private boolean isVraCloud(final URI url) {
+<span class="nc bnc" id="L2788" title="All 2 branches missed.">		return VRA_CLOUD_HOSTS.stream().filter(host -&gt; url.getHost().contains(host)).count() &gt; 0;</span>
+	}
+
+	/**
+	 * isVraAbove.
+	 *
+	 * @param target target version
+	 * @return isIt boolean
+	 */
+	public boolean isVraAbove(final Version target) {
+<span class="fc" id="L2798">		LOGGER.debug(&quot;Product version: {}&quot;, productVersion.getString());</span>
+<span class="fc" id="L2799">		LOGGER.debug(&quot;Targeted version: {}&quot;, target.getString());</span>
+<span class="fc" id="L2800">		int isGreater = productVersion.compareTo(target);</span>
+<span class="fc bfc" id="L2801" title="All 2 branches covered.">		boolean is = isGreater &gt;= 0;</span>
+<span class="fc" id="L2802">		LOGGER.debug(&quot;Is greater: {}&quot;, is);</span>
+<span class="fc" id="L2803">		return is;</span>
+	}
+
+	// =================================================
+	// Content Sharing Policy
+	// =================================================
+
+	/**
+	 * Retrieve all content sharing policy Ids.
+	 *
+	 * @return list of sharing policy Ids that are available.
+	 */
+	protected List&lt;VraNgContentSharingPolicy&gt; getAllContentSharingPoliciesPrimitive() {
+<span class="nc" id="L2816">		Map&lt;String, String&gt; params = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L2817">		params.put(&quot;expandDefinition&quot;, &quot;true&quot;);</span>
+<span class="nc" id="L2818">		params.put(&quot;computeStats&quot;, &quot;true&quot;);</span>
+		// Add additional filter to reduce the data received from server for newer vRA
+		// versions (8.16 and above)
+<span class="nc bnc" id="L2821" title="All 2 branches missed.">		if (isVraAbove810) {</span>
+<span class="nc" id="L2822">			params.put(&quot;typeId&quot;, CONTENT_SHARING_POLICY_TYPE);</span>
+		}
+<span class="nc" id="L2824">		List&lt;VraNgContentSharingPolicy&gt; results = this.getPagedContent(SERVICE_POLICIES, params).stream()</span>
+<span class="nc" id="L2825">				.map(jsonOb -&gt; new Gson().fromJson(jsonOb.toString(), VraNgContentSharingPolicy.class))</span>
+<span class="nc" id="L2826">				.filter(policy -&gt; policy.getTypeId().equalsIgnoreCase(CONTENT_SHARING_POLICY_TYPE)).collect(Collectors.toList());</span>
+<span class="nc" id="L2827">		LOGGER.debug(&quot;Policy Ids found on server - {}, for projectId: {}&quot;, results.size(), this.getProjectId());</span>
+
+<span class="nc" id="L2829">		return results;</span>
+	}
+
+	/**
+	 * Retrieve content sharing policy Id based on name.
+	 *
+	 * @param name name of the policy
+	 * @return content sharing policy Id.
+	 */
+	public String getContentSharingPolicyIdByName(final String name) {
+<span class="nc" id="L2839">		Map&lt;String, String&gt; params = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L2840">		params.put(&quot;expandDefinition&quot;, &quot;true&quot;);</span>
+<span class="nc" id="L2841">		params.put(&quot;computeStats&quot;, &quot;true&quot;);</span>
+
+<span class="nc" id="L2843">		VraNgContentSharingPolicy policy = this.getPagedContent(SERVICE_POLICIES, params).stream()</span>
+<span class="nc" id="L2844">				.map(jsonOb -&gt; new Gson().fromJson(jsonOb.toString(), VraNgContentSharingPolicy.class))</span>
+<span class="nc" id="L2845">				.filter(p -&gt; p.getTypeId().equalsIgnoreCase(CONTENT_SHARING_POLICY_TYPE))</span>
+<span class="nc bnc" id="L2846" title="All 4 branches missed.">				.filter(p -&gt; p.getName().equals(name) &amp;&amp; p.getProjectId().equals(this.getProjectId())).findFirst().orElse(null);</span>
+<span class="nc bnc" id="L2847" title="All 2 branches missed.">		if (policy == null) {</span>
+<span class="nc" id="L2848">			throw new Error(&quot;Cannot find Content Sharing Policy by name&quot; + name);</span>
+		} else {
+<span class="nc" id="L2850">			return policy.getId();</span>
+		}
+	}
+
+	/**
+	 * Retrieve content sharing policy based on Id.
+	 *
+	 * @param policyId policy id
+	 * @return Created VraNg Content Sharing Policy
+	 */
+	protected VraNgContentSharingPolicy getContentSharingPolicyPrimitive(final String policyId) {
+<span class="fc" id="L2861">		VraNgContentSharingPolicy csPolicy = new VraNgContentSharingPolicy();</span>
+<span class="fc" id="L2862">		URI url = getURI(getURIBuilder().setPath(String.format(SERVICE_POLICIES + &quot;/%s&quot;, policyId)));</span>
+		try {
+<span class="fc" id="L2864">			ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="fc" id="L2865">			JsonElement root = JsonParser.parseString(response.getBody());</span>
+<span class="pc bpc" id="L2866" title="1 of 2 branches missed.">			if (!root.isJsonObject()) {</span>
+<span class="nc" id="L2867">				return null;</span>
+			}
+			try {
+<span class="fc" id="L2870">				csPolicy = new Gson().fromJson(response.getBody(), VraNgContentSharingPolicy.class);</span>
+<span class="nc" id="L2871">			} catch (JsonIOException | JsonSyntaxException e) {</span>
+<span class="nc" id="L2872">				throw new RuntimeException(String.format(&quot;Error parsing response for policy: %s&quot;, policyId), e);</span>
+<span class="nc" id="L2873">			} catch (Exception e) {</span>
+<span class="nc" id="L2874">				throw new RuntimeException(String.format(&quot;Error processing response for policy: %s&quot;, policyId), e);</span>
+<span class="fc" id="L2875">			}</span>
+<span class="nc" id="L2876">		} catch (Exception e) {</span>
+<span class="nc bnc" id="L2877" title="All 2 branches missed.">			if (e.getMessage().contains(NOT_FOUND_ERROR)) {</span>
+<span class="nc" id="L2878">				return null;</span>
+			} else {
+<span class="nc" id="L2880">				throw e;</span>
+			}
+<span class="fc" id="L2882">		}</span>
+
+<span class="fc" id="L2884">		return csPolicy;</span>
+	}
+
+	/**
+	 * Creates Content Sharing Policy.
+	 *
+	 * @param csPolicy policy data to create
+	 */
+	protected void createContentSharingPolicyPrimitive(final VraNgContentSharingPolicy csPolicy) throws URISyntaxException {
+<span class="nc" id="L2893">		VraNgContentSharingPolicy existingPolicy = this.getContentSharingPolicyPrimitive(csPolicy.getId());</span>
+		// if the policy does not exist remove its id in order to be created, otherwise
+		// update it
+<span class="nc bnc" id="L2896" title="All 2 branches missed.">		if (existingPolicy == null) {</span>
+<span class="nc" id="L2897">			csPolicy.setId(null);</span>
+		}
+<span class="nc" id="L2899">		URI url = getURIBuilder().setPath(SERVICE_POLICIES).build();</span>
+<span class="nc" id="L2900">		String jsonBody = new Gson().toJson(csPolicy);</span>
+<span class="nc" id="L2901">		this.postJsonPrimitive(url, HttpMethod.POST, jsonBody);</span>
+<span class="nc" id="L2902">	}</span>
+
+	// =================================================
+	// Resource Quota Policy
+	// =================================================
+	/**
+	 * Retrieve all resource quota policy Ids.
+	 *
+	 * @return list of resource quota policy Ids that are available.
+	 */
+	protected List&lt;VraNgResourceQuotaPolicy&gt; getAllResourceQuotaPoliciesPrimitive() {
+<span class="nc bnc" id="L2913" title="All 2 branches missed.">		if (this.isVraAbove810) {</span>
+<span class="nc" id="L2914">			Map&lt;String, String&gt; params = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L2915">			params.put(&quot;expandDefinition&quot;, &quot;true&quot;);</span>
+<span class="nc" id="L2916">			params.put(&quot;computeStats&quot;, &quot;true&quot;);</span>
+<span class="nc" id="L2917">			params.put(&quot;typeId&quot;, RESOURCE_QUOTA_POLICY_TYPE);</span>
+
+<span class="nc" id="L2919">			List&lt;VraNgResourceQuotaPolicy&gt; results = this.getPagedContent(SERVICE_POLICIES, params).stream()</span>
+<span class="nc" id="L2920">					.map(jsonOb -&gt; new Gson().fromJson(jsonOb.toString(), VraNgResourceQuotaPolicy.class))</span>
+<span class="nc" id="L2921">					.filter(policy -&gt; policy.getTypeId().equalsIgnoreCase(RESOURCE_QUOTA_POLICY_TYPE)).collect(Collectors.toList());</span>
+
+<span class="nc" id="L2923">			LOGGER.debug(&quot;Policy Ids found on server - {}, for projectId: {}&quot;, results.size(), this.getProjectId());</span>
+<span class="nc" id="L2924">			return results;</span>
+
+		} else {
+<span class="nc" id="L2927">			throw (new UnsupportedOperationException(&quot;Policy import/export supported in VRA Versions  8.10.x or newer.&quot;));</span>
+		}
+	}
+
+	/**
+	 * Creates Resource Quota Policy.
+	 *
+	 * @param rqPolicy policy data to create
+	 */
+	public void createResourceQuotaPolicyPrimitive(final VraNgResourceQuotaPolicy rqPolicy) throws URISyntaxException, UnsupportedOperationException {
+<span class="nc bnc" id="L2937" title="All 2 branches missed.">		if (this.isVraAbove810) {</span>
+<span class="nc" id="L2938">			URI url = getURIBuilder().setPath(SERVICE_POLICIES).build();</span>
+<span class="nc" id="L2939">			String jsonBody = new Gson().toJson(rqPolicy);</span>
+<span class="nc" id="L2940">			JsonObject jsonObject = new Gson().fromJson(jsonBody, JsonObject.class);</span>
+<span class="nc" id="L2941">			this.postJsonPrimitive(url, HttpMethod.POST, jsonObject.toString());</span>
+<span class="nc" id="L2942">		} else {</span>
+<span class="nc" id="L2943">			throw (new UnsupportedOperationException(&quot;Policy import/export supported in VRA Versions  8.10.x or newer.&quot;));</span>
+		}
+<span class="nc" id="L2945">	}</span>
+
+	/**
+	 * Retrieve resource quota policy based on Id.
+	 *
+	 * @param policyId policy id
+	 * @return Created VraNg Resource Quota Policy
+	 */
+	protected VraNgResourceQuotaPolicy getResourceQuotaPolicyPrimitive(final String policyId) {
+
+<span class="nc bnc" id="L2955" title="All 2 branches missed.">		if (this.isVraAbove810) {</span>
+<span class="nc" id="L2956">			URI url = getURI(getURIBuilder().setPath(SERVICE_POLICIES + &quot;/&quot; + policyId));</span>
+<span class="nc" id="L2957">			ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L2958">			return new Gson().fromJson(response.getBody(), VraNgResourceQuotaPolicy.class);</span>
+		} else {
+<span class="nc" id="L2960">			throw (new UnsupportedOperationException(&quot;Policy import/export supported in VRA Versions  8.10.x or newer.&quot;));</span>
+		}
+	}
+	// =================================================
+	// Day 2 Actions Policy
+	// =================================================
+
+	/**
+	 * Retrieve all Day 2 Actions policy Ids.
+	 *
+	 * @return list of Day 2 Actions policy Ids that are available.
+	 */
+	protected List&lt;VraNgDay2ActionsPolicy&gt; getAllDay2ActionsPoliciesPrimitive() {
+<span class="nc bnc" id="L2973" title="All 2 branches missed.">		if (this.isVraAbove810) {</span>
+<span class="nc" id="L2974">			Map&lt;String, String&gt; params = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L2975">			params.put(&quot;expandDefinition&quot;, &quot;true&quot;);</span>
+<span class="nc" id="L2976">			params.put(&quot;computeStats&quot;, &quot;true&quot;);</span>
+			// filtering by typeId works on 8.16 but not on earlier versions.
+<span class="nc" id="L2978">			params.put(&quot;typeId&quot;, DAY2_ACTION_POLICY_TYPE);</span>
+
+<span class="nc" id="L2980">			List&lt;VraNgDay2ActionsPolicy&gt; results = this.getPagedContent(SERVICE_POLICIES, params).stream()</span>
+<span class="nc" id="L2981">					.map(jsonOb -&gt; new Gson().fromJson(jsonOb.toString(), VraNgDay2ActionsPolicy.class))</span>
+<span class="nc" id="L2982">					.filter(policy -&gt; policy.getTypeId().equalsIgnoreCase(DAY2_ACTION_POLICY_TYPE)).collect(Collectors.toList());</span>
+
+<span class="nc" id="L2984">			LOGGER.debug(&quot;Policy Ids found on server - {}, for projectId: {}&quot;, results.size(), this.getProjectId());</span>
+<span class="nc" id="L2985">			return results;</span>
+		} else {
+<span class="nc" id="L2987">			throw new UnsupportedOperationException(&quot;Policy import/export supported inVRA Versions  8.10.x or newer.&quot;);</span>
+		}
+	}
+
+	/**
+	 * Creates Day 2 Actions Policy.
+	 *
+	 * @param d2aPolicy policy data to create
+	 */
+	public void createDay2ActionsPolicyPrimitive(final VraNgDay2ActionsPolicy d2aPolicy) throws URISyntaxException {
+<span class="nc bnc" id="L2997" title="All 2 branches missed.">		if (this.isVraAbove810) {</span>
+<span class="nc" id="L2998">			URI url = getURIBuilder().setPath(SERVICE_POLICIES).build();</span>
+<span class="nc" id="L2999">			String jsonBody = new Gson().toJson(d2aPolicy);</span>
+<span class="nc" id="L3000">			JsonObject jsonObject = new Gson().fromJson(jsonBody, JsonObject.class);</span>
+<span class="nc" id="L3001">			this.postJsonPrimitive(url, HttpMethod.POST, jsonObject.toString());</span>
+<span class="nc" id="L3002">		} else {</span>
+<span class="nc" id="L3003">			throw new UnsupportedOperationException(&quot;Policy import/export supported inVRA Versions  8.10.x or newer.&quot;);</span>
+		}
+<span class="nc" id="L3005">	}</span>
+
+	/**
+	 * Retrieve Day 2 Actions Policy based on Id.
+	 *
+	 * @param policyId policy id
+	 * @return Created olicy
+	 */
+	protected VraNgDay2ActionsPolicy getDay2ActionsPolicyPrimitive(final String policyId) {
+<span class="nc bnc" id="L3014" title="All 2 branches missed.">		if (this.isVraAbove810) {</span>
+<span class="nc" id="L3015">			URI url = getURI(getURIBuilder().setPath(SERVICE_POLICIES + &quot;/&quot; + policyId));</span>
+<span class="nc" id="L3016">			ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L3017">			return new Gson().fromJson(response.getBody(), VraNgDay2ActionsPolicy.class);</span>
+		} else {
+<span class="nc" id="L3019">			throw new UnsupportedOperationException(&quot;Policy import/export supported inVRA Versions  8.10.x or newer.&quot;);</span>
+		}
+	}
+
+	// =================================================
+	// Lease Policy
+	// =================================================
+
+	/**
+	 * Retrieve all lease policy Ids.
+	 *
+	 * @return list of sharing policy Ids that are available.
+	 */
+	protected List&lt;VraNgLeasePolicy&gt; getAllLeasePoliciesPrimitive() {
+<span class="nc bnc" id="L3033" title="All 2 branches missed.">		if (this.isVraAbove810) {</span>
+
+<span class="nc" id="L3035">			Map&lt;String, String&gt; params = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L3036">			params.put(&quot;expandDefinition&quot;, &quot;true&quot;);</span>
+<span class="nc" id="L3037">			params.put(&quot;computeStats&quot;, &quot;true&quot;);</span>
+<span class="nc" id="L3038">			params.put(&quot;typeId&quot;, LEASE_POLICY_TYPE);</span>
+
+<span class="nc" id="L3040">			List&lt;VraNgLeasePolicy&gt; results = this.getPagedContent(SERVICE_POLICIES, params).stream()</span>
+<span class="nc" id="L3041">					.map(jsonOb -&gt; new Gson().fromJson(jsonOb.toString(), VraNgLeasePolicy.class))</span>
+<span class="nc" id="L3042">					.filter(policy -&gt; policy.getTypeId().equalsIgnoreCase(LEASE_POLICY_TYPE)).collect(Collectors.toList());</span>
+
+<span class="nc" id="L3044">			LOGGER.debug(&quot;Lease Policies found on server - {}, for projectId: {}&quot;, results.size(), this.getProjectId());</span>
+<span class="nc" id="L3045">			return results;</span>
+		} else {
+<span class="nc" id="L3047">			throw new UnsupportedOperationException(&quot;Policy import/export supported inVRA Versions  8.10.x or newer.&quot;);</span>
+		}
+	}
+
+	/**
+	 * Retrieve lease policy based on Id.
+	 *
+	 * @param policyId policy id
+	 * @return Created VraNg lease Policy
+	 */
+	protected VraNgLeasePolicy getLeasePolicyPrimitive(final String policyId) {
+<span class="nc bnc" id="L3058" title="All 2 branches missed.">		if (this.isVraAbove810) {</span>
+
+<span class="nc" id="L3060">			URI url = getURI(getURIBuilder().setPath(SERVICE_POLICIES + &quot;/&quot; + policyId));</span>
+<span class="nc" id="L3061">			ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L3062">			return new Gson().fromJson(response.getBody(), VraNgLeasePolicy.class);</span>
+		} else {
+<span class="nc" id="L3064">			throw new UnsupportedOperationException(&quot;Policy import/export supported inVRA Versions  8.10.x or newer.&quot;);</span>
+		}
+	}
+
+	/**
+	 * Creates lease Policy.
+	 *
+	 * @param policy policy data to create
+	 */
+	public void createLeasePolicyPrimitive(final VraNgLeasePolicy policy) throws URISyntaxException {
+<span class="nc bnc" id="L3074" title="All 2 branches missed.">		if (this.isVraAbove810) {</span>
+<span class="nc" id="L3075">			URI url = getURIBuilder().setPath(SERVICE_POLICIES).build();</span>
+<span class="nc" id="L3076">			String jsonBody = new Gson().toJson(policy);</span>
+<span class="nc" id="L3077">			JsonObject jsonObject = new Gson().fromJson(jsonBody, JsonObject.class);</span>
+<span class="nc" id="L3078">			this.postJsonPrimitive(url, HttpMethod.POST, jsonObject.toString());</span>
+<span class="nc" id="L3079">		} else {</span>
+<span class="nc" id="L3080">			throw new UnsupportedOperationException(&quot;Policy import/export supported inVRA Versions  8.10.x or newer.&quot;);</span>
+		}
+<span class="nc" id="L3082">	}</span>
+
+	// =================================================
+	// Deployment Limit Policy
+	// =================================================
+
+	/**
+	 * Creates Deployment Limit Policy.
+	 *
+	 * @param policy policy data to create
+	 */
+	public void createDeploymentLimitPolicyPrimitive(final VraNgDeploymentLimitPolicy policy) throws URISyntaxException {
+<span class="nc bnc" id="L3094" title="All 2 branches missed.">		if (this.isVraAbove810) {</span>
+<span class="nc" id="L3095">			URI url = getURIBuilder().setPath(SERVICE_POLICIES).build();</span>
+<span class="nc" id="L3096">			String jsonBody = new Gson().toJson(policy);</span>
+<span class="nc" id="L3097">			JsonObject jsonObject = new Gson().fromJson(jsonBody, JsonObject.class);</span>
+<span class="nc" id="L3098">			this.postJsonPrimitive(url, HttpMethod.POST, jsonObject.toString());</span>
+<span class="nc" id="L3099">		} else {</span>
+<span class="nc" id="L3100">			throw new UnsupportedOperationException(&quot;Policy import/export supported inVRA Versions  8.10.x or newer.&quot;);</span>
+		}
+<span class="nc" id="L3102">	}</span>
+
+	/**
+	 * Retrieve Deployment Limit Policy based on Id.
+	 *
+	 * @param policyId policy id
+	 * @return Deployment Limit Policy
+	 */
+	protected VraNgDeploymentLimitPolicy getDeploymentLimitPolicyPrimitive(final String policyId) {
+<span class="nc bnc" id="L3111" title="All 2 branches missed.">		if (this.isVraAbove810) {</span>
+
+<span class="nc" id="L3113">			URI url = getURI(getURIBuilder().setPath(SERVICE_POLICIES + &quot;/&quot; + policyId));</span>
+<span class="nc" id="L3114">			ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L3115">			return new Gson().fromJson(response.getBody(), VraNgDeploymentLimitPolicy.class);</span>
+		} else {
+<span class="nc" id="L3117">			throw new UnsupportedOperationException(&quot;Policy import/export supported inVRA Versions  8.10.x or newer.&quot;);</span>
+		}
+	}
+
+	/**
+	 * Retrieve all Deployment Limit policy.
+	 *
+	 * @return list of Deployment Limit policies that are available.
+	 */
+	protected List&lt;VraNgDeploymentLimitPolicy&gt; getAllDeploymentLimitPoliciesPrimitive() {
+<span class="nc bnc" id="L3127" title="All 2 branches missed.">		if (this.isVraAbove810) {</span>
+
+<span class="nc" id="L3129">			Map&lt;String, String&gt; params = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L3130">			params.put(&quot;expandDefinition&quot;, &quot;true&quot;);</span>
+<span class="nc" id="L3131">			params.put(&quot;computeStats&quot;, &quot;true&quot;);</span>
+			// filtering by typeId works on 8.16 but not on earlier versions.
+<span class="nc" id="L3133">			params.put(&quot;typeId&quot;, DEPLOYMENT_LIMIT_POLICY_TYPE);</span>
+
+<span class="nc" id="L3135">			List&lt;VraNgDeploymentLimitPolicy&gt; results = this.getPagedContent(SERVICE_POLICIES, params).stream()</span>
+<span class="nc" id="L3136">					.map(jsonOb -&gt; new Gson().fromJson(jsonOb.toString(), VraNgDeploymentLimitPolicy.class))</span>
+<span class="nc" id="L3137">					.filter(policy -&gt; policy.getTypeId().equalsIgnoreCase(DEPLOYMENT_LIMIT_POLICY_TYPE)).collect(Collectors.toList());</span>
+
+<span class="nc" id="L3139">			LOGGER.debug(&quot;Policy Ids found on server - {}, for projectId: {}&quot;, results.size(), this.getProjectId());</span>
+<span class="nc" id="L3140">			return results;</span>
+		} else {
+<span class="nc" id="L3142">			throw new UnsupportedOperationException(&quot;Policy import/export supported inVRA Versions  8.10.x or newer.&quot;);</span>
+		}
+	}
+
+	// =================================================
+	// Approval Policy
+	// =================================================
+
+	/**
+	 * Creates Approval Policy.
+	 *
+	 * @param policy policy data to create
+	 */
+	public void createApprovalPolicyPrimitive(final VraNgApprovalPolicy policy) throws URISyntaxException {
+<span class="nc bnc" id="L3156" title="All 2 branches missed.">		if (isVraAbove810) {</span>
+<span class="nc" id="L3157">			URI url = getURIBuilder().setPath(SERVICE_POLICIES).build();</span>
+<span class="nc" id="L3158">			String jsonBody = new Gson().toJson(policy);</span>
+<span class="nc" id="L3159">			JsonObject jsonObject = new Gson().fromJson(jsonBody, JsonObject.class);</span>
+<span class="nc" id="L3160">			this.postJsonPrimitive(url, HttpMethod.POST, jsonObject.toString());</span>
+<span class="nc" id="L3161">		} else {</span>
+<span class="nc" id="L3162">			throw new UnsupportedOperationException(&quot;Policy import/export supported inVRA Versions  8.10.x or newer.&quot;);</span>
+		}
+<span class="nc" id="L3164">	}</span>
+
+	/**
+	 * Retrieve Approval Policy based on Id.
+	 *
+	 * @param policyId policy id
+	 * @return Approval Policy
+	 */
+	protected VraNgApprovalPolicy getApprovalPolicyPrimitive(final String policyId) {
+<span class="nc bnc" id="L3173" title="All 2 branches missed.">		if (isVraAbove810) {</span>
+<span class="nc" id="L3174">			URI url = getURI(getURIBuilder().setPath(SERVICE_POLICIES + &quot;/&quot; + policyId));</span>
+<span class="nc" id="L3175">			ResponseEntity&lt;String&gt; response = restTemplate.exchange(url, HttpMethod.GET, getDefaultHttpEntity(), String.class);</span>
+<span class="nc" id="L3176">			return new Gson().fromJson(response.getBody(), VraNgApprovalPolicy.class);</span>
+		} else {
+<span class="nc" id="L3178">			throw new UnsupportedOperationException(&quot;Policy import/export supported inVRA Versions  8.10.x or newer.&quot;);</span>
+		}
+	}
+
+	/**
+	 * Retrieve all Approval policies.
+	 *
+	 * @return list of Approval policies that are available.
+	 */
+	protected List&lt;VraNgApprovalPolicy&gt; getAllApprovalPoliciesPrimitive() {
+<span class="nc bnc" id="L3188" title="All 2 branches missed.">		if (isVraAbove810) {</span>
+<span class="nc" id="L3189">			Map&lt;String, String&gt; params = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L3190">			params.put(&quot;expandDefinition&quot;, &quot;true&quot;);</span>
+<span class="nc" id="L3191">			params.put(&quot;computeStats&quot;, &quot;true&quot;);</span>
+			// filtering by typeId works on 8.16 but not on earlier versions.
+			// filter here to reduce traffic for newer vRA versions.
+<span class="nc" id="L3194">			params.put(&quot;typeId&quot;, APPROVAL_POLICY_TYPE);</span>
+
+			// filter here for older vRA versions.
+<span class="nc" id="L3197">			List&lt;VraNgApprovalPolicy&gt; results = this.getPagedContent(SERVICE_POLICIES, params).stream()</span>
+<span class="nc" id="L3198">					.map(jsonOb -&gt; new Gson().fromJson(jsonOb.toString(), VraNgApprovalPolicy.class))</span>
+<span class="nc" id="L3199">					.filter(policy -&gt; policy.getTypeId().equalsIgnoreCase(APPROVAL_POLICY_TYPE)).collect(Collectors.toList());</span>
+
+<span class="nc" id="L3201">			LOGGER.debug(&quot;Policy Ids found on server - {}, for projectId: {}&quot;, results.size(), this.getProjectId());</span>
+<span class="nc" id="L3202">			return results;</span>
+		} else {
+<span class="nc" id="L3204">			throw new UnsupportedOperationException(&quot;Policy import/export supported inVRA Versions  8.10.x or newer.&quot;);</span>
+		}
+
+	}
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
